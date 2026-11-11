@@ -1,0 +1,693 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style></head><body>
+<title>Campus des cours</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;800&family=Inter:wght@400;500;700&display=swap">
+<style>
+/* Concept : une île en pixel art vue en isométrique (l'école à gauche, la maison à droite) occupe toute la largeur ; dessous, des cartes sobres pour l'heure, le lieu, le cours et l'emploi du temps. */
+:root{
+  --fond:#f3f0fa; --panneau:#ffffff; --encre:#1c1830; --sourdine:#635d7a; --trait:#dcd6ec; --accent:#e4572e; --creux:#ece8f6; --ok:#1f9d6b;
+  --f-titre:"Outfit","Trebuchet MS",sans-serif; --f-texte:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fond:#12101c;--panneau:#1c1930;--encre:#eeebf8;--sourdine:#a19bb8;--trait:#332e4d;--accent:#ff7d55;--creux:#151226;--ok:#46d39a;color-scheme:dark}}
+:root[data-theme="dark"]{--fond:#12101c;--panneau:#1c1930;--encre:#eeebf8;--sourdine:#a19bb8;--trait:#332e4d;--accent:#ff7d55;--creux:#151226;--ok:#46d39a;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--fond);color:var(--encre);font:400 15px/1.5 var(--f-texte);
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font:800 clamp(26px,4.5vw,36px)/1.1 var(--f-titre);margin:0;letter-spacing:-.01em}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tete{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:flex-end;justify-content:space-between}
+.sous{margin:4px 0 0;color:var(--sourdine);max-width:60ch}
+.horloge{font:800 clamp(34px,6vw,48px)/1 var(--f-titre);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.date{color:var(--sourdine);margin:2px 0 0}
+.apercu-tag{display:inline-block;background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:middle}
+.scene-boite{overflow-x:auto;border-radius:18px}
+canvas{display:block;width:100%;min-width:720px;height:auto;aspect-ratio:960/560}
+.cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;align-items:start}
+.carte{background:var(--panneau);border:1px solid var(--trait);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.carte.large{grid-column:1/-1}
+.label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin:0}
+.gros{font:800 21px/1.15 var(--f-titre);display:flex;gap:10px;align-items:center;margin:0}
+.gros i,.cellule i{width:12px;height:12px;border-radius:4px;flex:none;display:inline-block}
+.detail{margin:0;color:var(--sourdine)}
+.barre{height:8px;background:var(--creux);border-radius:99px;overflow:hidden}
+.barre div{height:100%;background:var(--accent);border-radius:99px;width:0}
+.rang{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rang select,.rang button{background:var(--creux);border:1px solid var(--trait);border-radius:9px;padding:7px 10px}
+.rang button{cursor:pointer}
+.rang button[disabled]{opacity:.5;cursor:default}
+.rang button.fort{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.rang input{flex:1 1 140px;min-width:0;accent-color:var(--accent)}
+.rang input[type=text],.rang input[type=date],.rang input[type=time]{background:var(--creux);border:1px solid var(--trait);border-radius:9px;padding:7px 10px}
+.rang input[type=date],.rang input[type=time]{flex:0 1 auto}
+.rang input[type=text]{flex:1 1 100%}
+.rappels{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rappels li{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--creux);border:1px solid var(--trait);border-radius:10px;padding:7px 10px;min-width:0}
+.rappels li.proche{border-color:var(--accent)}
+.rappels span{min-width:0;overflow-wrap:anywhere}
+.rappels small{display:block;color:var(--sourdine)}
+.rappels small.urgent{color:var(--accent);font-weight:700}
+.rappels button{background:var(--panneau);border:1px solid var(--trait);border-radius:8px;padding:4px 10px;cursor:pointer;flex:none}
+.grille-boite{overflow-x:auto}
+table{border-collapse:separate;border-spacing:5px;width:100%;min-width:500px;table-layout:fixed;font-size:12.5px}
+th{font-weight:700;color:var(--sourdine);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:2px}
+th.h{width:62px;text-align:left;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+td{padding:0;vertical-align:top}
+.cellule{width:100%;min-height:58px;text-align:left;background:var(--creux);border:1px solid var(--trait);border-radius:10px;padding:7px;cursor:pointer;display:flex;flex-direction:column;gap:5px;line-height:1.25;overflow-wrap:anywhere}
+.cellule:hover{border-color:var(--accent)}
+.cellule.actif{border:2px solid var(--accent);background:var(--panneau);font-weight:700}
+.cellule .du{color:var(--accent);font-weight:700;font-size:11px}
+.rang select{min-width:0;max-width:100%}
+.pres{display:flex;flex-direction:column;gap:5px}
+.pres div{display:flex;justify-content:space-between;gap:10px;background:var(--creux);border-radius:8px;padding:5px 10px;font-variant-numeric:tabular-nums}
+.pres div span:last-child{color:var(--sourdine);text-align:right}
+#scene{cursor:pointer}
+.note{margin:0;color:var(--sourdine);font-size:13px}
+</style>
+
+<div class="page">
+  <header class="tete">
+    <div>
+      <h1>Le campus des cours</h1>
+      <p class="sous">Une ville de 48 étudiants, chacun avec sa maison, et un prof par matière. Ton personnage est là où tu es ; à l'heure du cours, toute la classe rejoint la bonne salle.</p>
+    </div>
+    <div>
+      <div class="horloge" id="horloge">--:--:--</div>
+      <p class="date"><span id="date"></span><span class="apercu-tag" id="tag" hidden>Aperçu</span></p>
+    </div>
+  </header>
+
+  <div class="scene-boite"><canvas id="scene" width="960" height="560" role="img" aria-label="Ville en pixel art : l'école avec une salle par matière, la cour, la route, le parc et une maison par étudiant"></canvas></div>
+
+  <div class="cartes">
+    <section class="carte" aria-live="polite">
+      <p class="label">Où tu es</p>
+      <p class="gros" id="lieu"></p>
+      <p class="detail" id="lieu-detail"></p>
+      <div class="rang">
+        <select id="mode" aria-label="Choisir où tu es">
+          <option value="auto">Automatique</option><option value="maison">Je suis à la maison</option><option value="route">Je suis en route</option><option value="ecole">Je suis à l'école</option>
+        </select>
+        <button id="gps" type="button" class="fort">Activer ma position</button>
+      </div>
+      <div class="rang">
+        <button id="ici-maison" type="button" disabled>Ici, c'est ma maison</button>
+        <button id="ici-ecole" type="button" disabled>Ici, c'est mon école</button>
+      </div>
+      <p class="note" id="gps-note">Active ta position, puis enregistre une fois ta maison et ton école quand tu y es. Tes coordonnées restent dans ton navigateur.</p>
+      <p class="label" style="margin-top:6px">Météo de Grand-Bassam</p>
+      <div class="rang">
+        <select id="meteo-mode" aria-label="Météo affichée"><option value="auto">Automatique</option><option value="soleil">Soleil</option><option value="nuages">Nuages</option><option value="pluie">Pluie</option></select>
+        <span class="detail" id="meteo-txt"></span>
+      </div>
+    </section>
+    <section class="carte" aria-live="polite">
+      <p class="label" id="etat-label">En ce moment</p>
+      <p class="gros" id="etat-matiere"></p>
+      <p class="detail" id="etat-detail"></p>
+      <p class="detail" id="compte"></p>
+      <div class="barre" id="barre"><div id="barre-in"></div></div>
+      <p class="label" style="margin-top:8px">Ensuite</p>
+      <p class="detail"><b id="suite-matiere" style="color:var(--encre)"></b> <span id="suite-quand"></span></p>
+    </section>
+    <section class="carte" aria-live="polite">
+      <p class="label" id="chien-label">Ton rottweiler · rappels</p>
+      <p class="gros" id="chien-dit"></p>
+      <p class="detail" id="chien-detail"></p>
+      <form class="rang" id="form-rappel">
+        <input id="rappel-texte" type="text" maxlength="60" placeholder="Ex. : exposé à rendre" aria-label="Ce que tu dois rendre" autocomplete="off">
+        <input id="rappel-date" type="date" aria-label="Date limite">
+        <input id="rappel-heure" type="time" aria-label="Heure limite (facultatif)">
+        <select id="rappel-matiere" aria-label="Matière concernée (facultatif)"><option value="">Sans matière</option></select>
+        <button class="fort" type="submit">Dire au chien</button>
+      </form>
+      <ul class="rappels" id="rappels"></ul>
+      <div class="rang">
+        <input id="chien-nom" type="text" maxlength="14" placeholder="Le nom de ton chien" aria-label="Nom du chien" autocomplete="off" style="flex:1 1 150px">
+        <button id="notif" type="button">Activer les notifications</button>
+      </div>
+      <p class="note" id="notif-note"></p>
+    </section>
+    <section class="carte">
+      <p class="label">Ta présence en cours</p>
+      <p class="gros" id="pres-resume"></p>
+      <p class="detail" id="pres-detail"></p>
+      <div class="pres" id="pres-liste"></div>
+    </section>
+    <section class="carte" aria-live="polite">
+      <p class="label">Fiche · clique un personnage dans la ville</p>
+      <p class="gros" id="fiche-nom"></p>
+      <p class="detail" id="fiche-detail"></p>
+      <div class="rang">
+        <input id="fiche-input" type="text" maxlength="20" placeholder="Son vrai prénom" aria-label="Prénom du personnage" autocomplete="off" disabled>
+        <button id="fiche-ok" type="button" disabled>Enregistrer</button>
+      </div>
+    </section>
+    <section class="carte large">
+      <p class="label">Emploi du temps · clique un cours pour voir la classe s'y rendre</p>
+      <div class="grille-boite"><table id="grille"></table></div>
+      <div class="rang">
+        <select id="sim-jour" aria-label="Jour de l'aperçu"></select>
+        <input id="sim-heure" type="range" min="300" max="1380" step="5" value="540" aria-label="Heure de l'aperçu">
+        <button id="reel" type="button">Revenir au temps réel</button>
+      </div>
+      <p class="note">Heure d'Abidjan. Créneaux : 9h00–12h00 et 13h30–16h30. 48 étudiants, 48 places par salle, 8 profs.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------- Tes matières et tes créneaux (à modifier ici si ça change) ---------- */
+const MATIERES = [
+  {id:'c',   nom:'Programmation et algorithmes en langage C', court:'Prog. C',          c:'#5b8ff5'},
+  {id:'ele', nom:'Électrocinétique',                          court:'Électrocinétique', c:'#f2b632'},
+  {id:'fr',  nom:'Techniques d\'expression française',        court:'Expression fr.',   c:'#e86a92'},
+  {id:'ia',  nom:'Introduction à l\'Intelligence Artificielle', court:'Intro. IA',      c:'#9b7cf5'},
+  {id:'bct', nom:'Business Comm. Tools',                      court:'Business Comm.',   c:'#2cc0b0'},
+  {id:'lea', nom:'Leadership & Personal Developpement',       court:'Leadership',       c:'#f58a4b'},
+  {id:'log', nom:'Logique et raisonnements mathématiques',    court:'Logique & maths',  c:'#62c460'},
+  {id:'en',  nom:'English',                                   court:'English',          c:'#e0605e'},
+];
+const MATIN = [540, 720], APREM = [810, 990];           // minutes depuis minuit : 9h00–12h00, 13h30–16h30
+const SEMAINE = {1:['c','ele'], 2:['fr','ia'], 3:['bct','c'], 4:['lea','log'], 5:['en',null]}; // 1 = lundi
+const RAYON = {ecole: 400, maison: 150};                 // en mètres : distance pour dire « tu y es »
+
+const CRENEAUX = [];
+Object.entries(SEMAINE).forEach(([j, [a, b]]) => { if (a) CRENEAUX.push({jour:+j, deb:MATIN[0], fin:MATIN[1], m:a}); if (b) CRENEAUX.push({jour:+j, deb:APREM[0], fin:APREM[1], m:b}); });
+const matiere = id => MATIERES.find(m => m.id === id);
+const JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const hm = m => Math.floor(m / 60) + 'h' + String(Math.floor(m % 60)).padStart(2, '0');
+const $ = id => document.getElementById(id);
+
+/* ---------- L'heure : réelle (Abidjan = UTC) ou aperçu ---------- */
+let sim = null;
+function maintenant(){
+  const d = new Date();
+  if (sim) return {jour: sim.jour, min: Math.min(1439.9, sim.base + (Date.now() - sim.pose) / 60000), sim: true};
+  return {jour: d.getUTCDay(), min: d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60, d};
+}
+function situation(t){
+  const actuel = CRENEAUX.find(c => c.jour === t.jour && t.min >= c.deb && t.min < c.fin) || null;
+  let suivant = null, ecart = Infinity;
+  CRENEAUX.forEach(c => { let e = ((c.jour - t.jour) * 1440 + c.deb - t.min + 10080) % 10080; if (e <= 0) e += 10080; if (e < ecart){ ecart = e; suivant = c; } });
+  return {actuel, suivant, ecart};
+}
+const duree = m => { m = Math.ceil(m); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : ''); };
+const coursDuJour = j => CRENEAUX.filter(c => c.jour === j).sort((a, b) => a.deb - b.deb);
+const bulleVisible = T => { const l = coursDuJour(T.jour); return l.length && T.min >= 300 && T.min < l[0].deb ? l : null; };
+const ecoleOuverte = T => T.jour >= 1 && T.jour <= 5 && T.min >= 450 && T.min < 1050;   // 7h30–17h30 : les autres étudiants sont là
+
+/* ---------- Ta position : GPS, choix manuel, ou estimation ---------- */
+let lieux = {}, gps = {etat: 'off', pos: null}, mode = 'auto';
+try { lieux = JSON.parse(localStorage.getItem('campus-lieux') || '{}'); mode = localStorage.getItem('campus-mode') || 'auto'; } catch (e) {}
+const garder = () => { try { localStorage.setItem('campus-lieux', JSON.stringify(lieux)); localStorage.setItem('campus-mode', mode); } catch (e) {} };
+function metres(a, b){ const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r, h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(h)); }
+function ouSuisJe(T, S){
+  if (mode !== 'auto') return {lieu: mode, source: 'choisi par toi'};
+  if (!T.sim && gps.etat === 'ok' && gps.pos && (lieux.maison || lieux.ecole)){
+    const dm = lieux.maison ? metres(gps.pos, lieux.maison) : Infinity, de = lieux.ecole ? metres(gps.pos, lieux.ecole) : Infinity;
+    const lieu = de <= RAYON.ecole ? 'ecole' : dm <= RAYON.maison ? 'maison' : 'route';
+    return {lieu, source: 'position GPS (± ' + Math.round(gps.pos.acc) + ' m)'};
+  }
+  return {lieu: S.actuel || (ecoleOuverte(T) && T.min >= 510 && T.min < 990 && coursDuJour(T.jour).length) ? 'ecole' : 'maison', source: 'estimé d\'après l\'horaire'};
+}
+function activerGPS(){
+  if (!navigator.geolocation){ gps.etat = 'refus'; panneau(); return; }
+  gps.etat = 'attente'; panneau();
+  navigator.geolocation.watchPosition(p => { gps.etat = 'ok'; gps.pos = {lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy}; try { localStorage.setItem('campus-gps', '1'); } catch (e) {} panneau(); },
+    () => { if (gps.etat !== 'ok'){ gps.etat = 'refus'; panneau(); } }, {enableHighAccuracy: true, maximumAge: 30000, timeout: 20000});
+}
+
+/* ---------- Le chien et ses rappels (gardés dans ton navigateur) ---------- */
+let rappels = []; try { rappels = JSON.parse(localStorage.getItem('campus-rappels') || '[]'); } catch (e) {}
+const garderRappels = () => { try { localStorage.setItem('campus-rappels', JSON.stringify(rappels)); } catch (e) {} };
+const prochainRappel = () => rappels.slice().sort((a, b) => a.pour - b.pour)[0] || null;   // la tâche à rendre la plus proche
+function delai(r){ const now = Date.now(), j = Math.floor(r.pour / 864e5) - Math.floor(now / 864e5), d = new Date(r.pour), h = r.heure ? ' à ' + hm(d.getUTCHours() * 60 + d.getUTCMinutes()) : '';
+  if (r.pour < now) return 'en retard';
+  if (j === 0) return r.heure && r.pour - now < 3600e3 ? 'dans ' + Math.max(1, Math.round((r.pour - now) / 60000)) + ' min' : 'aujourd\'hui' + h;
+  return j === 1 ? 'demain' + h : 'dans ' + j + ' jours';
+}
+const urgent = r => r.pour - Date.now() < 864e5;
+const aRendreBientot = () => rappels.filter(r => r.pour > Date.now() && r.pour - Date.now() < 2 * 864e5).sort((a, b) => a.pour - b.pour);   // dans les 48 h
+let chienNom = ''; try { chienNom = localStorage.getItem('campus-chien') || ''; } catch (e) {}
+
+/* ---------- Les prénoms que tu donnes aux personnages ---------- */
+let noms = {}, choisi = null; try { noms = JSON.parse(localStorage.getItem('campus-noms') || '{}'); } catch (e) {}
+
+/* ---------- La météo de Grand-Bassam (en direct quand la page est sur ton site) ---------- */
+let meteo = {etat: 'attente', type: 'soleil', temp: null}, meteoMode = 'auto';
+function chargerMeteo(){
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=5.2118&longitude=-3.7388&current=temperature_2m,weather_code')
+    .then(r => r.json()).then(j => { const c = j.current.weather_code; meteo = {etat: 'ok', temp: Math.round(j.current.temperature_2m),
+      type: (c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95 ? 'pluie' : c >= 2 && c <= 48 ? 'nuages' : 'soleil'}; })
+    .catch(() => { meteo.etat = 'ko'; });
+}
+const tempsQuilFait = () => meteoMode !== 'auto' ? meteoMode : meteo.type;
+
+/* ---------- La ville isométrique ---------- */
+const cv = $('scene'), ctx = cv.getContext('2d');
+const W = 960, H = 560, TW = 36, TH = 18, GX = 34, GY = 18, OX = GY * TW / 2 + (W - (GX + GY) * TW / 2) / 2, OY = 58;
+const P = (x, y, z = 0) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2 - z];
+const H1 = (a, b = 0) => { const v = Math.sin(a * 127.1 + b * 311.7 + 1.3) * 43758.5453; return v - Math.floor(v); };   // hasard stable : même nombre pour les mêmes entrées
+function teinte(hex, k){ const n = parseInt(hex.slice(1), 16), b = k < 0 ? 0 : 255, a = Math.abs(k), f = s => Math.round(((n >> s) & 255) * (1 - a) + b * a); return '#' + [16, 8, 0].map(s => f(s).toString(16).padStart(2, '0')).join(''); }
+function poly(pts, c){ ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = c; ctx.fill(); }
+const sol = (x, y, w, h, c) => poly([P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], c);
+function boite(x, y, w, d, z, h, c){
+  poly([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x, y + d, z)], teinte(c, -.2));
+  poly([P(x + w, y, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x + w, y, z)], teinte(c, -.36));
+  poly([P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], c);
+}
+function arbre(x, y, sapin){ const [sx, sy] = P(x, y); ctx.fillStyle = '#8a5a3a'; ctx.fillRect(sx - 2, sy - 11, 4, 11);
+  if (sapin){ ctx.fillStyle = '#2f8f5f'; [[11, 10], [8, 19], [6, 27]].forEach(([w, h]) => { ctx.beginPath(); ctx.moveTo(sx - w, sy - h + 9); ctx.lineTo(sx + w, sy - h + 9); ctx.lineTo(sx, sy - h - 5); ctx.fill(); }); }
+  else { ctx.fillStyle = '#2f9e5f'; ctx.fillRect(sx - 9, sy - 25, 18, 14); ctx.fillRect(sx - 6, sy - 29, 12, 4); ctx.fillStyle = '#58c27a'; ctx.fillRect(sx - 6, sy - 26, 7, 6); } }
+
+// Ce qui change à chaque image (heure, nuit, salle en cours) et que les objets lisent pour se dessiner
+const ENV = {nuit: false, min: 0, t: 0, actif: null};
+
+// L'école : 8 salles (une par matière) et la cour
+const SALLES = MATIERES.map((m, i) => ({m, x: 1 + (i % 4) * 4, y: i < 4 ? 1 : 5.6, w: 3.8, h: 4.2}));
+const salleDe = id => SALLES.find(s => s.m.id === id);
+const COUR = {x: 1, y: 10.4, w: 15.8, h: 4.6};
+const TABLES = [.2, 1.05, 2, 2.85], LT = .8;          // 4 tables doubles par rangée, une allée au milieu : 6 rangées = 48 places
+// La ville : la route, le trottoir, 47 maisons + la tienne, un parc
+const ROUTE = {x: 17.6, w: 1.7}, TROTTOIR = 19.55, PASSAGE = 12.7;
+const HUB = {x: TROTTOIR, y: PASSAGE}, PORTAIL = {x: 17.35, y: PASSAGE};
+const px = c => 19.9 + c * 2, py = r => .5 + r * 2.15, LM = 1.45, PM = 1.4, allee = r => py(r) + 1.78;
+const CHEZ_MOI = {x: px(0), y: py(3), w: 3.45, h: 3.55}, PARC = {x: px(4) - .1, y: py(3) - .1, w: 3.65, h: 3.75};
+const LIT = {x: CHEZ_MOI.x + .35, y: CHEZ_MOI.y + .35}, CANAPE = {x: CHEZ_MOI.x + 1.8, y: CHEZ_MOI.y + 2.5};
+const RESERVE = ['0-3', '1-3', '0-4', '1-4', '4-3', '4-4', '5-3', '5-4', '6-7'];
+const TERRAINS = [[2, 3]];                                 // la première maison (à côté de la tienne) est celle de Sabrina
+for (let r = 0; r < 8; r++) for (let c = 0; c < 7; c++) if (!RESERVE.includes(c + '-' + r) && !(c === 2 && r === 3)) TERRAINS.push([c, r]);
+
+const FIXES = [];
+const mur = (x, y, w, d, h, c) => {   // découpé en petits morceaux pour que les personnages passent bien devant ou derrière
+  if (w >= d) for (let i = 0; i < w; i++){ const l = Math.min(1, w - i); FIXES.push({k: x + i + l / 2 + y + d / 2, f(){ boite(x + i, y, l, d, 0, h, c); }}); }
+  else for (let j = 0; j < d; j++){ const l = Math.min(1, d - j); FIXES.push({k: x + w / 2 + y + j + l / 2, f(){ boite(x, y + j, w, l, 0, h, c); }}); }
+};
+SALLES.forEach(s => {
+  const c = s.m.c, fonce = teinte(c, -.3), yb = s.y + .16;
+  mur(s.x, s.y, s.w, .14, 16, c); mur(s.x, s.y, .14, s.h, 16, c);
+  mur(s.x, s.y + s.h - .14, s.w * .36, .14, 6, fonce); mur(s.x + s.w * .64, s.y + s.h - .14, s.w * .36, .14, 6, fonce); mur(s.x + s.w - .14, s.y, .14, s.h, 6, fonce);
+  FIXES.push({k: s.x + 2.2 + s.y + .3, f(){
+    poly([P(s.x + 1.5, yb, 14), P(s.x + 3.3, yb, 14), P(s.x + 3.3, yb, 5), P(s.x + 1.5, yb, 5)], '#ffffff');                      // tableau blanc
+    poly([P(s.x + .45, yb, 14), P(s.x + 1.2, yb, 14), P(s.x + 1.2, yb, 7), P(s.x + .45, yb, 7)], ENV.actif === s ? c : '#22222e');   // écran, allumé pendant le cours
+    if (ENV.actif === s) [[12, 1.2, '#3d8bfd'], [10, .8, '#e4572e'], [8, 1.4, '#1c1830']].forEach(([z, l, col], i) => { const n = Math.min(1, ((ENV.t * .25 + i * .3) % 1.6)) * l;   // le prof écrit
+      poly([P(s.x + 1.65, yb, z + .7), P(s.x + 1.65 + n, yb, z + .7), P(s.x + 1.65 + n, yb, z), P(s.x + 1.65, yb, z)], col); }); }});
+  FIXES.push({k: s.x + 3.1 + s.y + .75, f(){ boite(s.x + 2.7, s.y + .5, .8, .28, 0, 6, '#9a6b45'); }});                                // bureau du prof
+  for (let r = 0; r < 6; r++) TABLES.forEach(tx => { const x = s.x + tx, y = s.y + 1.07 + r * .47; FIXES.push({k: x + LT / 2 + y + .1, f(){ boite(x, y, LT, .15, 0, 5, '#f1e6cf'); }}); });
+});
+[[2.5, 11.2], [7.5, 13.9], [12.8, 11.3], [3, 16.6, 1], [8, 16.9], [13.5, 16.5, 1], [16.4, 16.9]].forEach(([x, y, s]) => FIXES.push({k: x + y, f(){ arbre(x, y, s); }}));
+[[4.6, 13.2], [10, 11.6]].forEach(([x, y]) => FIXES.push({k: x + .6 + y + .2, f(){ boite(x, y, 1.3, .35, 0, 4, '#c98d5a'); }}));
+
+// une maisonnette fermée : murs, porte, fenêtres (allumées le soir si quelqu'un est là), toit à deux pentes
+const MURS = ['#fbe9c6', '#f6d7c3', '#e8e3f5', '#d9eef0', '#fde6a8', '#f1d4e0'], TOITS = ['#e4572e', '#3d8bfd', '#2fb37a', '#8e6cf2', '#d94f4f', '#f2b632', '#1fb5b0'];
+function maisonnette(hx, hy, m, toit, allume){
+  const w = LM, d = PM, h = 13, r = 9, f = hy + d, vitre = allume ? '#ffe28a' : ENV.nuit ? '#39405e' : '#bfe3ff';
+  poly([P(hx - .1, hy - .1, h), P(hx + w + .1, hy - .1, h), P(hx + w + .1, hy + d / 2, h + r), P(hx - .1, hy + d / 2, h + r)], teinte(toit, -.3));
+  boite(hx, hy, w, d, 0, h, m);
+  poly([P(hx + w * .4, f, 9), P(hx + w * .58, f, 9), P(hx + w * .58, f, 0), P(hx + w * .4, f, 0)], '#7a4a2b');
+  poly([P(hx + w * .68, f, 10), P(hx + w * .9, f, 10), P(hx + w * .9, f, 5), P(hx + w * .68, f, 5)], vitre);
+  poly([P(hx + w * .1, f, 10), P(hx + w * .3, f, 10), P(hx + w * .3, f, 5), P(hx + w * .1, f, 5)], vitre);
+  poly([P(hx + w, hy + d * .3, 10), P(hx + w, hy + d * .7, 10), P(hx + w, hy + d * .7, 5), P(hx + w, hy + d * .3, 5)], vitre);
+  poly([P(hx + w, hy, h), P(hx + w, f, h), P(hx + w, hy + d / 2, h + r)], teinte(m, -.36));
+  poly([P(hx - .1, f + .1, h), P(hx + w + .1, f + .1, h), P(hx + w + .1, hy + d / 2, h + r), P(hx - .1, hy + d / 2, h + r)], toit);
+}
+// ta maison : ouverte, pour te voir dedans
+mur(CHEZ_MOI.x, CHEZ_MOI.y, CHEZ_MOI.w, .14, 17, '#f3d9a6'); mur(CHEZ_MOI.x, CHEZ_MOI.y, .14, CHEZ_MOI.h, 17, '#f3d9a6');
+mur(CHEZ_MOI.x, CHEZ_MOI.y + CHEZ_MOI.h - .14, CHEZ_MOI.w, .14, 6, '#d9a45e'); mur(CHEZ_MOI.x + CHEZ_MOI.w - .14, CHEZ_MOI.y, .14, CHEZ_MOI.h, 6, '#d9a45e');
+FIXES.push({k: LIT.x + .6 + LIT.y + .9, f(){ boite(LIT.x, LIT.y, 1.2, 1.7, 0, 5, '#7c8ee8'); boite(LIT.x + .12, LIT.y + .1, .95, .42, 5, 2, '#ffffff'); }});
+FIXES.push({k: CANAPE.x + .65 + CANAPE.y + .75, f(){ boite(CANAPE.x, CANAPE.y + .45, 1.3, .22, 0, 9, '#e4572e'); boite(CANAPE.x, CANAPE.y, 1.3, .45, 0, 5, '#f07a52'); }});
+FIXES.push({k: CHEZ_MOI.x + 2.5 + CHEZ_MOI.y + .4, f(){ boite(CHEZ_MOI.x + 2, CHEZ_MOI.y + .25, 1, .28, 0, 6, '#9a6b45'); boite(CHEZ_MOI.x + 2.12, CHEZ_MOI.y + .32, .75, .1, 6, 8, '#22222e'); }});
+[[PARC.x + .5, PARC.y + .6], [PARC.x + 3, PARC.y + .9, 1], [PARC.x + .7, PARC.y + 3, 1], [PARC.x + 3.1, PARC.y + 3.1], [px(6) + .4, py(7) + .5, 1], [px(6) + 1, py(7) + 1]].forEach(([x, y, s]) => FIXES.push({k: x + y, f(){ arbre(x, y, s); }}));
+FIXES.push({k: PARC.x + 2.2 + PARC.y + 1.9, f(){ boite(PARC.x + 1.5, PARC.y + 1.7, 1.2, .3, 0, 4, '#c98d5a'); }});
+
+/* ---------- Les habitants : 48 étudiants (toi compris) et 8 profs ---------- */
+const PEAUX = ['#7a4a2b', '#5c3620', '#8a5a3a', '#4a2c1a', '#6b4226', '#9a6a44'];
+const HABITS = ['#3d8bfd', '#2fb37a', '#8e6cf2', '#f26b3a', '#1fb5b0', '#d94f4f', '#5bbf5a', '#f2b632', '#e86a92', '#ffffff', '#4a5aa8', '#c0396b'];
+const BAS = ['#1e2a30', '#2a3a6a', '#4a3528', '#3a3a44'];
+const SIEGES_LIBRES = [...Array(48).keys()].filter(n => n !== 10 && n !== 11);
+const ELEVES = [];
+for (let i = 0; i < 48; i++){
+  const toi = i === 0, sab = i === 1, fille = sab || (!toi && H1(i, 1) < .5);
+  const e = {i, toi, fille, nom: toi ? 'Toi' : sab ? 'Sabrina' : '', peau: PEAUX[Math.floor(H1(i, 2) * PEAUX.length)], habit: toi ? '#ffb627' : sab ? '#e86a92' : HABITS[Math.floor(H1(i, 3) * HABITS.length)],
+    bas: BAS[Math.floor(H1(i, 4) * BAS.length)], coiffe: toi ? 0 : sab ? 2 : fille ? [2, 3, 1, 2][Math.floor(H1(i, 5) * 4)] : [0, 0, 1, 4][Math.floor(H1(i, 5) * 4)], acc: HABITS[Math.floor(H1(i, 6) * HABITS.length)],
+    k: toi || sab ? 1.3 : 1.12 + H1(i, 7) * .2, ph: H1(i, 8) * 6, h1: H1(i, 9), h2: H1(i, 10), coucher: 1290 + H1(i, 11) * 100, siege: toi ? 10 : sab ? 11 : SIEGES_LIBRES[i - 2], x: 0, y: 0, trajet: [], lieu: null, geste: ''};
+  if (!toi){ const [c, r] = TERRAINS[i - 1], hx = px(c), hy = py(r), porte = {x: hx + LM * .49, y: hy + PM + .12};
+    e.maison = {cle: 'm' + i, pos: porte, vers: [{x: porte.x, y: allee(r)}, {x: TROTTOIR, y: allee(r)}, HUB], dedans: true};
+    const m = MURS[Math.floor(H1(i, 12) * MURS.length)], toit = TOITS[Math.floor(H1(i, 13) * TOITS.length)];
+    FIXES.push({k: hx + LM / 2 + hy + PM / 2 + .3, f(){ maisonnette(hx, hy, m, toit, e.chezSoi && ((ENV.min >= 1110 && ENV.min < e.coucher) || (ENV.min >= 320 && ENV.min < 460))); }}); }
+  ELEVES.push(e);
+}
+const PROFS = MATIERES.map((m, i) => ({prof: true, i: 100 + i, m, peau: PEAUX[(i * 5) % PEAUX.length], habit: '#f4f4f1', bas: '#2a2a36', acc: m.c, coiffe: [0, 3, 0, 2, 1, 0, 3, 0][i], fille: [0, 1, 0, 1, 0, 0, 1, 0][i], gris: i % 3 === 0,
+  k: 1.4, ph: i * 1.7, x: SALLES[i].x + 3.1, y: SALLES[i].y + .36, geste: '', nom: ''}));
+
+// Où va chacun. Un « lieu » = une position + le chemin (vers) qui mène de là jusqu'au passage piéton.
+function siegeDe(s, e){ const col = e.siege % 8, rang = e.siege >> 3, dx = s.x + s.w / 2, haut = s.y < 5;
+  return {cle: 'siege' + s.m.id, pos: {x: s.x + TABLES[col >> 1] + (col % 2 ? .6 : .2), y: s.y + 1.3 + rang * .47},
+    vers: [{x: dx, y: s.y + s.h - .3}].concat(haut ? [{x: dx, y: 5.4}, {x: 17, y: 5.4}, {x: 17, y: 10.1}] : [{x: dx, y: 10.1}], [PORTAIL, HUB])}; }
+function coinDeCour(e, t){ const n = Math.floor((t + (e.i === 1 ? 0 : e.i) * 5) / 28), j = e.i === 1 ? 0 : e.i;
+  return {cle: 'cour' + n, pos: {x: COUR.x + .8 + H1(j, n) * (COUR.w - 2.4) + (e.i === 1 ? .55 : 0), y: COUR.y + .7 + H1(j + 50, n) * (COUR.h - 1.4)}, vers: [PORTAIL, HUB]}; }
+const balade = (e, n) => ({cle: 'parc' + n, pos: {x: PARC.x + .4 + H1(e.i, n + 7) * (PARC.w - .8), y: PARC.y + .5 + H1(e.i + 9, n) * (PARC.h - 1)}, vers: [{x: PARC.x + 1.8, y: allee(4)}, {x: TROTTOIR, y: allee(4)}, HUB]});
+const versMoi = [{x: CHEZ_MOI.x - .2, y: CHEZ_MOI.y + 1.75}, {x: TROTTOIR, y: CHEZ_MOI.y + 1.75}, HUB];
+let bout = 0;
+function destination(e, T, S, ou, t){
+  const salle = S.actuel ? salleDe(S.actuel.m) : null;
+  if (e.toi){
+    if (ou.lieu === 'maison'){ const dort = T.min < 360 || T.min >= 1320; return {cle: 'moi' + dort, pos: dort ? {x: LIT.x + .6, y: LIT.y + 1} : {x: CANAPE.x + .65, y: CANAPE.y + .22}, vers: versMoi}; }
+    if (ou.lieu === 'route') return {cle: 'route' + bout, pos: {x: TROTTOIR, y: bout ? 15.5 : 2.5}, vers: [HUB]};
+    return salle ? siegeDe(salle, e) : coinDeCour(e, t);
+  }
+  const l = coursDuJour(T.jour);
+  if (l.length && T.min >= l[0].deb - 20 - e.h1 * 40 && T.min < l[l.length - 1].fin + 5 + e.h2 * 45) return salle ? siegeDe(salle, e) : coinDeCour(e, t);
+  const n = Math.floor(T.min / 50) + T.jour * 31;
+  if (T.min >= 480 && T.min < 1200 && H1(e.i, n) < .13) return balade(e, n);
+  return e.maison;
+}
+const pareil = (a, b) => Math.abs(a.x - b.x) < .01 && Math.abs(a.y - b.y) < .01;
+function trajet(A, B){   // on retire la fin commune des deux chemins : il reste le plus court passage de A à B
+  const va = A.vers.slice(), vb = B.vers.slice(); let n = 0, j = null;
+  while (va.length && vb.length && pareil(va[va.length - 1], vb[vb.length - 1])){ j = va.pop(); vb.pop(); n++; }
+  if (n === 1) va.push(j);
+  return va.concat(vb.reverse(), [B.pos]);
+}
+
+const bulles = {};
+function bulleImage(jour){
+  const du = aRendreBientot().slice(0, 2), cle = jour + '|' + du.map(r => r.id + delai(r)).join('|');
+  if (bulles[cle]) return bulles[cle];
+  const l = coursDuJour(jour), c = document.createElement('canvas'), w = 520, h = 156 + (l.length + du.length) * 50; c.width = w; c.height = h; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.strokeStyle = '#1c1830'; g.lineWidth = 5;
+  g.beginPath(); g.roundRect(4, 4, w - 8, h - 68, 44); g.fill(); g.stroke();
+  [[w / 2 - 20, h - 44, 14], [w / 2 - 6, h - 14, 8]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); });
+  g.fillStyle = '#635d7a'; g.font = '700 26px Inter,Arial,sans-serif'; g.textBaseline = 'middle'; g.fillText("AUJOURD'HUI J'AI", 34, 46);
+  const ligne = (i, coul, txt, encre) => { const y = 100 + i * 50; let t = 30; g.fillStyle = coul; g.beginPath(); g.roundRect(34, y - 13, 26, 26, 7); g.fill(); g.fillStyle = encre;
+    do { g.font = '700 ' + t + 'px Inter,Arial,sans-serif'; t -= 2; } while (g.measureText(txt).width > w - 110 && t > 13); g.fillText(txt, 74, y + 1); };
+  l.forEach((s, i) => ligne(i, matiere(s.m).c, hm(s.deb) + '  ' + matiere(s.m).court, '#1c1830'));
+  du.forEach((r, i) => ligne(l.length + i, '#e4572e', 'À rendre ' + delai(r) + ' : ' + r.texte, '#e4572e'));
+  return bulles[cle] = c;
+}
+function ciel(h){
+  if (h < 5.5 || h >= 19.5) return ['#1a1440', '#3b2a6b', true];
+  if (h < 7.5) return ['#b9a4ec', '#f6c1c9', false];
+  if (h < 17.5) return ['#b28be6', '#e3b6f0', false];
+  return ['#7a5bc0', '#f3a48c', false];
+}
+const NUAGES = [0, 1, 2, 3, 4].map(i => ({x: Math.random() * W, y: [26, 60, 500, 530, 110][i], v: 4 + Math.random() * 6, l: 34 + Math.random() * 30}));
+const VOITURES = [{x: 17.72, y: 3, v: 2.6, c: '#e4572e'}, {x: 18.55, y: 12, v: -2.1, c: '#3d8bfd'}];
+const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Le rottweiler : noir et feu, il remue la queue, te suit à la maison et te rappelle la tâche la plus proche
+const CHIEN = {x: CHEZ_MOI.x + .6, y: CHEZ_MOI.y + 2.7, marche: false};
+function chien(t){
+  const [sx, sy] = P(CHIEN.x, CHIEN.y), k = 1.25, r = prochainRappel(), boude = !!r && r.pour < Date.now(), aboie = r && !boude && t % 5 < .5, bal = CHIEN.marche ? Math.sin(t * 14) : 0, lev = aboie ? -1.5 : boude ? 1.6 : 0;
+  const B = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(sx + x * k), Math.round(sy + y * k), Math.ceil(w * k), Math.ceil(h * k)); };
+  const N = '#17141a', F = '#b0652a';
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(sx, sy, 8, 3, 0, 0, 7); ctx.fill();
+  [[-5.5, bal], [-3, -bal], [1.5, -bal], [4, bal]].forEach(([x, d]) => { B(x, -3.5 + Math.max(0, d), 1.6, 2.5 - Math.max(0, d), N); B(x, -1, 1.6, 1, F); });
+  B(-7.2, boude ? -6.5 : -9 + Math.sin(t * (r ? 10 : 18)) * 1.2, 1.6, 2.2, N);                                   // queue qui remue
+  B(-6, -8.5, 11.5, 5.2, N); B(3.2, -5.2, 2, 2, F);                                              // corps, tache feu sur le poitrail
+  B(3.2, -9, 1.4, 4.5, '#e4572e');                                                               // collier
+  B(3.8, -13 + lev, 5.6, 5.6, N); B(3.8, -14.2 + lev, 1.8, 1.8, N); B(7.6, -14.2 + lev, 1.8, 1.8, N);   // tête, oreilles
+  B(7.2, -10 + lev, 3.2, 2.6, F); B(9.4, -10 + lev, 1, 1, N); B(5.6, -11.8 + lev, 1, 1, F); B(6.2, -10.6 + lev, 1, 1, '#fff');   // museau, truffe, sourcil, œil
+  if (aboie) B(7.6, -7.6 + lev, 2.4, 1, '#c0392b');
+  if (chienNom){ ctx.font = '700 9px Inter,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const nw = ctx.measureText(chienNom).width + 8;
+    ctx.fillStyle = '#17141a'; ctx.beginPath(); ctx.roundRect(sx - nw / 2, sy + 4, nw, 12, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(chienNom, sx, sy + 10.5); }
+  if (!r){ if (t % 4 < 1.4){ ctx.fillStyle = '#e4572e'; const hx = sx + 12, hy = sy - 26 - (t % 4) * 4; ctx.fillRect(hx, hy, 3, 3); ctx.fillRect(hx + 4, hy, 3, 3); ctx.fillRect(hx, hy + 2, 7, 3); ctx.fillRect(hx + 2, hy + 5, 3, 2); } return; }   // tout est rendu : il est content
+  ctx.font = '700 10px Inter,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const l1 = (boude ? 'Grr… ' : 'Wouf ! ') + (r.texte.length > 30 ? r.texte.slice(0, 29) + '…' : r.texte), l2 = 'À rendre ' + delai(r), w = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + 14;
+  const bx = Math.min(W - w - 4, sx + 12), by = sy - 50;
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#1c1830'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(bx, by, w, 30, 7); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx + 6, by + 29); ctx.lineTo(bx + 3, by + 36); ctx.lineTo(bx + 13, by + 29); ctx.fill();
+  ctx.fillStyle = '#1c1830'; ctx.fillText(l1, bx + 7, by + 9.5); ctx.fillStyle = urgent(r) ? '#e4572e' : '#635d7a'; ctx.fillText(l2, bx + 7, by + 21.5);
+}
+
+const cleDe = e => (e.prof ? 'p' : 'e') + e.i;
+const nomDe = e => noms[cleDe(e)] || (e.toi ? 'Toi' : e.i === 1 ? 'Sabrina' : e.prof ? 'Prof · ' + e.m.court : 'Étudiant n° ' + (e.i + 1));
+// Un personnage : jambes et bras qui bougent, yeux qui clignent, coiffure, gestes (parler, lever la main)
+function perso(e, t, etat){
+  const [sx, sy] = P(e.x, e.y), k = etat === 'assis' ? e.k * .64 : e.k, hd = etat === 'assis' ? .6 : 1, m = e.marche, bal = m ? Math.sin(t * 11 + e.ph) : 0, saut = m ? Math.abs(bal) * 1.4 : 0, resp = !m && Math.sin(t * 2 + e.ph) > .5 ? .6 : 0;
+  const B = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(sx + x * k), Math.round(sy + y * k - saut), Math.ceil(w * k), Math.ceil(h * k)); };
+  const ch = e.gris ? '#b9bcc4' : '#15121c';
+  if (etat === 'dort'){ B(-3.5, -9, 7, 6.5, e.peau); B(-3.5, -10, 7, 2.5, ch); ctx.fillStyle = '#fff'; ctx.font = '700 11px Inter,sans-serif'; ctx.textAlign = 'left'; ctx.fillText('z Z', sx + 7, sy - 16 - Math.sin(t * 2) * 2); return; }
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(sx, sy, 5.5 * k / 1.25, 2.4, 0, 0, 7); ctx.fill();
+  const b = etat === 'assis' ? 1.5 : 0, dos = e.dos && etat !== 'assis' ? true : etat === 'assis';
+  if (etat === 'assis') B(-3, -3, 6, 3, e.bas);
+  else { B(-3, -4 + Math.max(0, bal) * 1.5, 2.6, 4 - Math.max(0, bal) * 1.5, e.bas); B(.4, -4 + Math.max(0, -bal) * 1.5, 2.6, 4 - Math.max(0, -bal) * 1.5, e.bas); }
+  B(-5.4, -11.6 + b + bal * 1.3, 1.6, 5.6, e.habit); B(-5.4, -6.2 + b + bal * 1.3, 1.6, 1.3, e.peau);                                         // bras gauche
+  if (e.geste === 'main' || e.geste === 'pointe'){ B(3.8, -18.5 + b, 1.6, 7.5, e.habit); B(3.8, -20 + b, 1.6, 1.6, e.peau); }                 // bras levé
+  else { B(3.8, -11.6 + b - bal * 1.3, 1.6, 5.6, e.habit); B(3.8, -6.2 + b - bal * 1.3, 1.6, 1.3, e.peau); }
+  B(-4, -12 + b - resp, 8, 8 + resp, e.habit); if (e.prof && !dos) B(-.7, -12 + b, 1.4, 5.5, e.acc);                                       // corps (+ cravate du prof)
+  B(-3.5, -18.5 + b - resp, 7, 6.5, e.peau);
+  const hy = -19.5 + b - resp;
+  if (e.coiffe === 1){ B(-4.6, hy - 1.8, 9.2, dos ? 7.5 * hd : 4.4, ch); }
+  else if (e.coiffe === 2){ B(-4.5, hy, 9, dos ? 9.5 * hd : 2.6, ch); if (!dos){ B(-4.5, hy + 2.5, 1.5, 6.5, ch); B(3, hy + 2.5, 1.5, 6.5, ch); } }
+  else if (e.coiffe === 3){ B(-3.5, hy, 7, dos ? 5 * hd : 2.6, ch); B(-1.6, hy - 2.4, 3.2, 2.6, ch); }
+  else if (e.coiffe === 4){ B(-3.5, hy, 7, 2.6, e.acc); B(dos ? -3.5 : -1, hy + 2, dos ? 7 : 6, 1, e.acc); }
+  else B(-3.5, hy, 7, dos ? 5 * hd : 2.6, ch);
+  if (!dos && (t * .9 + e.ph) % 4 > .16){ B(-2.2, -16 + b - resp, 1.2, 1.4, '#1c1830'); B(1, -16 + b - resp, 1.2, 1.4, '#1c1830');
+    if (e.geste === 'parle' && Math.sin(t * 14 + e.ph) > 0) B(-1, -13.6 + b - resp, 2, 1, '#7a2e2e'); }
+  if (e.geste === 'parle'){ const bx = sx + 5, by = sy - 30 * k / 1.25 - saut; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, 17, 10, 4); ctx.fill();
+    ctx.fillStyle = '#1c1830'; for (let d = 0; d < 3; d++) ctx.fillRect(bx + 3.5 + d * 4, by + 4 - (Math.floor(t * 5 + e.ph) % 3 === d ? 1.5 : 0), 2, 2); }
+  if (ENV.pluie && e.dehors && etat === 'debout'){ const py = sy - 27 * k / 1.25 - saut; ctx.fillStyle = e.acc; ctx.beginPath(); ctx.arc(sx, py, 10, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#1c1830'; ctx.fillRect(sx + 5 * k, py, 1, 13); }   // parapluie
+  const nom = e.toi ? 'Toi' : e === choisi || e.i === 1 ? nomDe(e) : '';
+  if (e === choisi){ ctx.strokeStyle = '#ffb627'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(sx, sy, 9, 4.5, 0, 0, 7); ctx.stroke(); }
+  if (nom){ ctx.font = '700 10px Inter,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    const lw = ctx.measureText(nom).width + 10, y = sy - (e.toi ? 32 : 45) * (etat === 'assis' ? .62 : 1) - saut - (ENV.pluie && e.dehors && etat === 'debout' ? 10 : 0);
+    ctx.fillStyle = e.toi ? '#e4572e' : e === choisi ? '#ffb627' : '#1c1830'; ctx.beginPath(); ctx.roundRect(sx - lw / 2, y - 11, lw, 14, 5); ctx.fill(); ctx.fillStyle = e === choisi && !e.toi ? '#1c1830' : '#fff'; ctx.fillText(nom, sx, y); }
+}
+function pilule(txt, x, y, fond, encre, dz = 0){ ctx.font = '700 10.5px Inter,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const [sx, sy] = P(x, y, dz), w = ctx.measureText(txt).width + 14;
+  ctx.fillStyle = 'rgba(28,24,48,.35)'; ctx.beginPath(); ctx.roundRect(sx - w / 2, sy + 4, w, 17, 8.5); ctx.fill();
+  ctx.fillStyle = fond; ctx.beginPath(); ctx.roundRect(sx - w / 2, sy + 2, w, 17, 8.5); ctx.fill(); ctx.fillStyle = encre; ctx.fillText(txt, sx, sy + 11); }
+
+function dessiner(t, T, S, ou, ouvert){
+  const h = T.min / 60, [haut, bas, nuit] = ciel(h), g = ctx.createLinearGradient(0, 0, 0, H);
+  ENV.nuit = nuit; ENV.min = T.min; ENV.t = t; ENV.actif = S.actuel ? salleDe(S.actuel.m) : null; const actif = ENV.actif;
+  g.addColorStop(0, haut); g.addColorStop(1, bas); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (nuit){ ctx.fillStyle = 'rgba(255,255,255,.75)'; for (let i = 0; i < 50; i++) ctx.fillRect((i * 97) % W, (i * 61) % H, 2, 2); }
+  ctx.fillStyle = nuit ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.8)';
+  const temps = tempsQuilFait(); ENV.pluie = temps === 'pluie';
+  if (temps !== 'soleil'){ ctx.fillStyle = temps === 'pluie' ? 'rgba(50,55,90,.38)' : 'rgba(90,95,125,.16)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = nuit ? 'rgba(200,205,225,.25)' : 'rgba(235,238,248,.9)'; }
+  (temps === 'soleil' ? [0] : [0, 190, 400, 610]).forEach(dx => NUAGES.forEach(n => { const x = (n.x + dx) % (W + 100) - 80; ctx.fillRect(x, n.y, n.l, 8); ctx.fillRect(x + 8, n.y - 6, n.l - 18, 6); ctx.fillRect(x - 8, n.y + 4, n.l + 14, 6); }));
+  // l'île : terre, herbe, dalle de l'école, route, trottoir, allées, parc
+  const dalle = nuit ? '#b9ad98' : '#f4e7cc';
+  boite(0, 0, GX, GY, -26, 22, '#8a5a3c'); boite(0, 0, GX, GY, -4, 4, nuit ? '#3f8f5a' : '#6fcf6b');
+  sol(.6, .6, 16.6, 14.8, dalle);
+  sol(ROUTE.x, 0, ROUTE.w, GY, nuit ? '#5a566a' : '#8d889c'); sol(ROUTE.x + ROUTE.w, 0, .55, GY, dalle);
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(...P(ROUTE.x + ROUTE.w / 2, .3)); ctx.lineTo(...P(ROUTE.x + ROUTE.w / 2, GY - .3)); ctx.stroke(); ctx.setLineDash([]);
+  for (let i = 0; i < 5; i++) sol(ROUTE.x + .1 + i * .33, PASSAGE - .35, .18, .7, '#ffffff');                       // passage piéton
+  sol(PORTAIL.x - .15, PASSAGE - .35, .4, .7, dalle);
+  for (let r = 0; r < 8; r++) sol(ROUTE.x + ROUTE.w + .55, py(r) + PM + .12, GX - ROUTE.x - ROUTE.w - .9, .55, dalle);   // allées devant les maisons
+  sol(PARC.x, PARC.y, PARC.w, PARC.h, nuit ? '#357a4c' : '#58c27a'); sol(PARC.x + 1.2, PARC.y + 2.3, 1.5, .9, nuit ? '#3d5fa8' : '#7ec8f2');
+  // grands murs crème du fond de l'école, avec fenêtres
+  boite(.6, .45, 16.6, .15, 0, 28, '#f6ecd2'); boite(.45, .45, .15, 14.95, 0, 28, '#f6ecd2');
+  for (let i = 0; i < 8; i++){ const x = 1.6 + i * 2; poly([P(x, .61, 23), P(x + .9, .61, 23), P(x + .9, .61, 12), P(x, .61, 12)], nuit ? '#39405e' : '#bfe3ff'); }
+  // sols des salles, de la cour et de ta maison
+  SALLES.forEach(s => sol(s.x, s.y, s.w, s.h, s === actif ? teinte(s.m.c, .25) : teinte(s.m.c, nuit ? -.25 : .5)));
+  sol(COUR.x, COUR.y, COUR.w, COUR.h, nuit ? '#4d9a66' : '#8fdc86'); sol(CHEZ_MOI.x, CHEZ_MOI.y, CHEZ_MOI.w, CHEZ_MOI.h, nuit ? '#a8906a' : '#fbe9c6');
+  const bientot = aRendreBientot();
+  SALLES.forEach(s => { if (bientot.some(r => r.m === s.m.id) && Math.sin(t * 5) > -.2){ ctx.strokeStyle = '#e4572e'; ctx.lineWidth = 3; ctx.setLineDash([6, 4]); ctx.beginPath();   // quelque chose à rendre bientôt dans cette matière : la salle clignote
+    [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(([a, b], i) => { const p = P(s.x + a * s.w, s.y + b * s.h); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]); } });
+  if (actif){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 + Math.sin(t * 4); ctx.beginPath(); [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(([a, b], i) => { const p = P(actif.x + a * actif.w, actif.y + b * actif.h); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }); ctx.closePath(); ctx.stroke(); }
+  // objets, voitures et personnages, du fond vers l'avant
+  const dort = ou.lieu === 'maison' && (T.min < 360 || T.min >= 1320), liste = FIXES.slice();
+  VOITURES.forEach(v => liste.push({k: v.x + v.y + .9, f(){ boite(v.x, v.y, .62, 1.15, 2, 6, v.c); boite(v.x + .05, v.y + .25, .52, .6, 8, 5, nuit ? '#ffe28a' : '#cfe9ff'); }}));
+  ELEVES.forEach(e => { if (e.visible) liste.push({k: e.x + e.y, f(){ perso(e, t, e.toi && dort && e.arrive ? 'dort' : e.arrive && e.lieu.cle.startsWith('siege') ? 'assis' : 'debout'); }}); });
+  liste.push({k: CHIEN.x + CHIEN.y + .05, f(){ chien(t); }});
+  if (ouvert) PROFS.forEach(p => liste.push({k: p.x + p.y, f(){ perso(p, t, 'debout'); }}));
+  liste.sort((a, b) => a.k - b.k).forEach(o => o.f());
+  // étiquettes
+  SALLES.forEach(s => pilule((s === actif ? s.m.court + ' · en cours' : s.m.court) + (bientot.some(r => r.m === s.m.id) ? ' · à rendre' : ''), s.x + s.w / 2, s.y, s === actif ? '#1c1830' : s.m.c, s === actif ? '#fff' : '#1c1830', 36));
+  pilule('Cour', COUR.x + COUR.w / 2, COUR.y + COUR.h, '#ffffff', '#1c1830'); pilule('Chez toi', CHEZ_MOI.x + CHEZ_MOI.w / 2, CHEZ_MOI.y + CHEZ_MOI.h, '#ffffff', '#1c1830'); pilule('Parc', PARC.x + PARC.w / 2, PARC.y + PARC.h, '#ffffff', '#1c1830');
+  // bulle de pensée du matin
+  if (ENV.pluie){ ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 110; i++){ const x = (i * 53 + t * 60) % W, y = (i * 97 + t * 520) % H; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 9); } ctx.stroke(); }
+  if (bulleVisible(T)){ const im = bulleImage(T.jour), e = ELEVES[0], [sx, sy] = P(e.x, e.y), bw = 190, bh = bw * im.height / im.width;
+    ctx.drawImage(im, Math.max(4, Math.min(W - bw - 4, sx - bw / 2 + 8)), Math.max(4, sy - 46 - bh), bw, bh); }
+}
+
+let avant = 0, pret = false; const COMPTE = {ecole: 0, maison: 0, dehors: 0};
+function vivre(ms){
+  const t = ms / 1000, dt = Math.min(.05, t - avant || 0); avant = t;
+  const T = maintenant(), S = situation(T), ou = ouSuisJe(T, S), ouvert = ecoleOuverte(T);
+  NUAGES.forEach(n => { n.x += n.v * dt; if (n.x > W + 20) n.x = -80; });
+  VOITURES.forEach(v => { v.y += v.v * dt; if (v.y > GY - 1.2) v.y = 0; if (v.y < 0) v.y = GY - 1.2; });
+  COMPTE.ecole = COMPTE.maison = COMPTE.dehors = 0;
+  ELEVES.forEach(e => {
+    const d = destination(e, T, S, ou, t);
+    if (!pret || calme){ e.lieu = d; e.x = d.pos.x; e.y = d.pos.y; e.trajet = []; }
+    else if (!e.lieu || d.cle !== e.lieu.cle){   // nouvelle destination : on calcule le chemin, puis on repart du point le plus proche
+      const q = [e.lieu.pos].concat(trajet(e.lieu, d)); let n = 0, dm = Infinity;
+      q.forEach((p, i) => { const dd = Math.hypot(p.x - e.x, p.y - e.y); if (dd < dm - .001){ dm = dd; n = i; } });
+      e.trajet = q.slice(n); e.lieu = d;
+    }
+    e.marche = false; let reste = (e.trajet.length > 4 ? 6.5 : 3.6) * dt;
+    while (e.trajet.length && reste > 0){ const p = e.trajet[0], dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy);
+      if (dist <= reste){ e.x = p.x; e.y = p.y; reste -= dist; e.trajet.shift(); } else { e.x += dx / dist * reste; e.y += dy / dist * reste; e.dos = dx + dy < 0; reste = 0; }
+      e.marche = true; }
+    e.arrive = !e.trajet.length; if (e.arrive) e.dos = false;
+    e.chezSoi = e.arrive && !!d.dedans; e.visible = !e.chezSoi;
+    if (e.toi && e.arrive && d.cle.startsWith('route')) bout = 1 - bout;
+    const assis = e.arrive && d.cle.startsWith('siege'), auCoin = e.arrive && (d.cle.startsWith('cour') || d.cle.startsWith('parc'));
+    e.dehors = !(e.x < 17.2 && e.y < 9.9) && !(e.x > CHEZ_MOI.x && e.x < CHEZ_MOI.x + CHEZ_MOI.w && e.y > CHEZ_MOI.y && e.y < CHEZ_MOI.y + CHEZ_MOI.h);
+    e.geste = assis ? (H1(e.i, Math.floor(t / 4)) < .05 ? 'main' : '') : auCoin && H1(e.i, Math.floor(t / 2.5)) < .25 ? 'parle' : '';
+    COMPTE[e.chezSoi || (e.toi && d.cle.startsWith('moi')) ? 'maison' : e.x < 17.4 ? 'ecole' : 'dehors']++;
+  });
+  { const moi = ELEVES[0], aMaison = moi.lieu && moi.lieu.cle.startsWith('moi'), cx = aMaison ? moi.x + .5 : CHEZ_MOI.x + .6, cy = aMaison ? moi.y + .45 : CHEZ_MOI.y + 2.7;   // le chien te suit chez toi, sinon il t'attend près de l'entrée
+    const dx = cx - CHIEN.x, dy = cy - CHIEN.y, dist = Math.hypot(dx, dy), v = 3 * dt; CHIEN.marche = dist > v && !calme;
+    if (!CHIEN.marche){ CHIEN.x = cx; CHIEN.y = cy; } else { CHIEN.x += dx / dist * v; CHIEN.y += dy / dist * v; } }
+  PROFS.forEach((p, i) => { const s = SALLES[i], enseigne = ouvert && S.actuel && S.actuel.m === p.m.id;
+    const cx = enseigne ? s.x + 1.5 + (Math.sin(t * .45 + i) + 1) / 2 * 1.7 : s.x + 3.1, cy = enseigne ? s.y + .82 : s.y + .36, dx = cx - p.x, dy = cy - p.y, dist = Math.hypot(dx, dy), v = 1.6 * dt;
+    if (calme || dist <= v){ p.x = cx; p.y = cy; } else { p.x += dx / dist * v; p.y += dy / dist * v; }
+    p.marche = dist > .02; p.dos = false; const n = Math.floor(t / 3 + i);
+    p.geste = enseigne ? (H1(i, n) < .45 ? 'parle' : H1(i, n) < .75 ? 'pointe' : '') : ''; });
+  pret = true;
+  dessiner(t, T, S, ou, ouvert); requestAnimationFrame(vivre);
+}
+function taille(){ const k = Math.min(2, window.devicePixelRatio || 1) * Math.max(1, Math.min(2, cv.clientWidth / W)); cv.width = W * k; cv.height = H * k; ctx.setTransform(k, 0, 0, k, 0, 0); }
+addEventListener('resize', taille); taille(); requestAnimationFrame(vivre);
+
+/* ---------- Les cartes ---------- */
+function grille(){
+  const g = $('grille'); g.replaceChildren();
+  const tete = g.insertRow(); tete.append(Object.assign(document.createElement('th'), {className: 'h'}));
+  [1, 2, 3, 4, 5].forEach(j => tete.append(Object.assign(document.createElement('th'), {textContent: JOURS[j]})));
+  [[MATIN, 0], [APREM, 1]].forEach(([plage, k]) => {
+    const r = g.insertRow(), th = document.createElement('th'); th.className = 'h'; th.textContent = hm(plage[0]) + ' ' + hm(plage[1]); r.append(th);
+    [1, 2, 3, 4, 5].forEach(j => { const td = r.insertCell(), id = SEMAINE[j][k]; if (!id) return;
+      const m = matiere(id), b = document.createElement('button'), i = document.createElement('i'); b.type = 'button'; b.className = 'cellule'; b.dataset.cle = j + '-' + plage[0]; b.dataset.m = id;
+      i.style.background = m.c; b.append(i, document.createTextNode(m.nom), Object.assign(document.createElement('small'), {className: 'du'})); b.onclick = () => apercu(j, plage[0] + .2); td.append(b); });
+  });
+}
+function apercu(jour, min){ sim = {jour, base: min, pose: Date.now()}; $('sim-jour').value = jour; $('sim-heure').value = Math.round(min / 5) * 5; panneau(); }
+const NOMS_LIEU = {maison: 'À la maison', ecole: 'À l\'école', route: 'En route'};
+function panneau(){
+  const T = maintenant(), s = situation(T), ou = ouSuisJe(T, s), hh = Math.floor(T.min / 60), mm = Math.floor(T.min % 60), ss = Math.floor(T.min * 60 % 60);
+  $('horloge').textContent = [hh, mm, ss].map(n => String(n).padStart(2, '0')).join(':');
+  $('date').textContent = T.sim ? JOURS[T.jour] : JOURS[T.jour] + ' ' + T.d.getUTCDate() + ' ' + MOIS[T.d.getUTCMonth()];
+  $('tag').hidden = !T.sim; $('reel').disabled = !T.sim;
+  $('lieu').textContent = NOMS_LIEU[ou.lieu];
+  $('lieu-detail').textContent = ou.source.charAt(0).toUpperCase() + ou.source.slice(1) + (s.actuel && ou.lieu !== 'ecole' ? ' · ton cours a commencé sans toi' : '');
+  const ok = gps.etat === 'ok'; $('ici-maison').disabled = $('ici-ecole').disabled = !ok; $('gps').hidden = ok; $('gps').disabled = gps.etat === 'attente';
+  $('gps-note').textContent = gps.etat === 'refus' ? 'La position n\'est pas accessible depuis cette page. Elle fonctionne quand la page est ouverte depuis ton propre site (en https) et que tu autorises la position. En attendant, choisis où tu es dans la liste.'
+    : gps.etat === 'attente' ? 'Recherche de ta position…'
+    : ok ? 'Position active. ' + (lieux.maison ? 'Maison enregistrée. ' : 'Maison pas encore enregistrée. ') + (lieux.ecole ? 'École enregistrée.' : 'École pas encore enregistrée.') + (T.sim ? ' Pendant l\'aperçu, le lieu est estimé.' : '')
+    : 'Active ta position, puis enregistre une fois ta maison et ton école quand tu y es. Tes coordonnées restent dans ton navigateur.';
+  const pastille = c => { const i = document.createElement('i'); i.style.background = c; return i; };
+  if (s.actuel){ const m = matiere(s.actuel.m);
+    $('etat-label').textContent = 'En cours'; $('etat-matiere').replaceChildren(pastille(m.c), document.createTextNode(m.nom));
+    $('etat-detail').textContent = hm(s.actuel.deb) + ' – ' + hm(s.actuel.fin) + ' · fin dans ' + duree(s.actuel.fin - T.min);
+    $('barre').hidden = false; $('barre-in').style.width = ((T.min - s.actuel.deb) / (s.actuel.fin - s.actuel.deb) * 100).toFixed(1) + '%';
+  } else { const pause = T.jour >= 1 && T.jour <= 5 && T.min >= 720 && T.min < 810 && SEMAINE[T.jour][1];
+    $('etat-label').textContent = 'En ce moment'; $('etat-matiere').textContent = pause ? 'Pause de midi' : 'Pas de cours';
+    $('etat-detail').textContent = ecoleOuverte(T) ? 'Les profs sont dans leurs salles.' : 'L\'école est fermée.'; $('barre').hidden = true; }
+  $('compte').textContent = COMPTE.ecole + ' à l\'école · ' + COMPTE.dehors + ' dehors · ' + COMPTE.maison + ' à la maison';
+  const n = s.suivant, ej = (n.jour - T.jour + 7) % 7, memeJour = ej === 0 && n.deb > T.min;
+  $('suite-matiere').textContent = matiere(n.m).nom;
+  $('suite-quand').textContent = s.ecart < 60 ? 'dans ' + duree(s.ecart) : memeJour ? 'à ' + hm(n.deb) + ' (dans ' + duree(s.ecart) + ')' : (ej === 1 ? 'demain' : JOURS[n.jour]) + ' à ' + hm(n.deb);
+  const pr = prochainRappel();
+  const enRetard = !!pr && pr.pour < Date.now(), nc = chienNom || 'Ton chien';
+  $('chien-label').textContent = (chienNom || 'Ton rottweiler') + ' · rappels';
+  $('chien-dit').textContent = pr ? (enRetard ? '« Grr… ' : '« Wouf ! ') + pr.texte + ' »' : 'Rien à rendre';
+  $('chien-detail').textContent = enRetard ? nc + ' boude : cette tâche est en retard. Clique « Fait » quand tu l\'as rendue.' : pr ? 'À rendre ' + delai(pr) + (pr.m ? ' · ' + matiere(pr.m).court : '') + '. ' + nc + ' te le répète tant que tu n\'as pas cliqué « Fait ».' : nc + ' est content : tout est rendu. Dis-lui ce que tu dois rendre et pour quand.';
+  document.querySelectorAll('.cellule').forEach(b => { const r = rappels.filter(x => x.m === b.dataset.m && x.pour > Date.now()).sort((a, c) => a.pour - c.pour)[0]; b.querySelector('.du').textContent = r ? 'À rendre ' + delai(r) : ''; });
+  verifierNotifs(); suivrePresence(T, s, ou); majFiche(); majMeteo();
+  document.querySelectorAll('#rappels small').forEach(el => { const r = rappels.find(x => x.id === el.dataset.id); if (r){ el.textContent = quand(r); el.classList.toggle('urgent', urgent(r)); } });
+  document.querySelectorAll('.cellule').forEach(b => b.classList.toggle('actif', !!s.actuel && b.dataset.cle === s.actuel.jour + '-' + s.actuel.deb));
+}
+[1, 2, 3, 4, 5, 6, 0].forEach(j => $('sim-jour').append(new Option(JOURS[j], j)));
+$('sim-jour').value = maintenant().jour; $('mode').value = mode;
+const depuisCurseur = () => apercu(+$('sim-jour').value, +$('sim-heure').value);
+$('sim-heure').addEventListener('input', depuisCurseur); $('sim-jour').addEventListener('change', depuisCurseur);
+$('reel').addEventListener('click', () => { sim = null; $('sim-jour').value = maintenant().jour; panneau(); });
+$('mode').addEventListener('change', e => { mode = e.target.value; garder(); panneau(); });
+$('gps').addEventListener('click', activerGPS);
+const enregistrer = quoi => { if (!gps.pos) return; lieux[quoi] = {lat: gps.pos.lat, lon: gps.pos.lon}; garder(); panneau(); };
+$('ici-maison').addEventListener('click', () => enregistrer('maison')); $('ici-ecole').addEventListener('click', () => enregistrer('ecole'));
+let dejaActive = false; try { dejaActive = localStorage.getItem('campus-gps') === '1'; } catch (e) {}
+const quand = r => { const d = new Date(r.pour); return JOURS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MOIS[d.getUTCMonth()] + (r.heure ? ' à ' + hm(d.getUTCHours() * 60 + d.getUTCMinutes()) : '') + ' · ' + delai(r); };
+function afficherRappels(){
+  const ul = $('rappels'), pr = prochainRappel(); ul.replaceChildren();
+  rappels.slice().sort((a, b) => a.pour - b.pour).forEach(r => { const li = document.createElement('li'), sp = document.createElement('span'), sm = document.createElement('small'), b = document.createElement('button');
+    if (r === pr) li.className = 'proche'; sp.textContent = r.texte; sm.dataset.id = r.id; sm.textContent = quand(r); sm.classList.toggle('urgent', urgent(r)); sp.append(sm);
+    b.type = 'button'; b.textContent = 'Fait'; b.setAttribute('aria-label', 'Marquer « ' + r.texte + ' » comme fait');
+    b.onclick = () => { rappels = rappels.filter(x => x.id !== r.id); garderRappels(); afficherRappels(); panneau(); }; li.append(sp, b); ul.append(li); });
+}
+$('form-rappel').addEventListener('submit', ev => { ev.preventDefault();
+  const txt = $('rappel-texte').value.trim(), d = $('rappel-date').value, h = $('rappel-heure').value;
+  if (!txt){ $('rappel-texte').focus(); return; } if (!d){ $('rappel-date').focus(); return; }
+  const [a, m, j] = d.split('-').map(Number), [hh, mm] = h ? h.split(':').map(Number) : [23, 59];
+  rappels.push({id: Date.now().toString(36), texte: txt, pour: Date.UTC(a, m - 1, j, hh, mm), heure: !!h, m: $('rappel-matiere').value || null}); garderRappels();
+  $('rappel-texte').value = ''; $('rappel-date').value = ''; $('rappel-heure').value = ''; afficherRappels(); panneau(); });
+MATIERES.forEach(m => $('rappel-matiere').append(new Option(m.court, m.id)));
+$('chien-nom').value = chienNom;
+$('chien-nom').addEventListener('input', e => { chienNom = e.target.value.trim(); try { localStorage.setItem('campus-chien', chienNom); } catch (err) {} });
+
+/* ---------- Notifications : la veille, le matin même et une heure avant (quand la page est ouverte) ---------- */
+let notifEtat = 'Notification' in window ? Notification.permission : 'absent';
+function verifierNotifs(){
+  $('notif').hidden = notifEtat === 'granted';
+  $('notif-note').textContent = notifEtat === 'granted' ? 'Notifications actives : la veille, le matin du jour J et une heure avant, tant que cette page reste ouverte.'
+    : notifEtat === 'denied' || notifEtat === 'absent' ? 'Les notifications sont bloquées ici. Elles fonctionnent quand la page est ouverte depuis ton propre site.' : 'Les notifications arrivent seulement si cette page reste ouverte, même en arrière-plan.';
+  if (notifEtat !== 'granted') return;
+  const now = Date.now(); let change = false;
+  rappels.forEach(r => { r.n = r.n || {}; const d = new Date(r.pour), etapes = [['veille', r.pour - 864e5, 'à rendre demain'], ['matin', Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 7), 'à rendre aujourd\'hui']];
+    if (r.heure) etapes.push(['heure', r.pour - 3600e3, 'à rendre dans une heure']);
+    const dues = etapes.filter(([k, q]) => !r.n[k] && now >= q && now < r.pour).sort((a, b) => a[1] - b[1]); if (!dues.length) return;
+    dues.forEach(([k]) => r.n[k] = 1); change = true;
+    try { new Notification((chienNom || 'Ton rottweiler') + ' : ' + dues[dues.length - 1][2], {body: r.texte}); } catch (e) {} });
+  if (change) garderRappels();
+}
+$('notif').addEventListener('click', async () => { if (!('Notification' in window)){ notifEtat = 'absent'; } else { try { notifEtat = await Notification.requestPermission(); } catch (e) { notifEtat = 'denied'; } } panneau(); });
+
+/* ---------- Ta présence : notée quand la page est ouverte pendant un cours et qu'elle sait où tu es (GPS ou choix manuel) ---------- */
+let presences = {}; try { presences = JSON.parse(localStorage.getItem('campus-presences') || '{}'); } catch (e) {}
+const garderPres = () => { try { localStorage.setItem('campus-presences', JSON.stringify(presences)); } catch (e) {} };
+const statut = p => p.arrive != null ? (p.arrive - p.deb <= 10 ? 'présent' : 'retard') : Date.now() > p.finTs ? 'absent' : 'attendu';
+let minutePres = -1;
+function suivrePresence(T, s, ou){
+  let change = false;
+  if (!T.sim && s.actuel && !ou.source.startsWith('estimé')){
+    const d = T.d, cle = d.toISOString().slice(0, 10) + '-' + s.actuel.deb;
+    if (!presences[cle]){ presences[cle] = {m: s.actuel.m, deb: s.actuel.deb, arrive: null, finTs: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, s.actuel.fin)}; change = true; }
+    if (ou.lieu === 'ecole' && presences[cle].arrive == null){ presences[cle].arrive = Math.floor(T.min); change = true; }
+  }
+  if (change) garderPres();
+  if (change || Math.floor(T.min) !== minutePres){ minutePres = Math.floor(T.min); afficherPresence(); }
+}
+function afficherPresence(){
+  const l = Object.values(presences), n = {présent: 0, retard: 0, absent: 0, attendu: 0}; l.forEach(p => n[statut(p)]++);
+  $('pres-resume').textContent = l.length ? n.présent + ' présent' + (n.présent > 1 ? 's' : '') + ' · ' + n.retard + ' retard' + (n.retard > 1 ? 's' : '') + ' · ' + n.absent + ' absence' + (n.absent > 1 ? 's' : '') : 'Rien de noté pour l\'instant';
+  $('pres-detail').textContent = l.length ? 'Par matière (présent si tu arrives dans les 10 premières minutes) :' : 'Un cours est noté quand la page est ouverte pendant ce cours et qu\'elle sait où tu es : position GPS ou choix dans la liste « Où tu es ».';
+  const z = $('pres-liste'); z.replaceChildren();
+  MATIERES.forEach(m => { const ps = l.filter(p => p.m === m.id); if (!ps.length) return; const c = {présent: 0, retard: 0, absent: 0, attendu: 0}; ps.forEach(p => c[statut(p)]++);
+    const div = document.createElement('div'), a = document.createElement('span'), b = document.createElement('span'); a.textContent = m.court; b.textContent = c.présent + ' présent · ' + c.retard + ' retard · ' + c.absent + ' absent' + (c.attendu ? ' · en cours' : ''); div.append(a, b); z.append(div); });
+}
+
+/* ---------- La fiche d'un personnage : clique dans la ville, puis donne-lui son vrai prénom ---------- */
+$('scene').addEventListener('click', ev => {
+  const b = cv.getBoundingClientRect(), x = (ev.clientX - b.left) * W / b.width, y = (ev.clientY - b.top) * H / b.height; let mieux = null, dm = 16;
+  ELEVES.filter(e => e.visible).concat(ecoleOuverte(maintenant()) ? PROFS : []).forEach(e => { const [sx, sy] = P(e.x, e.y), d = Math.hypot(sx - x, sy - 10 - y); if (d < dm){ dm = d; mieux = e; } });
+  choisi = mieux; $('fiche-input').value = mieux && noms[cleDe(mieux)] || ''; majFiche();
+});
+function majFiche(){
+  const e = choisi, modifiable = !!e && !e.toi; $('fiche-input').disabled = $('fiche-ok').disabled = !modifiable;
+  if (!e){ $('fiche-nom').textContent = 'Personne de choisi'; $('fiche-detail').textContent = 'Clique un étudiant ou un prof dans la ville pour voir sa fiche et lui donner son vrai prénom.'; return; }
+  $('fiche-nom').textContent = nomDe(e);
+  if (e.prof){ const pro = CRENEAUX.map(c => ({c, e: ((c.jour - maintenant().jour) * 1440 + c.deb - maintenant().min + 10080) % 10080})).filter(o => o.c.m === e.m.id).sort((a, b) => a.e - b.e)[0];
+    $('fiche-detail').textContent = 'Prof de ' + e.m.nom + (pro ? ' · prochain cours ' + JOURS[pro.c.jour] + ' à ' + hm(pro.c.deb) : ''); }
+  else $('fiche-detail').textContent = (e.toi ? 'C\'est toi' : 'Étudiant de ta classe') + ' · place ' + (e.siege + 1) + ' sur 48 (rangée ' + ((e.siege >> 3) + 1) + ') · ' + (e.chezSoi ? 'à la maison' : e.x < 17.4 ? 'à l\'école' : 'dehors');
+}
+const enregistrerNom = () => { if (!choisi || choisi.toi) return; const v = $('fiche-input').value.trim(); if (v) noms[cleDe(choisi)] = v; else delete noms[cleDe(choisi)]; try { localStorage.setItem('campus-noms', JSON.stringify(noms)); } catch (e) {} majFiche(); };
+$('fiche-ok').addEventListener('click', enregistrerNom); $('fiche-input').addEventListener('keydown', e => { if (e.key === 'Enter') enregistrerNom(); });
+
+/* ---------- Météo ---------- */
+function majMeteo(){ const noms = {soleil: 'soleil', nuages: 'nuageux', pluie: 'pluie'};
+  $('meteo-txt').textContent = meteoMode !== 'auto' ? 'Temps choisi par toi' : meteo.etat === 'ok' ? 'En direct : ' + noms[meteo.type] + ', ' + meteo.temp + ' °C' : meteo.etat === 'ko' ? 'Pas de météo en direct ici (elle marche depuis ton site). Choisis le temps.' : 'Recherche…'; }
+$('meteo-mode').addEventListener('change', e => { meteoMode = e.target.value; panneau(); });
+chargerMeteo(); setInterval(chargerMeteo, 15 * 60000);
+
+afficherRappels(); grille(); afficherPresence(); panneau(); setInterval(panneau, 1000);
+if (dejaActive) activerGPS();   // si tu as déjà autorisé la position, elle repart toute seule
+</script>
+</body></html>
