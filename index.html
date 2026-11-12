@@ -14,6 +14,14 @@ const FIREBASE = {
   projectId: "time-table-8205e",
   appId: "1:446461135401:web:49271fcfdc0e0eabffea38"
 };
+/* ============ LA BOUTIQUE : comment on paie ============
+   mode "test" : les paiements sont faux (aucun argent n'est débité). C'est fait pour essayer la boutique, et c'est écrit en gros sur le site.
+   mode "reel" : les achats passent par ton serveur de paiement, dont l'adresse va dans « serveur ». C'est lui qui parle au prestataire
+   (CinetPay, FedaPay…) et qui inscrit l'achat dans le compte. Tant que ce serveur n'existe pas, laisse "test". */
+const PAIEMENT = {
+  mode: "test",
+  serveur: ""
+};
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
 <style>
@@ -32,7 +40,10 @@ const FIREBASE = {
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--fond)}   /* sur téléphone : rien ne défile sous la barre du haut */
 body{background:var(--fond);color:var(--encre);font:400 20px/1.16 var(--f-texte);
   padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.page{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+/* ----- la ville prend tout l'écran ; tout le reste est rangé dans le menu « ⋮ » ----- */
+html.ville,html.ville body{height:100%;overflow:hidden}                /* quand la ville est affichée, la page ne défile plus */
+html.ville body::before{display:none}
+.appli{position:fixed;left:0;top:0;width:100%;height:100vh;height:100dvh;background:var(--fond);--marge:12px;--large:420px}   /* 100dvh : la hauteur vraiment visible, barre du navigateur comprise */
 h1{font:400 clamp(14px,2.6vw,20px)/1.4 var(--f-titre);margin:0;text-shadow:3px 3px 0 var(--ombre);text-wrap:balance}
 h2{font:400 12px/1.6 var(--f-titre);margin:0;text-wrap:balance}
 h3{font:400 11px/1.6 var(--f-titre);margin:0}
@@ -42,25 +53,30 @@ button,select,input{font:inherit;color:inherit}
 svg{display:block;flex:none}
 
 /* ----- la scène et ce qui est posé dessus ----- */
-.scene{position:relative;overflow:hidden;aspect-ratio:16/10;max-height:84vh;background:var(--ciel);border:3px solid var(--trait);box-shadow:6px 6px 0 var(--ombre);margin-right:6px}
-.scene canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
+.scene{position:absolute;left:var(--marge);top:var(--marge);bottom:var(--marge);right:var(--marge);overflow:hidden;background:var(--ciel);border:3px solid var(--trait);box-shadow:6px 6px 0 var(--ombre);transition:right .24s steps(8)}
+.appli.menu-ouvert .scene{right:calc(var(--marge)*2 + var(--large))}   /* sur ordinateur, la ville se pousse pour laisser la place au menu */
+.scene canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;image-rendering:pixelated}
 .scene canvas:active{cursor:grabbing}
 .scene canvas:focus-visible{outline-offset:-5px}
 .hud{position:absolute;display:flex;gap:8px;color:var(--hud-encre);pointer-events:none}
 .hud > *{pointer-events:auto}
 .verre{background:var(--hud);border:2px solid var(--hud-trait);box-shadow:3px 3px 0 var(--hud-ombre)}
-.hg{left:10px;top:10px;flex-direction:column;gap:4px;padding:8px 10px}
+.hg{left:max(10px,env(safe-area-inset-left,0px));top:max(10px,env(safe-area-inset-top,0px));flex-direction:column;gap:4px;padding:8px 10px}
 .heure{font:400 18px/1.2 var(--f-titre)}
 .heure small{font-size:10px;color:var(--hud-doux)}
 .hud-date{font-size:18px;color:var(--hud-doux);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .tag{background:var(--hud-or);color:#1d1503;border:2px solid #1d1503;font-size:15px;font-weight:700;padding:0 6px;cursor:pointer}
-.hd{right:10px;top:10px;flex-wrap:wrap;justify-content:flex-end;max-width:52%}
+.hd{right:max(10px,env(safe-area-inset-right,0px));top:max(10px,env(safe-area-inset-top,0px));flex-direction:row-reverse;flex-wrap:wrap;justify-content:flex-start;align-items:flex-start;max-width:56%}
+.menu-bouton{position:relative;width:38px;height:38px;display:grid;place-items:center;padding:0;color:var(--hud-encre);cursor:pointer}
+.menu-bouton:active{transform:translate(3px,3px);box-shadow:none}
+.menu-bouton[aria-expanded=true]{background:var(--hud-or);color:#1d1503}
+.menu-bouton.alerte::after{content:"";position:absolute;right:-6px;top:-6px;width:10px;height:10px;background:var(--hud-or);border:2px solid #1d1503}   /* un petit carré doré : il y a quelque chose à faire dans le menu */
 .puce{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;font-size:18px;font-weight:600;white-space:nowrap}
 button.puce{cursor:pointer;color:var(--hud-encre);font-variant-numeric:tabular-nums}
 button.puce:active{transform:translate(3px,3px);box-shadow:none}
 .puce.vif{background:var(--accent);color:#ffffff}
 .puce.vif path[fill="#e4572e"]{fill:#ffffff}
-.bg{left:10px;bottom:10px;max-width:min(440px,calc(100% - 74px));padding:8px 10px;align-items:center;gap:10px}
+.bg{left:max(10px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));max-width:min(440px,calc(100% - 74px));padding:8px 10px;align-items:center;gap:10px}
 .pt{width:14px;height:14px;flex:none;border:2px solid var(--trait);display:inline-block}
 .bg .pt{border-color:var(--hud-trait)}
 .bg .txt{min-width:0}
@@ -68,11 +84,11 @@ button.puce:active{transform:translate(3px,3px);box-shadow:none}
 .bg small{display:block;font-size:18px;line-height:1;color:var(--hud-doux)}
 .jauge{height:8px;background:var(--hud-creux);margin-top:6px;overflow:hidden;border:2px solid var(--hud-trait)}
 .jauge div{height:100%;background:var(--hud-or);width:0}
-.bd{right:10px;bottom:10px;flex-direction:column;gap:8px}
+.bd{right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));flex-direction:column;gap:8px}
 .bd button{width:38px;height:38px;color:var(--hud-encre);display:grid;place-items:center;cursor:pointer;padding:0}
 .bd button:active{transform:translate(3px,3px);box-shadow:none}
 .bd button[aria-pressed=true]{background:var(--accent);color:#ffffff}
-.fiche{position:absolute;right:10px;top:54px;width:min(274px,calc(100% - 20px));background:var(--panneau);color:var(--encre);border:3px solid var(--trait);padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:5px 5px 0 var(--hud-ombre)}
+.fiche{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:calc(max(10px,env(safe-area-inset-top,0px)) + 46px);width:min(274px,calc(100% - 20px));max-height:calc(100% - 66px);overflow:auto;background:var(--panneau);color:var(--encre);border:3px solid var(--trait);padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:5px 5px 0 var(--hud-ombre)}
 .fiche-haut{display:flex;gap:10px;align-items:center}
 .fiche-haut canvas{position:static;width:56px;height:66px;flex:none;background:var(--portrait);border:2px solid var(--trait);cursor:default;touch-action:auto}
 .fiche-haut b{display:block;font:700 24px/1 var(--f-texte);overflow-wrap:anywhere}
@@ -85,15 +101,15 @@ button.puce:active{transform:translate(3px,3px);box-shadow:none}
 .fiche .ligne input{flex:1}
 
 /* ----- les onglets : cinq gros boutons de menu, avec une icône en pixels ----- */
-.onglets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-bottom:4px;margin-right:6px}
+.onglets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 6px;padding-bottom:4px}
 .onglets button{display:flex;flex-direction:column;align-items:center;gap:4px;border:2px solid var(--trait);background:var(--panneau);box-shadow:0 4px 0 var(--trait);padding:8px 2px 6px;font-weight:700;font-size:18px;line-height:1;color:var(--sourdine);cursor:pointer;white-space:nowrap;overflow:hidden}
 .onglets button:active,.onglets button[aria-selected=true]{transform:translateY(4px);box-shadow:none}
 .onglets button[aria-selected=true]{background:var(--or);color:#1b1730}
-.panneau{background:var(--panneau);border:3px solid var(--trait);box-shadow:6px 6px 0 var(--ombre);padding:18px;display:flex;flex-direction:column;gap:18px;margin-right:6px}
+.panneau{display:flex;flex-direction:column;gap:18px}
 .grille2{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px}
 .bloc{display:flex;flex-direction:column;gap:10px;min-width:0}
 .doux{color:var(--sourdine)}
-.astuce{margin:-2px 4px 0}
+.astuce{padding-top:12px;border-top:2px dashed var(--filet)}
 .note{color:var(--sourdine);font-size:18px;line-height:1.12}
 .liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .liste li{display:flex;align-items:center;gap:10px;background:var(--creux);border:2px solid var(--filet);padding:8px 10px;min-width:0}
@@ -137,7 +153,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .animal-tete{display:flex;gap:12px;align-items:center}
 .animal-tete canvas{width:72px;height:56px;flex:none;background:var(--portrait);border:2px solid var(--trait)}
 .animal-tete .btn{margin-top:8px}
-.reglage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:8px 20px;padding-top:16px;border-top:2px dashed var(--filet)}
+.reglage{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 20px;padding-top:16px;border-top:2px dashed var(--filet)}
 .reglage:first-child{padding-top:0;border-top:0}
 .reglage > div{display:flex;flex-direction:column;gap:8px;min-width:0}
 .pres{display:flex;flex-direction:column;gap:5px}
@@ -146,10 +162,10 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .gros{font:700 25px/1 var(--f-texte)}
 
 /* ----- l'onglet « Perso » : la cabine d'essayage à gauche, les choix à droite ----- */
-.atelier{display:grid;grid-template-columns:minmax(250px,340px) minmax(0,1fr);gap:26px;align-items:start}
-.essai{position:sticky;top:calc(10px + env(safe-area-inset-top,0px));z-index:2;display:flex;flex-direction:column;gap:10px;background:var(--panneau)}
+.atelier{display:block}
+.essai{position:sticky;top:-14px;z-index:2;display:flex;flex-direction:column;gap:10px;background:var(--panneau);margin:-10px -6px 16px;padding:10px 6px 12px;border-bottom:2px dashed var(--filet)}
 .essai-cadre{position:relative}
-.essai canvas{display:block;width:100%;height:236px;background:var(--portrait);border:2px solid var(--trait)}
+.essai canvas{display:block;width:100%;height:176px;background:var(--portrait);border:2px solid var(--trait)}
 .essai-cadre .btn{position:absolute;right:8px;top:8px}
 .essai-bas{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .essai-bas b{display:block;font:700 24px/1 var(--f-texte);overflow-wrap:anywhere}
@@ -159,8 +175,8 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .segments button{border:2px solid var(--trait);background:var(--panneau);box-shadow:0 4px 0 var(--trait);padding:8px 4px;font-weight:700;font-size:19px;color:var(--sourdine);cursor:pointer}
 .segments button:active,.segments button[aria-selected=true]{transform:translateY(4px);box-shadow:none}
 .segments button[aria-selected=true]{background:var(--or);color:#1b1730}
-.choix{display:grid;grid-template-columns:92px minmax(0,1fr);gap:6px 12px;align-items:start}
-.choix-nom{font-size:18px;font-weight:600;color:var(--sourdine);padding-top:7px}
+.choix{display:grid;grid-template-columns:minmax(0,1fr);gap:6px 12px;align-items:start}
+.choix-nom{font-size:18px;font-weight:600;color:var(--sourdine)}
 .pastilles,.coches{display:flex;flex-wrap:wrap;gap:8px}
 .tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
 .tuiles.larges{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
@@ -196,7 +212,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .note.bon{color:var(--encre);font-weight:600}
 
 /* ----- l'assistant du premier lancement, les petits formulaires ----- */
-.assistant{background:var(--panneau);border:3px solid var(--accent);box-shadow:6px 6px 0 var(--ombre);padding:16px 18px;display:flex;flex-direction:column;gap:10px;margin-right:6px}
+.assistant{background:var(--panneau);border:3px solid var(--accent);box-shadow:4px 4px 0 var(--ombre);padding:14px;display:flex;flex-direction:column;gap:10px;margin-right:4px}
 .etape{font:400 9px/1.6 var(--f-titre);color:var(--accent);text-transform:uppercase}
 .titre-ligne{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .editeur{display:flex;flex-direction:column;gap:12px;border:2px solid var(--trait);padding:14px;background:var(--creux)}
@@ -211,9 +227,10 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .carnet .liste{max-height:218px;overflow:auto}
 
 /* ----- l'emploi du temps : une colonne par jour ----- */
-.semaine{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;align-items:start}
-.jour-col{display:flex;flex-direction:column;gap:6px;min-width:0}
-.jour-col > b{font:400 9px/1.6 var(--f-titre);text-transform:uppercase;color:var(--sourdine);padding:2px}
+.semaine{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start}
+.jour-col{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;min-width:0}
+.jour-col > b{flex:0 0 100%;font:400 9px/1.6 var(--f-titre);text-transform:uppercase;color:var(--sourdine);padding:2px}
+.creneau,.jour-libre{flex:1 1 150px}
 .creneau{position:relative}
 .creneau .cellule{padding-right:38px;font-size:18px}
 .cellule small{color:var(--sourdine);font-size:16px}
@@ -265,28 +282,72 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
 @media (orientation:portrait){html.cine-ouvert .parole{left:max(12px,env(safe-area-inset-left,0px));right:auto}}
 @media (prefers-reduced-motion:reduce){.cine-flash .cine-haut{animation:none}}
 
+/* ----- la boutique : les rayons, les articles, la fiche d'un objet, la feuille de paiement, l'écran d'un lieu à débloquer ----- */
+.bandeau{background:var(--or);color:#1b1730;border:2px solid #1b1730;padding:6px 10px;font-size:18px;line-height:1.1}
+.bandeau b{font:400 9px/1.6 var(--f-titre);margin-right:6px}
+.rayons{display:flex;flex-wrap:wrap;gap:6px}
+.rayons button{border:2px solid var(--trait);background:var(--creux);padding:4px 10px;font-size:18px;font-weight:600;color:var(--sourdine);cursor:pointer}
+.rayons button[aria-pressed=true]{background:var(--encre);color:var(--panneau)}
+.articles{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px}
+.article{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 4px 8px;border:2px solid var(--trait);background:var(--creux);color:var(--encre);box-shadow:0 4px 0 var(--trait);cursor:pointer;text-align:center;line-height:1;min-width:0;margin-bottom:4px}
+.article:active{transform:translateY(4px);box-shadow:none}
+.article canvas{display:block;width:100%;max-width:120px;height:auto;aspect-ratio:5/4;background:var(--portrait);image-rendering:pixelated}
+.article b{font-weight:700;overflow-wrap:anywhere}
+.etat.bon{background:var(--vert);border-color:var(--vert);color:#ffffff}
+.objet-vue{display:block;width:100%;height:210px;background:var(--portrait);border:2px solid var(--trait);image-rendering:pixelated}
+.btn svg{flex:none}
+.voile{position:fixed;inset:0;z-index:70;display:grid;place-items:center;overflow:auto;background:rgba(15,10,40,.62);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.carte-paie{width:min(400px,100%);background:var(--panneau);color:var(--encre);border:3px solid var(--trait);box-shadow:8px 8px 0 rgba(8,5,25,.5);padding:16px;display:flex;flex-direction:column;gap:12px}
+.paie-objet{display:flex;gap:12px;align-items:center}
+.paie-objet canvas{width:90px;height:72px;flex:none;background:var(--portrait);border:2px solid var(--trait);image-rendering:pixelated}
+.paie-objet b{display:block;font-weight:700}
+.moyens{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.moyens label{position:relative;cursor:pointer}
+.moyens label.large{grid-column:1/-1}
+.moyens input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.moyens span{display:block;border:2px solid var(--trait);background:var(--creux);padding:9px 6px;text-align:center;font-weight:600;font-size:18px;line-height:1}
+.moyens input:checked + span{background:var(--encre);color:var(--panneau)}
+.moyens input:focus-visible + span{outline:3px solid var(--or);outline-offset:2px}
+.verrou{position:fixed;inset:0;z-index:45;display:flex;align-items:flex-end;justify-content:center;background:#110e20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.verrou > canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.verrou-carte{position:relative;width:min(440px,100%);background:rgba(20,15,42,.92);color:#ffffff;border:3px solid #ffffff;box-shadow:6px 6px 0 rgba(8,5,25,.5);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.verrou-carte .etape{color:var(--hud-or)}
+.verrou-carte .note{color:#c9c2e6}
+.verrou-carte .btn{background:#ffffff;color:#1b1730;border-color:#1b1730;box-shadow:0 4px 0 #000000}
+.verrou-carte .btn.fort{background:#e4572e;color:#ffffff;box-shadow:0 4px 0 #7a2a12}
+/* ----- le menu : un panneau qui glisse depuis la droite, par à-coups (comme un vieux jeu) ----- */
+.menu{position:absolute;top:var(--marge);bottom:var(--marge);right:var(--marge);width:var(--large);z-index:30;display:flex;flex-direction:column;background:var(--panneau);color:var(--encre);border:3px solid var(--trait);box-shadow:6px 6px 0 var(--ombre);
+  transform:translateX(calc(100% + 40px));visibility:hidden;transition:transform .24s steps(8),visibility 0s .24s}
+.appli.menu-ouvert .menu{transform:none;visibility:visible;transition:transform .24s steps(8),visibility 0s}
+.menu-tete{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:3px solid var(--trait);background:var(--creux)}
+.menu-tete h1{font-size:13px;text-shadow:2px 2px 0 var(--ombre)}
+.menu-tete .fermer{width:36px;height:36px;margin:0 0 3px}
+.menu-corps{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:14px}
+.invite{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:20;display:flex;flex-direction:column;align-items:center;gap:10px;width:max-content;max-width:calc(100% - 28px);text-align:center;
+  background:var(--panneau);color:var(--encre);border:3px solid var(--trait);box-shadow:5px 5px 0 var(--hud-ombre);padding:14px 16px;font-weight:700}
+.champs.trois{gap:6px}
 @media (max-width:360px){.hg{max-width:calc(100% - 150px)}}
 @media (max-width:640px){
-  .scene{aspect-ratio:4/5}
   .heure{font-size:14px}.heure small{font-size:9px}
   .puce{padding:3px 6px;font-size:16px}
-  .onglets button{font-size:clamp(11px,3.6vw,14.5px);padding-inline:0}
-  .panneau{padding:14px}
-  .reglage{grid-template-columns:minmax(0,1fr)}
-  .semaine{grid-template-columns:minmax(0,1fr)}
-  .jour-col{flex-direction:row;flex-wrap:wrap}
-  .jour-col > b{flex:0 0 100%}
-  .creneau,.jour-libre{flex:1 1 150px}
   .carnet .liste{max-height:170px}
-  .champs.trois{gap:6px}
 }
-@media (max-width:760px){
-  .atelier{display:block}
-  .essai{top:env(safe-area-inset-top,0px);margin:-10px -6px 16px;padding:10px 6px 12px;border-bottom:2px dashed var(--filet)}
-  .essai canvas{height:176px}
-  .choix{grid-template-columns:minmax(0,1fr)}
-  .choix-nom{padding-top:0}
+@media (max-width:760px){                                              /* téléphone : ni marge ni cadre, et le menu couvre tout l'écran */
+  .appli{--marge:0px}
+  .scene{border:0;box-shadow:none}
+  .appli.menu-ouvert .scene{right:0}
+  .menu{left:0;width:auto;border:0;box-shadow:none}
+  .menu-tete{padding-top:max(10px,env(safe-area-inset-top,0px));padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+  .menu-corps{padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-bottom:max(18px,env(safe-area-inset-bottom,0px))}
 }
+@media (min-width:1800px) and (min-height:900px){                      /* très grand écran : on grossit ce qui est posé sur la ville, et le menu */
+  .appli{--large:500px}
+  .hud,.fiche{zoom:1.3}
+  .menu-tete,.menu-corps{zoom:1.18}
+}
+@media (prefers-reduced-motion:reduce){.menu,.scene{transition:none}}
 </style>
 
 <main class="connexion" id="connexion">
@@ -327,16 +388,15 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
   </div>
 </main>
 
-<div class="page" id="appli" hidden>
-  <h1>Le campus des cours</h1>
-
+<div class="appli" id="appli" hidden>
   <section class="scene" id="scene">
-    <canvas id="vue" tabindex="0" role="img" aria-label="La ville en pixel art : l'école et ses huit salles, la cour, la route, les maisons, le parc et la plage. Glisse pour te déplacer, pince ou utilise les boutons pour zoomer."></canvas>
+    <canvas id="vue" tabindex="0" role="img" aria-label="La ville en pixel art : l'école et ses salles, la cour, la route, les maisons, le parc et la plage. Glisse pour te déplacer, pince ou utilise les boutons pour zoomer."></canvas>
     <div class="hud hg verre">
       <div class="heure"><span id="hh">--:--</span><small id="ss"></small></div>
       <div class="hud-date"><span id="date"></span><button class="tag" id="tag" type="button" hidden>Aperçu ×</button></div>
     </div>
     <div class="hud hd">
+      <button class="verre menu-bouton" id="menu-bouton" type="button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="menu"><i data-pix="menu" data-t="18"></i></button>
       <span class="puce verre" id="hud-meteo"></span>
       <span class="puce verre" id="hud-lieu"></span>
       <button class="puce verre vif" id="hud-pomo" type="button" hidden></button>
@@ -374,10 +434,18 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       <ul class="liste" id="carnet-liste"></ul>
       <button class="btn" id="carnet-ajouter" type="button">Ajouter quelque chose</button>
     </aside>
+    <div class="invite" id="invite-plein" role="dialog" aria-label="Plein écran" hidden>
+      <span>Passer en plein écran ?</span>
+      <span class="rang"><button class="btn fort" id="invite-oui" type="button">Oui</button><button class="btn" id="invite-non" type="button">Non merci</button></span>
+    </div>
   </section>
 
-  <p class="note astuce">Glisse pour te déplacer, pince ou utilise + et − pour zoomer. Touche un personnage pour ouvrir sa fiche, ou <span id="astuce-animal">ton chien</span> pour voir ce qu'il te reste à faire. Le bouton qui rebondit, au-dessus de ton ordinateur ou au café, lance une séance de travail.</p>
-
+  <aside class="menu" id="menu" aria-label="Menu" inert>
+    <header class="menu-tete">
+      <h1>Le campus des cours</h1>
+      <button class="fermer" id="menu-fermer" type="button" aria-label="Fermer le menu et revenir à la ville" title="Fermer"><i data-pix="fermer" data-t="12"></i></button>
+    </header>
+    <div class="menu-corps" id="menu-corps">
   <section class="assistant" id="assistant" hidden aria-live="polite">
     <div class="titre-ligne"><span class="etape" id="as-etape">Étape 1 sur 2</span><button class="btn mini" id="as-plus-tard" type="button">Plus tard</button></div>
     <h2 id="as-titre">Ajoute ta première matière</h2>
@@ -409,6 +477,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
     <button role="tab" type="button" data-o="rappels" aria-selected="false"><i data-pix="cloche" data-t="18"></i>Rappels</button>
     <button role="tab" type="button" data-o="semaine" aria-selected="false"><i data-pix="calendrier" data-t="18"></i>Semaine</button>
     <button role="tab" type="button" data-o="perso" aria-selected="false"><i data-pix="perso" data-t="18"></i>Perso</button>
+    <button role="tab" type="button" data-o="boutique" aria-selected="false"><i data-pix="boutique" data-t="18"></i>Boutique</button>
     <button role="tab" type="button" data-o="reglages" aria-selected="false"><i data-pix="roue" data-t="18"></i>Réglages</button>
   </nav>
 
@@ -421,7 +490,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div class="pomo-carte">
           <span class="tomates" id="pomo-tomates" role="img"></span>
           <p class="note" id="pomo-resume"></p>
-          <div class="rang"><button class="btn fort" id="pomo-maison" type="button">Travailler chez moi</button><button class="btn" id="pomo-cafe" type="button">Travailler au café</button></div>
+          <div class="rang"><button class="btn fort" id="pomo-maison" type="button">Travailler chez moi</button><button class="btn" id="pomo-cafe" type="button">Travailler au café</button><button class="btn" id="pomo-garba" type="button">Travailler au maquis</button></div>
         </div>
       </div>
       <div class="bloc">
@@ -432,6 +501,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div class="compte" id="compte"></div>
       </div>
     </div>
+  <p class="note astuce">Glisse pour te déplacer, pince ou utilise + et − pour zoomer. Touche un personnage pour ouvrir sa fiche, ou <span id="astuce-animal">ton chien</span> pour voir ce qu'il te reste à faire. Le bouton qui rebondit, au-dessus de ton ordinateur ou au café, lance une séance de travail.</p>
   </section>
 
   <section class="panneau" id="o-rappels" role="tabpanel" hidden>
@@ -500,7 +570,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       </form>
       <label class="champ etroit"><span>Nom de ton école (écrit sur le portail)</span><input id="ecole-nom" type="text" maxlength="10" autocomplete="off" placeholder="École"></label>
       <datalist id="salles-connues"></datalist>
-      <p class="note">L'école de la ville a 8 salles : elles prennent le nom des salles que tu saisis. Au-delà de 8, deux salles partagent le même local.</p>
+      <p class="note">L'école de la ville grandit avec toi : chaque salle que tu saisis (ou chaque matière sans salle) a sa classe. Au-delà de 8, une nouvelle rangée de classes se construit au nord de l'école ; si tu supprimes des matières, les classes en trop disparaissent.</p>
     </div>
     <div class="grille2">
       <div class="bloc">
@@ -555,6 +625,30 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
     </div>
   </section>
 
+  <section class="panneau" id="o-boutique" role="tabpanel" hidden>
+    <p class="bandeau" id="boutique-test"><b>MODE TEST</b> Les paiements sont faux : aucun argent n'est débité.</p>
+    <div class="segments" role="tablist" aria-label="Boutique ou inventaire">
+      <button role="tab" type="button" id="seg-rayons" data-b="rayons" aria-selected="true" aria-controls="b-rayons">Boutique</button>
+      <button role="tab" type="button" id="seg-inventaire" data-b="inventaire" aria-selected="false" aria-controls="b-inventaire">Inventaire</button>
+    </div>
+    <div class="bloc" id="b-rayons" role="tabpanel" aria-labelledby="seg-rayons">
+      <div class="rayons" id="rayons" role="group" aria-label="Rayons"></div>
+      <div class="bloc" id="etageres"></div>
+    </div>
+    <div class="bloc" id="b-inventaire" role="tabpanel" aria-labelledby="seg-inventaire" hidden>
+      <p class="note" id="inventaire-vide" hidden>Ton inventaire est vide. Va voir la boutique : plusieurs objets sont gratuits.</p>
+      <div class="bloc" id="inventaire"></div>
+    </div>
+    <div class="bloc" id="objet" hidden>
+      <div><button class="btn mini" id="objet-retour" type="button">← Retour</button></div>
+      <canvas class="objet-vue" id="objet-vue" role="img" aria-label="Aperçu animé de l'objet"></canvas>
+      <div class="titre-ligne"><h2 id="objet-nom"></h2><span class="etat" id="objet-prix"></span></div>
+      <p id="objet-texte"></p>
+      <div class="rang" id="objet-actions"></div>
+      <p class="note" id="objet-note"></p>
+    </div>
+  </section>
+
   <section class="panneau" id="o-reglages" role="tabpanel" hidden>
     <div>
       <div class="reglage">
@@ -562,6 +656,10 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div>
           <div class="rang"><b id="compte-nom"></b><span class="etat" id="compte-etat"></span></div>
           <div><button class="btn" id="deconnexion" type="button">Se déconnecter</button></div>
+          <div class="bloc" id="email-bloc" hidden>
+            <p class="note" id="email-note" role="status"></p>
+            <div class="rang"><button class="btn" id="email-verifier" type="button">Recevoir le lien</button><button class="btn" id="email-fait" type="button">J'ai cliqué sur le lien</button></div>
+          </div>
         </div>
       </div>
       <div class="reglage" style="margin-top:16px">
@@ -596,8 +694,14 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div><h2>Notifications</h2><p class="note" id="notif-note"></p></div>
         <div><div><button class="btn" id="notif" type="button">Activer les notifications</button></div></div>
       </div>
+      <div class="reglage" id="reglage-plein" style="margin-top:16px" hidden>
+        <div><h2>Plein écran</h2><p class="note">La ville prend tout l'écran, sans la barre du navigateur. Pour en sortir : le geste « retour », ou la touche Échap.</p></div>
+        <div><label class="voir"><input class="case" id="plein-ecran" type="checkbox"> Passer en plein écran quand j'ouvre le site</label></div>
+      </div>
     </div>
   </section>
+    </div>
+  </aside>
 </div>
 
 <div class="cine" id="cine" hidden>
@@ -619,6 +723,40 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <button class="btn" id="cine-passer" type="button">Passer</button>
         <button class="btn" id="cine-quitter" type="button">Quitter</button>
       </div>
+    </div>
+  </div>
+</div>
+<div class="verrou" id="verrou" role="dialog" aria-modal="true" aria-labelledby="verrou-nom" hidden>
+  <canvas id="verrou-vue" aria-hidden="true"></canvas>
+  <div class="verrou-carte">
+    <span class="etape">Lieu à débloquer</span>
+    <h2 id="verrou-nom"></h2>
+    <p id="verrou-texte"></p>
+    <p class="note" id="verrou-note"></p>
+    <div class="rang"><button class="btn fort" id="verrou-ok" type="button">Débloquer</button><button class="btn" id="verrou-non" type="button">Plus tard</button></div>
+  </div>
+</div>
+<div class="voile" id="paiement" role="dialog" aria-modal="true" aria-labelledby="paie-titre" hidden>
+  <div class="carte-paie">
+    <p class="bandeau" id="paie-test"><b>MODE TEST</b> Faux paiement : aucun argent n'est débité.</p>
+    <h2 id="paie-titre">Paiement</h2>
+    <div class="paie-objet"><canvas id="paie-vue" width="120" height="96" aria-hidden="true"></canvas><div><b id="paie-nom"></b><span class="gros" id="paie-prix"></span></div></div>
+    <div class="bloc" id="paie-choix">
+      <p class="note">Choisis un moyen de paiement.</p>
+      <div class="moyens" role="radiogroup" aria-label="Moyen de paiement">
+        <label><input type="radio" name="paie-moyen" id="paie-orange" value="orange" checked><span>Orange Money</span></label>
+        <label><input type="radio" name="paie-moyen" id="paie-mtn" value="mtn"><span>MTN MoMo</span></label>
+        <label><input type="radio" name="paie-moyen" id="paie-moov" value="moov"><span>Moov Money</span></label>
+        <label><input type="radio" name="paie-moyen" id="paie-wave" value="wave"><span>Wave</span></label>
+        <label class="large"><input type="radio" name="paie-moyen" id="paie-carte" value="carte"><span>Carte bancaire</span></label>
+      </div>
+      <p class="note erreur" id="paie-erreur" role="alert" hidden></p>
+      <div class="rang"><button class="btn fort" id="paie-ok" type="button">Payer</button><button class="btn" id="paie-annuler" type="button">Annuler</button></div>
+    </div>
+    <div class="bloc" id="paie-fait" hidden>
+      <p class="gros">C'est à toi !</p>
+      <p class="doux" id="paie-fait-texte" role="status"></p>
+      <div class="rang"><button class="btn fort" id="paie-suite" type="button">Continuer</button></div>
     </div>
   </div>
 </div>
@@ -703,6 +841,7 @@ function activerGPS(){
 let rappels = [];                                          // à rendre : {id, texte, pour (date en millisecondes), heure (vrai si une heure précise), m (matière ou rien), n (notifications déjà envoyées)}
 let taches = [];                                           // tâches : {id, texte, pour, heure, prio (0 basse, 1 normale, 2 haute), fait, n}
 let pomo = {reglages: {travail: 25, pause: 5, longue: 15, son: true}, jours: {}, matieres: {}};   // Pomodoro : tes durées (en minutes), tes sessions par jour {n, s, m}, le temps travaillé par matière (en secondes)
+let boutique = {possede: [], essais: [], porte: {}, deco: []};   // la boutique : objets gratuits obtenus, achats d'essai, ce que tu portes (un objet par endroit), les décorations posées chez toi
 let presences = {};                                        // un cours suivi : {m, deb, arrive, finTs}
 let animalNom = '', animal = {}, look = {}, noms = {}, ecoleNom = '', assistantVu = false, choisi = null;
 const PRIORITES = ['basse', 'normale', 'haute'];
@@ -767,19 +906,24 @@ function melange(a, b, t){
   return '#' + hex2(f(16)) + hex2(f(8)) + hex2(f(0));
 }
 
-// L'école : 8 salles, le couloir, la cour. Les salles prennent le nom et la couleur de ce que tu as saisi (voir attribuerSalles).
-const SALLE_VIDE = '#cfc9dc';
-const SALLES = [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({i, x: 1 + (i % 4) * 4, y: i < 4 ? 1 : 5.6, w: 3.8, h: 4.2, nom: '', c: SALLE_VIDE, matieres: []}));
+// L'école : 8 salles au départ, le couloir, la cour. Les salles prennent le nom et la couleur de ce que tu as saisi (voir attribuerSalles).
+// Et s'il t'en faut plus de 8, l'école s'agrandit : une nouvelle rangée de classes se construit au nord (voir agrandirEcole, dans le décor).
+const SALLE_VIDE = '#cfc9dc', RANG = 4.6;                              // RANG : la distance entre deux rangées de salles
+const posSalle = i => ({x: 1 + (i % 4) * 4, y: i < 4 ? 1 : i < 8 ? 5.6 : 1 - RANG * ((i >> 2) - 1)});   // 4 salles par rangée ; à partir de la 9e, on monte vers le nord
+const nouvelleSalle = i => Object.assign({i, w: 3.8, h: 4.2, nom: '', c: SALLE_VIDE, matieres: [], k: 1, ne: null, fin: null}, posSalle(i));   // k : de 0 (pas encore bâtie) à 1 (finie)
+const SALLES = [0, 1, 2, 3, 4, 5, 6, 7].map(nouvelleSalle);
+let NB_SALLES = 8, NORD = 0;                                            // combien de salles sont ouvertes · jusqu'où l'île monte au nord (0 au départ, −4,6 par rangée en plus)
 let SALLE_INDEX = {};                                                  // « b12 » → numéro de la salle dans la ville
 const cleSalle = (c, m) => { const n = ((c && c.salle) || (m && m.salle) || '').trim().toLowerCase(); return n || (m ? '#' + m.id : ''); };   // une matière sans salle a quand même la sienne
 // On distribue les salles : d'abord la salle habituelle de chaque matière, puis les salles particulières de certains cours.
-// Au-delà de 8 salles différentes, deux salles partagent le même local.
+// Chaque salle différente a sa classe : au-delà de 8, l'école en construit de nouvelles ; quand il y en a trop, elles disparaissent.
 function attribuerSalles(){
   const cles = [], etiq = {}, voir = (k, nom) => { if (k && !cles.includes(k)){ cles.push(k); etiq[k] = nom; } };
   MATIERES.forEach(m => voir(cleSalle(null, m), m.salle.trim()));
   CRENEAUX.forEach(c => { const m = matiere(c.m); if (m) voir(cleSalle(c, m), (c.salle || m.salle).trim()); });
+  agrandirEcole(Math.max(8, cles.length));
   SALLE_INDEX = {}; SALLES.forEach(s => { s.nom = ''; s.c = SALLE_VIDE; s.matieres = []; });
-  cles.forEach((k, n) => { const s = SALLES[n % 8]; SALLE_INDEX[k] = s.i; if (!s.nom && k[0] !== '#') s.nom = etiq[k]; });
+  cles.forEach((k, n) => { const s = SALLES[n]; SALLE_INDEX[k] = s.i; if (k[0] !== '#') s.nom = etiq[k]; });
   MATIERES.forEach(m => { const s = SALLES[SALLE_INDEX[cleSalle(null, m)]]; s.matieres.push(m); if (s.matieres.length === 1) s.c = m.c; });
 }
 const salleDe = c => { const k = cleSalle(c, matiere(c.m)); return SALLES[k in SALLE_INDEX ? SALLE_INDEX[k] : 0]; };   // la salle (dans la ville) d'un cours
@@ -799,6 +943,7 @@ const ETANG = {x: 29.05, y: 9.82, rx: .95, ry: .6};
 const SABLE = 17.9, RIVE = 20.25;
 const PARASOLS = [[4.5, 19.05], [11.1, 19.2], [24.9, 19.1], [30.2, 19.2]];
 const KX = 13.4, KY = 15.85, TABLES_KIOSQUE = [[15.75, 16.2], [16.55, 16.95]];
+const TABLE_GARBA = [12.5, 16.72];                                      // ta table du maquis : en bois, sous le grand parasol, juste à côté de l'étal
 // Le café du bord de mer : une salle ouverte sur le dessus (comptoir, tables), une vitrine, et une terrasse posée au bord de la plage
 const CAFE = {x: 4.3, y: 15.56, w: 4, h: 1.62, t: .95};                 // t : la profondeur de la terrasse, devant la vitrine
 const CAFE_PORTE = CAFE.x + 2.1;                                        // où se trouve la porte, le long de la vitrine
@@ -824,6 +969,7 @@ noeud('C_s', 17.15, 10.12); noeud('C_n', 17.15, 5.4); lien('C_s', 'C_n');
 const ZONES = {cour: ['G_in', 'C_s'], sud: ['O_kio', 'O_plage', 'E_plage'], parc: ['PK_n', 'PK_s', 'PK_o', 'PK_e'], moi: ['M_porte']};
 noeud('CF_in', CAFE_PORTE, CAFE.y + CAFE.h + .02); noeud('CF_s', CAFE_PORTE, CAFE.y + CAFE.h + CAFE.t + .14);      // la porte du café, et le bas de sa terrasse (côté plage)
 ZONES.sud.push('CF_s'); ZONES.terrasse = ['CF_s', 'CF_in']; ZONES.cafe = ['CF_in'];
+noeud('GB_e', 15.55, 17.55); noeud('GB', 12.85, 17.5); chaine(['O_kio', 'GB_e', 'GB']); lien('GB_e', 'O_plage'); ZONES.garba = ['GB'];   // le chemin qui contourne l'étal du maquis, jusqu'à ta table
 SALLES.forEach(s => {
   const dx = s.x + s.w / 2, haut = s.i < 4;
   noeud('R' + s.i, dx, s.y + s.h - .45); noeud('D' + s.i, dx, haut ? 5.4 : 10.12); lien('R' + s.i, 'D' + s.i);
@@ -949,6 +1095,8 @@ const LIEUX = {
 };
 const CAFE_MOI = lieuZone('cafe-moi', TABLE_MOI[0] - .32, TABLE_MOI[1] + .12, 'cafe', {pose: 'banc'});       // ta place au café, devant le portable
 const CAFE_COMMANDE = lieuZone('cafe-commande', CAFE.x + 1.15, CAFE.y + .84, 'cafe', {dos: true});           // … et là où tu commandes, au comptoir
+const GARBA_MOI = lieuZone('garba-moi', TABLE_GARBA[0] - .32, TABLE_GARBA[1] + .12, 'garba', {pose: 'banc'});  // ta place au maquis, sur le banc en bois
+const GARBA_COMMANDE = lieuZone('garba-commande', KX - .16, KY + 1.38, 'garba', {dos: true});                  // … et là où tu commandes ton garba, au bout de l'étal
 // Qui est au café en ce moment : quelques étudiants, chacun à une place différente
 let _clients = {}, _nbClients = 0;
 function clientsCafe(nc, taux){
@@ -1066,12 +1214,18 @@ function sprite(e, sx, sy, k, t, o){
   // jambes
   if (assis) R(-3.2, -3.6, 6.4, 3.6, e.bas);
   else if (banc){
-    R(-3.4, -4.2, 2.8, 2.2, jambe); R(.6, -4.2, 2.8, 2.2, jambe); R(-3.4, -2.4, 2.4, 2.4, jambe); R(.9, -2.4, 2.4, 2.4, jambe);
+    R(-3.4, -4.2, 2.8, 2.2, jambe); R(.6, -4.2, 2.8, 2.2, jambe); R(-3.4, -2.4, 2.4, 2.4, e.basType === 'short' ? peau : jambe); R(.9, -2.4, 2.4, 2.4, e.basType === 'short' ? peau : jambe);
     R(-3.7, -.9, 3, 1, e.chaussure); R(.7, -.9, 3, 1, e.chaussure);
   } else {
     const la = Math.max(0, s) * 2, lb = Math.max(0, -s) * 2, st = s * .8;
     R(-3 + st, -4.8 - la, 2.6, 3.8, jambe); R(-3.3 + st, -1.1 - la, 3.1, 1.1, e.chaussure);
     R(.4 - st, -4.8 - lb, 2.6, 3.8, jambe); R(.2 - st, -1.1 - lb, 3.1, 1.1, e.chaussure);
+    // les objets de la boutique : short, jogging à bandes, pantalon wax ; baskets montantes, sandales
+    if (e.basType === 'short'){ R(-3 + st, -2.7 - la, 2.6, 1.7, peau); R(.4 - st, -2.7 - lb, 2.6, 1.7, peau); }
+    else if (e.basType === 'jogging'){ R(-3 + st, -4.8 - la, .7, 3.8, e.acc); R(2.3 - st, -4.8 - lb, .7, 3.8, e.acc); R(-3 + st, -1.6 - la, 2.6, .5, '#ffffff'); R(.4 - st, -1.6 - lb, 2.6, .5, '#ffffff'); }
+    else if (e.basType === 'pagne') [[-2.7, -4.3, 0], [-1.5, -2.8, 0], [.8, -4.3, 1], [1.9, -2.8, 1]].forEach(([x, y, d], n) => R(x + (d ? -st : st), y - (d ? lb : la), 1, 1, n % 2 ? '#ffffff' : e.acc));
+    if (e.pieds === 'montantes'){ R(-3.1 + st, -2 - la, 2.8, 1, e.chaussure); R(.3 - st, -2 - lb, 2.8, 1, e.chaussure); R(-3.3 + st, -.4 - la, 3.1, .4, '#ffffff'); R(.2 - st, -.4 - lb, 3.1, .4, '#ffffff'); }
+    else if (e.pieds === 'sandales'){ R(-3.3 + st, -1.1 - la, 3.1, 1.1, peau); R(.2 - st, -1.1 - lb, 3.1, 1.1, peau); R(-2.5 + st, -1.1 - la, .8, 1.1, e.chaussure); R(1 - st, -1.1 - lb, .8, 1.1, e.chaussure); R(-3.3 + st, -.3 - la, 3.1, .3, e.chaussure); R(.2 - st, -.3 - lb, 3.1, .3, e.chaussure); }
   }
   if (e.style === 2 && !assis) R(-4.5, -7.2 + by, 9, 3.4, e.bas);                                   // jupe
   // bras gauche, torse et ses détails
@@ -1081,6 +1235,7 @@ function sprite(e, sx, sy, k, t, o){
   else if (tape){ R(-5.9, -10.7 + by, 2, 3, haut2); R(-4.9, -7.9 + by + tg, 2.6, 1.8, peau); }
   else { R(-5.9, -10.7 + by + ba * .4, 2, 3.2, haut2); R(-5.9, -7.5 + by + ba * .4, 2, 2.6, peau); }
   R(-4, -11 + by, 8, 6.6, haut); R(2.5, -11 + by, 1.5, 6.6, haut2);
+  if (e.style === 9){ R(-4.2, -4.6 + by, 8.4, 2.1, haut); R(-4.2, -3.1 + by, 8.4, .7, e.acc); }                                           // boubou : il descend plus bas, avec un liseré
   if (e.style === 6) [[-3.2, -10.2], [.2, -10.2], [-1.5, -8.4], [1.9, -8.4], [-3.2, -6.6], [.2, -6.6]].forEach(([x, y], n) => R(x, y + by, 1.4, 1.4, n % 2 ? '#ffffff' : e.acc));   // wax : des motifs, devant comme derrière
   if (!dos){
     if (e.style === 1){ R(-4, -9.3 + by, 8, 1, e.acc); R(-4, -7.2 + by, 8, 1, e.acc); }
@@ -1088,10 +1243,16 @@ function sprite(e, sx, sy, k, t, o){
     else if (e.style === 4){ R(-2.6, -7.4 + by, 5.2, 2.2, haut2); R(-1.6, -11 + by, .7, 2.4, '#ffffff'); R(.9, -11 + by, .7, 2.4, '#ffffff'); }
     else if (e.style === 5){ R(-4, -11 + by, 1, 6.6, e.acc); R(3, -11 + by, 1, 6.6, e.acc); R(-1.7, -11.2 + by, 3.4, .9, e.acc); R(-1.2, -9 + by, .9, 2.8, '#ffffff'); R(.3, -9 + by, .9, 2.8, '#ffffff'); }   // maillot : bandes, col et numéro
     else if (e.style === 7){ R(-1.4, -11 + by, 2.8, 6.6, '#ffffff'); R(-2.3, -11 + by, .9, 3.4, haut2); R(1.4, -11 + by, .9, 3.4, haut2); R(-.5, -10.4 + by, 1, 3.8, e.acc); }   // veste ouverte sur une chemise, avec une cravate
+    else if (e.style === 8){ R(-2.4, -6.9 + by, 4.8, 1.9, haut2); R(-2.7, -11.5 + by, 5.4, 1.2, haut2); R(-1.5, -10.4 + by, .6, 2.6, '#ffffff'); R(.9, -10.4 + by, .6, 2.6, '#ffffff'); }   // sweat à capuche : la poche, la capuche rabattue, les cordons
+    else if (e.style === 9){ R(-1.7, -11 + by, 3.4, 3.4, e.acc); R(-.8, -11 + by, 1.6, 2.2, peau2); [-2.7, -.5, 1.7].forEach(x => R(x, -6.6 + by, 1, 1, e.acc)); }   // boubou : l'encolure brodée, trois motifs
+    else if (e.style === 10){ R(-1.2, -11 + by, 2.4, 6.6, '#ffffff'); R(-2.6, -11 + by, 1.4, 4.4, haut2); R(1.2, -11 + by, 1.4, 4.4, haut2); R(-.5, -10.4 + by, 1, 4.6, e.acc); R(-.8, -10.9 + by, 1.6, .9, e.acc); R(2.2, -9.2 + by, 1, .8, '#ffffff'); }   // costume : les revers, la cravate, la pochette
     else if (e.style === 0 && e.logo) R(-1.6, -9.6 + by, 3.2, 2.2, e.acc);
     if (o.sac){ R(-3.6, -11 + by, 1, 5.4, e.sac); R(2.6, -11 + by, 1, 5.4, e.sac); }
   } else if (o.sac){ R(-3.2, -10.6 + by, 6.4, 6, e.sac); R(-2.2, -7.6 + by, 4.4, 2, teinte(e.sac, -.2)); }
   else if (e.style === 5){ R(-1.3, -9.6 + by, 1, 3.4, '#ffffff'); R(.3, -9.6 + by, 1, 3.4, '#ffffff'); }   // le numéro dans le dos
+  else if (e.style === 8) R(-2.9, -11.8 + by, 5.8, 3.2, haut2);                                                 // la capuche, vue de dos
+  if (e.sacoche === 'sacoche'){ if (!dos) for (let i = 0; i < 5; i++) R(-3.6 + i * 1.4, -10.8 + by + i * 1.1, 1.5, .9, '#3a2a22'); R(2.5, -6.1 + by, 3.1, 2.9, e.sac); R(2.5, -6.1 + by, 3.1, .8, teinte(e.sac, -.25)); }
+  else if (e.sacoche === 'banane'){ R(-4, -5.3 + by, 8, .8, '#22222e'); if (!dos){ R(-2, -5.9 + by, 4.4, 2, e.sac); R(-2, -5.9 + by, 4.4, .6, teinte(e.sac, -.25)); } }
   // bras droit, selon le geste
   if (g === 'main' || g === 'ecrit'){ R(4, -13 + by, 2, 3, haut); R(4, -18.2 + by, 2, 5.4, peau); }
   else if (g === 'salut'){ const w = Math.sin(t * 10) * .8; R(4, -13 + by, 2, 3, haut); R(4.4 + w, -18 + by, 2, 5.2, peau); }
@@ -1102,8 +1263,11 @@ function sprite(e, sx, sy, k, t, o){
   else if (g === 'boit'){ R(3.9, -10.7 + by, 2, 2.6, haut); R(2.6, -12.8 + by, 3.3, 2, peau); R(.3, -15 + by, 3.2, 2.8, '#ffffff'); R(.3, -15 + by, 3.2, .7, '#d9d6e6'); }   // boire : la tasse devant la bouche
   else if (g === 'tasse'){ R(3.9, -10.7 + by, 2, 3, haut); R(2.4, -8.3 + by, 3.4, 1.9, peau); R(.2, -10.6 + by, 3.2, 2.8, '#ffffff'); R(.2, -10.6 + by, 3.2, .7, '#6b4a34'); }   // tenir sa tasse
   else if (g === 'plateau'){ R(4, -10.6 + by, 3.6, 2, haut); R(7.4, -10.6 + by, 2, 2, peau); R(5, -11.8 + by, 7.4, 1.1, '#cfd3dc'); R(7.6, -14.2 + by, 2.4, 2.4, '#ffffff'); R(10, -13.4 + by, 1.6, 1.6, '#e3b07a'); }   // porter un plateau
+  else if (g === 'mange'){ R(3.9, -10.7 + by, 2, 2.6, haut); R(2.6, -12.8 + by, 3.3, 2, peau); R(1.5, -13.9 + by, 1.6, 1.3, '#f2d77a'); }   // manger : une pincée d'attiéké portée à la bouche
+  else if (g === 'assiette'){ R(4, -10.6 + by, 3.6, 2, haut); R(7.4, -10.6 + by, 2, 2, peau); R(4.6, -11.8 + by, 6.6, 1.1, '#ffffff'); R(5.3, -13.5 + by, 3.4, 1.8, '#f2d77a'); R(8.5, -13.1 + by, 2.2, 1.4, '#7a4a2b'); }   // porter son assiette de garba
   else if (g === 'tel'){ R(3.9, -10.7 + by, 2, 3, haut); R(1.2, -8.3 + by, 3.6, 1.9, peau); R(-.3, -10.2 + by, 2.1, 3.3, '#22222e'); R(.1, -9.8 + by, 1.3, 2.3, '#9fd0ff'); }
-  else { R(3.9, -10.7 + by - ba * .4, 2, 3.2, haut); R(3.9, -7.5 + by - ba * .4, 2, 2.6, peau); }
+  else { R(3.9, -10.7 + by - ba * .4, 2, 3.2, haut); R(3.9, -7.5 + by - ba * .4, 2, 2.6, peau);
+    if (e.montre){ R(3.8, -7.3 + by - ba * .4, 2.2, 1, e.montre === 'connectee' ? '#22222e' : '#7a4a2b'); R(4.4, -7.3 + by - ba * .4, 1, 1, e.montre === 'connectee' ? '#7fe0ff' : '#ffd95a'); } }   // la montre, au poignet
   // cou, tête, oreilles
   const hy = by + (g === 'tel' ? .6 : 0);
   R(-1.2, -12.2 + by, 2.4, 1.4, peau2);
@@ -1136,6 +1300,15 @@ function sprite(e, sx, sy, k, t, o){
     default: R(-4.7, -20.7 + hy, 9.4, dos ? 5.6 : 2.7, ch); if (!dos){ R(-4.9, -18.2 + hy, 1, 2, ch); R(3.9, -18.2 + hy, 1, 2, ch); }
   }
   if (e.casque){ R(-5.2, -21.1 + hy, 10.4, 1, '#22222e'); R(-6.1, -17.8 + hy, 1.7, 3.2, e.acc); R(4.4, -17.8 + hy, 1.7, 3.2, e.acc); }
+  // les objets de la boutique qui se portent sur la tête : chapeaux (posés par-dessus la coiffure), lunettes, casque lumineux
+  if (e.chapeau === 'casquette'){ R(-4.9, -21.4 + hy, 9.8, 3.2, e.acc); R(-4.9, -18.7 + hy, 9.8, .5, teinte(e.acc, -.25)); if (!dos) R(-.5, -18.4 + hy, 7, 1.1, teinte(e.acc, -.22)); }
+  else if (e.chapeau === 'bob'){ R(-4.5, -22.3 + hy, 9, 3.1, e.acc); R(-6.2, -19.4 + hy, 12.4, 1.3, teinte(e.acc, -.18)); }
+  else if (e.chapeau === 'bonnet'){ R(-4.9, -22.7 + hy, 9.8, 3.5, e.acc); R(-4.9, -19.6 + hy, 9.8, 1.5, teinte(e.acc, .28)); R(-1.1, -24.3 + hy, 2.2, 1.8, '#ffffff'); }
+  else if (e.chapeau === 'paille'){ R(-3.7, -22.7 + hy, 7.4, 2.9, '#e8c877'); R(-3.7, -20.6 + hy, 7.4, .9, e.acc); R(-7, -19.8 + hy, 14, 1.2, '#d9b45c'); }
+  if (!dos && e.yeux === 'pixel'){ R(-4.6, -17.1 + hy, 9.2, .9, '#14121a'); R(-4.1, -16.4 + hy, 3.5, 1.9, '#14121a'); R(.6, -16.4 + hy, 3.5, 1.9, '#14121a'); R(-3.5, -16 + hy, 1, .6, '#ffffff'); R(1.2, -16 + hy, 1, .6, '#ffffff'); }
+  else if (!dos && e.yeux === 'coeur'){ [-3.9, .7].forEach(x => { R(x, -16.9 + hy, 1.3, 1.2, '#e86a92'); R(x + 1.9, -16.9 + hy, 1.3, 1.2, '#e86a92'); R(x, -16 + hy, 3.2, 1, '#e86a92'); R(x + .7, -15.1 + hy, 1.8, .8, '#e86a92'); }); R(-.7, -16.3 + hy, 1.4, .5, '#e86a92'); }
+  if (e.oreilles === 'gamer'){ const c = calme ? '#7fe0ff' : 'hsl(' + Math.floor(t * 90) % 360 + ',90%,62%)';
+    R(-5.4, -21.5 + hy, 10.8, 1.3, '#22222e'); R(-6.6, -18.2 + hy, 2.2, 3.8, '#22222e'); R(4.4, -18.2 + hy, 2.2, 3.8, '#22222e'); R(-6.3, -17.4 + hy, 1, 2.2, c); R(5.3, -17.4 + hy, 1, 2.2, c); if (!dos) R(-6.3, -14.6 + hy, 3.4, .7, '#22222e'); }
 }
 // Le personnage dans la ville : son ombre, lui, et ce qu'il y a autour (parapluie, bulle, gouttes de sueur…)
 function dessinerPerso(e, t){
@@ -1228,7 +1401,7 @@ function dessinerMaison(m){
   if (m.buisson){ const [bx, by] = P(hx + w * .17, f + .14); ctx.fillStyle = '#2f9e5f'; ctx.fillRect(bx - 4, by - 6, 8, 6); ctx.fillStyle = '#58c27a'; ctx.fillRect(bx - 2.6, by - 7.6, 5, 3); if (e.i % 3 === 0){ ctx.fillStyle = '#ff8fb3'; ctx.fillRect(bx - 3, by - 5, 1.6, 1.6); ctx.fillRect(bx + 1.4, by - 3.4, 1.6, 1.6); } }
 }
 
-/* ============ 8 bis. TON ANIMAL : quatre espèces, et plusieurs races pour chacune ============ */
+/* ============ 8 bis. TON ANIMAL : sept espèces (dont trois à débloquer dans la boutique), et plusieurs races pour chacune ============ */
 // Une race = une petite fiche de réglages (couleurs, oreilles, queue, taille…). Le même dessin sert à toutes les races d'une espèce :
 // pour en ajouter une, copie une ligne et change ses réglages.
 const BLANC = '#f6f3ee', NOIR = '#1c1a22', ROSE = '#eea0b4';
@@ -1249,6 +1422,7 @@ const ESPECES = {
     chihuahua:  {nom: 'Chihuahua', c: '#d9a868', c2: '#c08f52', bl: '#f6ead6', or: 'chauve', q: 'long', t: .56, pat: .85, mus: .7, oeil: NOIR},
     teckel:     {nom: 'Teckel', c: '#7a4526', c2: '#5f331a', or: 'pend', q: 'long', lg: 1.3, pat: .5, t: .8, mus: 1.2, oeil: NOIR},
     basenji:    {nom: 'Basenji', c: '#b5622c', c2: '#9a5124', bl: BLANC, or: 'droit', q: 'roule', bout: BLANC, t: .8, pat: 1.1, oeil: NOIR},
+    shiba:      {nom: 'Shiba', c: '#e09a45', c2: '#c4812f', ventre: '#fbf3e4', face: '#fbf3e4', mu: '#fbf3e4', or: 'droit', q: 'roule', bout: '#fbf3e4', t: .86, oeil: NOIR, achat: 'p-shiba'},   // achat : il faut l'objet de la boutique
   }},
   chat: {nom: 'Chat', le: 'ton chat', au: 'au chat', cri: 'Miaou !', grogne: 'Pfff…', objet: 'Collier', dessin: chatSprite, ombre: [6.6, 2.6], haut: 14.5, vitesse: 2.5, poste: [.63, 2.86, 5], lit: 1.2, races: {
     tigre:   {nom: 'Tigré', c: '#8f8a80', c2: '#4f4a44', ray: true, oeil: '#9bd15a'},
@@ -1260,6 +1434,7 @@ const ESPECES = {
     bengal:  {nom: 'Bengal', c: '#d9a55a', taches: '#5a3a1e', oeil: '#9bd15a'},
     persan:  {nom: 'Persan', c: '#b9bcc4', c2: '#a3a6ae', poil: 'long', oeil: '#f08a24', t: 1.05},
     sphynx:  {nom: 'Sphynx', c: '#e2b4a6', c2: '#cd9a8a', poil: 'nu', ray: true, oeil: '#7fd0c0'},
+    galaxie: {nom: 'Galaxie', c: '#2b2466', c2: '#1d1848', taches: '#ffd95a', oeil: '#7fe0ff', achat: 'p-galaxie'},
   }},
   lapin: {nom: 'Lapin', le: 'ton lapin', au: 'au lapin', cri: 'Hop hop !', grogne: 'Hmpf…', objet: 'Nœud', dessin: lapinSprite, ombre: [6.4, 2.6], haut: 19, vitesse: 2.3, poste: [2.38, 2.56, 0], lit: 1.2, races: {
     blanc:      {nom: 'Néo-zélandais', c: BLANC, c2: '#e9e2d8', oeil: '#d9546b'},
@@ -1279,6 +1454,25 @@ const ESPECES = {
     cacatoes:    {nom: 'Cacatoès', c: BLANC, aile: '#e6dfd2', ventre: '#fbf8f2', queue: '#f1e6bf', huppe: '#f2c230', bec: '#3a3640', t: 1.05},
     perruche:    {nom: 'Perruche', c: '#5fc65a', tete: '#f5dc4e', aile: '#4f8f4a', ventre: '#7ad672', queue: '#2f6fd0', bec: '#f0b34a', longue: true, t: .64},
     inseparable: {nom: 'Inséparable', c: '#4cb85a', tete: '#f2794a', aile: '#2f8f45', ventre: '#8fd06a', bec: '#e8443a', iris: '#ffffff', t: .62},
+  }},
+  // --- les trois animaux de la boutique (achat : l'objet qu'il faut posséder). Le renard reprend le dessin du chien, avec d'autres réglages. ---
+  renard: {nom: 'Renard', le: 'ton renard', au: 'au renard', cri: 'Yip yip !', grogne: 'Krr…', objet: 'Collier', dessin: chienSprite, ombre: [8, 3], haut: 14, vitesse: 2.9, poste: [1.7, 2.95, 0], lit: 1.2, achat: 'a-renard', races: {
+    roux:    {nom: 'Renard roux', c: '#e0782f', c2: '#c4621f', ventre: BLANC, face: BLANC, mu: BLANC, pattes: '#3a241c', pieds: '#2a1a14', or: 'droit', q: 'touffu', bout: BLANC, mus: .9, lg: .95, t: .84, oeil: '#3a2414'},
+    polaire: {nom: 'Renard polaire', c: '#eef1f6', c2: '#d5dbe6', or: 'droit', q: 'touffu', mus: .8, lg: .92, t: .78, oeil: '#3d6fb5'},
+    argente: {nom: 'Renard argenté', c: '#5d6675', c2: '#3f4652', face: '#aeb6c4', mu: '#aeb6c4', pattes: '#1c1a22', pieds: '#1c1a22', or: 'droit', q: 'touffu', bout: BLANC, mus: .9, lg: .95, t: .84, oeil: '#f2c94c'},
+    fennec:  {nom: 'Fennec', c: '#e8c88f', c2: '#d2ad6e', ventre: '#fbf3e4', face: '#fbf3e4', mu: '#fbf3e4', or: 'chauve', q: 'touffu', bout: '#3a2a22', mus: .7, lg: .88, pat: .9, t: .62, oeil: NOIR},
+  }},
+  panda: {nom: 'Panda', le: 'ton panda', au: 'au panda', cri: 'Mmh !', grogne: 'Pff…', objet: 'Foulard', dessin: pandaSprite, ombre: [7.4, 3], haut: 19, vitesse: 1.9, poste: [1.7, 2.95, 0], lit: 1.2, achat: 'a-panda', races: {
+    geant:  {nom: 'Panda géant', c: BLANC, c2: NOIR},
+    bambou: {nom: 'Avec son bambou', c: BLANC, c2: NOIR, bambou: true},
+    brun:   {nom: 'Panda brun', c: '#f1e6d0', c2: '#7a4a2b'},
+    dore:   {nom: 'Panda doré', c: '#fff4cf', c2: '#c98a1e', oeil: '#fff4cf'},
+  }},
+  dragon: {nom: 'Petit dragon', le: 'ton dragon', au: 'au dragon', cri: 'Grrao !', grogne: 'Pfouh…', objet: 'Collier', dessin: dragonSprite, ombre: [7, 2.8], haut: 18, vitesse: 2.8, poste: [1.7, 2.95, 0], lit: 1.2, achat: 'a-dragon', races: {
+    vert:  {nom: 'Dragon vert', c: '#4fb06a', c2: '#2f7d4a'},
+    rouge: {nom: 'Dragon rouge', c: '#d9483b', c2: '#a12c22'},
+    nuit:  {nom: 'Dragon de nuit', c: '#3d3a7a', c2: '#26244f', ventre: '#b9a7f0', oeil: '#7fe0ff'},
+    dore:  {nom: 'Dragon doré', c: '#e8b84a', c2: '#b9872a', ventre: '#fff3c4', oeil: '#e4572e'},
   }},
 };
 // on vérifie ce qui était enregistré : une espèce ou une race inconnue redevient le rottweiler
@@ -1304,7 +1498,7 @@ const pixel = (sx, sy, k, f) => (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fill
 // --- le chien : oreilles (or), queue (q), longueur du corps (lg), des pattes (pat) et du museau (mus), marques feu (f) ou blanches (bl, ventre, face)
 function chienSprite(sx, sy, k, t, o, r, col){
   const R = pixel(sx, sy, k, o.miroir ? -1 : 1), c = r.c, c2 = r.c2 || c, lg = r.lg || 1, mus = r.mus || 1, or = r.or || 'tomb', q = r.q || 'court';
-  const L = 12.4 * lg, x0 = 5.4 - L, m = 3.6 * mus, mu = r.mu || r.f || c, patte = r.ventre || c, pied = r.f || r.bl || r.ventre || c, nez = r.nez || '#1a171d', oeil = r.oeil || '#3a2414';
+  const L = 12.4 * lg, x0 = 5.4 - L, m = 3.6 * mus, mu = r.mu || r.f || c, patte = r.pattes || r.ventre || c, pied = r.pieds || r.f || r.bl || r.ventre || c, nez = r.nez || '#1a171d', oeil = r.oeil || '#3a2414';
   if (o.dort){                                                                                    // couché, la tête posée devant lui
     const xa = 6 - 14 * lg, mm = 3.2 * Math.min(1.1, mus);
     R(xa, -5.4, 14 * lg, 5.4, c); R(xa, -6.2, 9 * lg, 1, c);
@@ -1453,6 +1647,41 @@ function perroquetSprite(sx, sy, k, t, o, r, col){
 
 // Pour bien centrer un animal dans une vignette, on le dessine une fois à part et on mesure la place qu'il prend
 const _cadres = {}, TOILE = calque();
+// --- le panda : tout rond, assis. c = le clair, c2 = le sombre (épaules, pattes, oreilles, tour des yeux)
+function pandaSprite(sx, sy, k, t, o, r, col){
+  const R = pixel(sx, sy, k, o.miroir ? -1 : 1), c = r.c, n = r.c2, oeil = r.oeil || '#ffffff';
+  if (o.dort){ R(-6.5, -6.2, 12, 6.2, c); R(-6.5, -6.2, 3.4, 6.2, n); R(-1.2, -2.6, 3, 2.6, n); R(3.2, -7.4, 6.4, 6.4, c); R(3.4, -8.6, 1.9, 1.8, n); R(7.4, -8.6, 1.9, 1.8, n); R(5.2, -4.8, 1.8, 1.5, n); R(5.5, -4.1, 1.2, .4, c); R(8.6, -3, 1, .8, NOIR); return; }
+  const saut = o.marche ? Math.abs(Math.sin(t * 9)) : 0, bal = o.marche ? Math.sin(t * 9) : 0, h = -saut * 1.2, hy = h + (o.aboie ? -1 : o.boude ? 1.2 : 0);
+  R(-5.4 + bal * .8, -3.2, 2.8, 3.2, n); R(2.2 - bal * .8, -3.2, 2.8, 3.2, n);                       // les pattes
+  R(-6.4, -10.6 + h, 11.4, 8.4, c); R(-5.4, -11.4 + h, 9.4, 1, c);                                   // le corps
+  R(-6.4, -10.6 + h, 3, 4.6, n); R(1.6, -10.6 + h, 3.4, 5.4, n);                                    // les épaules sombres
+  R(-7.4, -5.2 + h + (o.content ? Math.sin(t * 16) * .3 : 0), 1.6, 1.6, c);                          // la petite queue
+  R(2.2, -11.2 + hy, 1.4, 4.2, col);                                                               // le foulard
+  R(2.6, -17.4 + hy, 7.6, 7, c); R(3.4, -18.2 + hy, 6, 1, c);                                       // la tête
+  R(2.4, -19.2 + hy, 2.3, 2.3, n); R(8, -19.2 + hy, 2.3, 2.3, n);                                   // les oreilles
+  if (o.boude){ R(5, -14.6 + hy, 2, 1.6, n); R(8, -14.6 + hy, 1.8, 1.6, n); R(5.4, -13.8 + hy, 1.2, .4, c); R(8.3, -13.8 + hy, 1.1, .4, c); }
+  else { R(4.8, -15.2 + hy, 2.2, 2.4, n); R(7.9, -15.2 + hy, 2, 2.4, n); R(5.6, -14.6 + hy, .9, .9, oeil); R(8.5, -14.6 + hy, .9, .9, oeil); }   // le tour des yeux
+  R(7.4, -12.6 + hy, 1.6, 1, NOIR); if (o.aboie) R(7, -11.4 + hy, 2, 1, '#c0392b');                    // la truffe, la bouche
+  if (r.bambou && !o.marche){ R(10.6, -12 + hy, .9, 9, '#5bbf5a'); R(11.3, -10.4 + hy, 1.8, .8, '#3f9b4a'); R(9.2, -8.6 + hy, 1.6, 1.6, n); }   // sa tige de bambou
+}
+// --- le petit dragon : une aile qui bat, une crête, et une flammèche quand il te parle
+function dragonSprite(sx, sy, k, t, o, r, col){
+  const R = pixel(sx, sy, k, o.miroir ? -1 : 1), c = r.c, c2 = r.c2 || teinte(c, -.2), v = r.ventre || '#ffe9a6', corne = r.corne || '#fff3d6';
+  if (o.dort){ R(-6.4, -5, 12, 5, c); R(-5.4, -5.8, 9, 1, c); R(-8.6, -2.4, 3, 2.4, c); R(-9.8, -3.2, 1.4, 1.4, c2); R(-4.6, -7.4, 6.4, 2.6, c2); R(3.4, -6, 6, 5.2, c); R(4.2, -7.6, 1.2, 1.8, corne); R(7.4, -7.6, 1.2, 1.8, corne); R(6.2, -3.6, 1.6, .5, traitSur(c)); R(9, -2.6, .8, .7, NOIR);
+    if (!calme){ const u = (t * .5) % 1; R(10.4 + u, -4.6 - u * 3, 1 + u, 1 + u, 'rgba(255,255,255,' + (.6 * (1 - u)) + ')'); } return; }   // un petit nuage de fumée quand il dort
+  const vol = Math.sin(t * (o.marche ? 16 : 5)), saut = o.marche ? Math.abs(Math.sin(t * 9)) : 0, bal = o.marche ? Math.sin(t * 9) : 0;
+  const h = -saut * 1.6 - (o.content ? .4 + vol * .3 : 0), hy = h + (o.aboie ? -1.2 : o.boude ? 1.4 : 0);
+  R(-8.6, -4.4 + h, 3.4, 2, c); R(-10.4, -5.6 + h + vol * .3, 2.2, 1.8, c); R(-11.4, -7 + h + vol * .5, 1.6, 1.8, c2);   // la queue et sa pointe
+  R(-4.4 + bal * .7, -3, 2.2, 3, c2); R(1.6 - bal * .7, -3, 2.2, 3, c2);                              // les pattes
+  if (o.boude) R(-3.6, -11 + h, 5.6, 2.6, c2); else { R(-3.6, -13.6 + h - vol * 1.6, 5.6, 5 + vol * 1.6, c2); R(-2.4, -12 + h - vol, 3.2, 2.6, teinte(c2, .25)); }   // l'aile : repliée quand il boude, sinon elle bat
+  R(-5.6, -9.6 + h, 9.6, 7, c); R(-4.6, -10.4 + h, 7.6, 1, c); R(-2.6, -5.2 + h, 6, 2.6, v);            // le corps et le ventre clair
+  [-4, -1.6, .8].forEach(x => R(x, -11.4 + h, 1.3, 1.3, corne));                                      // la crête
+  R(2.2, -10.4 + hy, 1.4, 4, col);                                                                 // le collier
+  R(2.8, -15.6 + hy, 6.8, 6, c); R(7.6, -13 + hy, 3.2, 3.4, c); R(3.6, -17.8 + hy, 1.3, 2.4, corne); R(6.6, -17.8 + hy, 1.3, 2.4, corne);   // la tête, le museau, les cornes
+  if (o.boude) R(6, -13.4 + hy, 1.6, .5, NOIR); else { R(6, -14.2 + hy, 1.5, 1.6, r.oeil || '#ffd95a'); R(6.7, -14.2 + hy, .6, 1.6, NOIR); }
+  R(9.6, -12.4 + hy, .7, .7, NOIR);
+  if (o.aboie){ const f = (t * 6) % 1; R(10.8 + f * 2, -12 + hy, 2.4, 1.6, '#ffb627'); R(12.4 + f * 3, -12.4 + hy, 1.6, 1.2, '#e4572e'); }   // la flammèche
+}
 function cadreAnimal(a = animal){
   const cle = a.espece + '/' + a.race; if (_cadres[cle]) return _cadres[cle];
   const c = TOILE.canvas, g = TOILE.ctx, S = 4, W = 280, H = 200, garde = ctx; c.width = W; c.height = H;
@@ -1469,17 +1698,18 @@ function vignetteAnimal(c, a, o = {}, marge = 6){
 
 /* ============ 10. LE DÉCOR, CONSTRUIT UNE SEULE FOIS AU DÉMARRAGE ============ */
 const PLAQUES = [], SOLS = [], TRAITS = [], DECOR = [], OMBRES = [], FIXES = [], LAMPES = [], FLAQUES = [];
+let PROPRIO = null;                                                    // pendant qu'on bâtit une salle en plus : tout ce qui est posé lui appartient (et disparaîtra avec elle)
 const solFixe = (x, y, w, h, c) => SOLS.push({p: [P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], c});
-const trait = (x0, y0, x1, y1, c, w = 1, tirets) => TRAITS.push({a: P(x0, y0), b: P(x1, y1), c, w, tirets});
+const trait = (x0, y0, x1, y1, c, w = 1, tirets) => TRAITS.push({a: P(x0, y0), b: P(x1, y1), c, w, tirets, s: PROPRIO});
 // Un objet « debout » : il sera dessiné dans l'ordre de sa profondeur (x + y), pour passer devant ou derrière les personnages
-const fixe = (x, y, f, r = 60) => { const [sx, sy] = P(x, y); FIXES.push({k: x + y, sx, sy, r, f}); };
-function mur(x, y, w, d, h, c, deco){                                 // un mur est découpé en morceaux d'une case ; sa couleur peut être fixe, ou une fonction (pour les salles, qui changent de couleur)
-  const coul = typeof c === 'function' ? c : () => c;
-  if (w >= d) for (let i = 0; i < w; i++){ const l = Math.min(1, w - i), xx = x + i; fixe(xx + l / 2, y + d / 2, () => { boite(xx, y, l, d, 0, h, coul()); if (deco) deco(xx, xx + l); }, 50); }
-  else for (let j = 0; j < d; j++){ const l = Math.min(1, d - j), yy = y + j; fixe(x + w / 2, yy + l / 2, () => { boite(x, yy, w, l, 0, h, coul()); if (deco) deco(yy, yy + l); }, 50); }
+const fixe = (x, y, f, r = 60) => { const [sx, sy] = P(x, y); FIXES.push({k: x + y, sx, sy, r, f, s: PROPRIO}); };
+function mur(x, y, w, d, h, c, deco){                                 // un mur est découpé en morceaux d'une case ; sa couleur et sa hauteur peuvent être fixes, ou des fonctions (pour les salles : elles changent de couleur, et se construisent)
+  const coul = typeof c === 'function' ? c : () => c, haut = typeof h === 'function' ? h : () => h;
+  if (w >= d) for (let i = 0; i < w; i++){ const l = Math.min(1, w - i), xx = x + i; fixe(xx + l / 2, y + d / 2, () => { boite(xx, y, l, d, 0, haut(), coul()); if (deco) deco(xx, xx + l); }, 50); }
+  else for (let j = 0; j < d; j++){ const l = Math.min(1, d - j), yy = y + j; fixe(x + w / 2, yy + l / 2, () => { boite(x, yy, w, l, 0, haut(), coul()); if (deco) deco(yy, yy + l); }, 50); }
 }
 const couleurSalle = s => ENV.actif === s && ENV.cours && matiere(ENV.cours.m) ? matiere(ENV.cours.m).c : s.c;   // une salle prend la couleur du cours qui s'y déroule, sinon celle de sa matière habituelle
-const ombreRonde = (x, y, rx) => { const [sx, sy] = P(x + .3, y + .12); OMBRES.push({sx, sy, rx, ry: rx * .48}); };
+const ombreRonde = (x, y, rx) => { const [sx, sy] = P(x + .3, y + .12); OMBRES.push({sx, sy, rx, ry: rx * .48, s: PROPRIO}); };
 const planter = (x, y, type, s = 1) => { const ph = H1(x, y) * 6; fixe(x, y, () => arbre(x, y, type, s, ph), 75 * s); ombreRonde(x, y, (type === 'buisson' ? 8 : type === 'flamboyant' ? 21 : 14) * s); };
 const lampe = (x, y) => { fixe(x, y, () => lampadaire(x, y), 40); LAMPES.push({x, y}); };
 const banc = (bx, by) => fixe(bx + .1, by + .2, () => { boite(bx, by, 1.3, .08, 0, 10, '#a9743f'); boite(bx, by + .08, 1.3, .3, 0, 4.5, '#c98d5a'); }, 40);
@@ -1492,7 +1722,7 @@ solFixe(.6, 10.4, 16.9, 4.86, C.lat);                                 // cour en
 solFixe(7.2, 12.35, 10.3, .7, C.pave);                                // allée pavée qui part du portail
 SALLES.filter(s => s.i > 3).forEach(s => solFixe(s.x + s.w / 2 - .3, 10.4, .6, 1.95, C.pave));
 solFixe(SPORT.x, SPORT.y, SPORT.w, SPORT.h, '#8fb0c9');               // terrain de sport
-solFixe(12.9, 15.65, 4.6, 2.1, C.lat);                                // terre battue autour du kiosque
+solFixe(11.7, 15.65, 5.8, 2.1, C.lat);                                // terre battue du maquis : autour de l'étal et de ta table
 solFixe(17.64, RY0, .46, RY1 - RY0, C.trottoir); solFixe(19.8, RY0, .55, RY1 - RY0, C.trottoir);
 solFixe(RX, RY0, RW, RY1 - RY0, C.route);
 for (let i = 0; i < 5; i++) solFixe(RX + .14 + i * .32, PASSAGE - .38, .19, .76, C.ligne);          // passage piéton
@@ -1514,7 +1744,8 @@ PARASOLS.forEach((p, j) => { solFixe(p[0] - .68, p[1] + .28, .55, .95, ['#e4572e
   trait(s.x + .12, s.y + .12, s.x + .12, s.y + s.h - .12, b, .9); trait(s.x + s.w - .12, s.y + .12, s.x + s.w - .12, s.y + s.h - .12, b, .9);
   trait(s.x + s.w / 2, s.y + .12, s.x + s.w / 2, s.y + s.h - .12, b, .9);
   [[s.x + .12, 1], [s.x + s.w - .12, -1]].forEach(([x, d]) => { trait(x, s.y + 1, x + d * .8, s.y + 1, b, .9); trait(x + d * .8, s.y + 1, x + d * .8, s.y + 2.5, b, .9); trait(x, s.y + 2.5, x + d * .8, s.y + 2.5, b, .9); }); }
-SALLES.forEach(s => { for (let i = 1; i < 4; i++) trait(s.x + i * .95, s.y + .14, s.x + i * .95, s.y + s.h - .14, 'rgba(255,255,255,.4)', .6); for (let j = 1; j < 5; j++) trait(s.x + .14, s.y + j * .84, s.x + s.w - .14, s.y + j * .84, 'rgba(255,255,255,.4)', .6); });
+const quadriller = s => { for (let i = 1; i < 4; i++) trait(s.x + i * .95, s.y + .14, s.x + i * .95, s.y + s.h - .14, 'rgba(255,255,255,.4)', .6); for (let j = 1; j < 5; j++) trait(s.x + .14, s.y + j * .84, s.x + s.w - .14, s.y + j * .84, 'rgba(255,255,255,.4)', .6); };   // le carrelage d'une salle
+SALLES.forEach(quadriller);
 trait(RX + RW / 2, RY0 + .5, RX + RW / 2, PASSAGE - .6, C.ligne, 1.3, [7, 7]); trait(RX + RW / 2, PASSAGE + .6, RX + RW / 2, RY1 - .5, C.ligne, 1.3, [7, 7]);
 trait(RX + .05, RY0, RX + .05, RY1, 'rgba(255,255,255,.3)', .7); trait(RX + RW - .05, RY0, RX + RW - .05, RY1, 'rgba(255,255,255,.3)', .7);
 for (let y = 1; y < RY1; y++){ trait(17.64, y, 18.1, y, 'rgba(60,50,40,.14)', .6); trait(19.8, y, 20.35, y, 'rgba(60,50,40,.14)', .6); }
@@ -1527,7 +1758,7 @@ function zoneSol(x, y){
   if (y >= SABLE) return y > RIVE - .6 ? 'eau' : 'sable';
   if (x > 17.6 && x < 20.4) return 'route';
   if (x <= 17.6){
-    if (y > 15.45) return x > 12.9 && x < 17.5 && y > 15.65 && y < 17.75 ? 'laterite' : 'herbe';
+    if (y > 15.45) return x > 11.7 && x < 17.5 && y > 15.65 && y < 17.75 ? 'laterite' : 'herbe';
     if (x < .65 || y < .65) return 'bord';
     if (y < 10.4 || y > 15.2) return 'pave';
     if (x > SPORT.x - .1 && x < SPORT.x + SPORT.w + .1 && y > SPORT.y - .1 && y < SPORT.y + SPORT.h + .1) return 'sport';
@@ -1561,19 +1792,74 @@ for (let gx = 0; gx < GX; gx++) for (let gy = 0; gy < GY; gy++){
   .forEach(([x, y, rx]) => { const [sx, sy] = P(x, y); FLAQUES.push({sx, sy, rx, ry: rx * .45}); });
 
 // ---------- l'école : salles, clôture, portail, guérite, drapeau, cour ----------
-SALLES.forEach(s => {
-  const c = () => couleurSalle(s), fonce = () => teinte(couleurSalle(s), -.28), yb = s.y + .146;
-  mur(s.x, s.y, s.w, .14, 19, c, (a, b) => {                          // sur le mur du fond : tableau blanc et écran
+// Une salle : ses murs, son tableau, le bureau du prof, ses 24 tables. Pendant son chantier (s.k va de 0 à 1), les murs montent par paliers, puis les tables se posent une à une.
+const palier = s => s.k >= .7 ? 1 : Math.floor(s.k / .7 * 8) / 8;
+function batirSalle(s){
+  const c = () => couleurSalle(s), fonce = () => teinte(couleurSalle(s), -.28), yb = s.y + .146, grand = () => 19 * palier(s), petit = () => 6 * palier(s);
+  mur(s.x, s.y, s.w, .14, grand, c, (a, b) => {                       // sur le mur du fond : tableau blanc et écran
+    if (s.k < 1) return;
     const seg = (x0, x1, z0, z1, col) => { const u = Math.max(a, x0), v = Math.min(b, x1); if (v > u) surFaceY(u, v, yb, z0, z1, col); };
     seg(s.x + 1.42, s.x + 3.38, 5, 16.5, '#b9bcc4'); seg(s.x + 1.5, s.x + 3.3, 6, 15.5, '#ffffff');
     seg(s.x + .4, s.x + 1.2, 8, 16, ENV.actif === s ? c() : '#22222e');
     if (ENV.actif === s) [[13, 1.3, '#3d8bfd'], [11, .9, '#e4572e'], [9, 1.5, '#1c1830']].forEach(([z, l, col], i) => seg(s.x + 1.65, s.x + 1.65 + Math.min(1, (ENV.t * .25 + i * .3) % 1.6) * l, z, z + .8, col));   // le prof écrit
   });
-  mur(s.x, s.y, .14, s.h, 19, c);
-  mur(s.x, s.y + s.h - .14, s.w * .36, .14, 6, fonce); mur(s.x + s.w * .64, s.y + s.h - .14, s.w * .36, .14, 6, fonce); mur(s.x + s.w - .14, s.y, .14, s.h, 6, fonce);
-  fixe(s.x + 3.1, s.y + .66, () => boite(s.x + 2.7, s.y + .52, .8, .28, 0, 7, '#9a6b45'), 30);                  // bureau du prof
-  for (let r = 0; r < 6; r++) TABLES.forEach(tx => { const x = s.x + tx, y = s.y + 1.07 + r * .47; fixe(x + LT / 2, y + .08, () => boite(x, y, LT, .15, 0, 5, '#f1e6cf'), 24); });
-});
+  mur(s.x, s.y, .14, s.h, grand, c);
+  mur(s.x, s.y + s.h - .14, s.w * .36, .14, petit, fonce); mur(s.x + s.w * .64, s.y + s.h - .14, s.w * .36, .14, petit, fonce); mur(s.x + s.w - .14, s.y, .14, s.h, petit, fonce);
+  fixe(s.x + 3.1, s.y + .66, () => { if (s.k >= .8) boite(s.x + 2.7, s.y + .52, .8, .28, 0, 7, '#9a6b45'); }, 30);                  // bureau du prof
+  for (let r = 0; r < 6; r++) TABLES.forEach((tx, n) => { const x = s.x + tx, y = s.y + 1.07 + r * .47, seuil = .7 + .3 * (r * 4 + n + 1) / 24 - 1e-6; fixe(x + LT / 2, y + .08, () => { if (s.k >= seuil) boite(x, y, LT, .15, 0, 5, '#f1e6cf'); }, 24); });
+}
+SALLES.forEach(batirSalle);
+// Une salle de plus (la 9e, la 10e…) : on lui donne sa porte et son bout de couloir dans le réseau des chemins, puis on la bâtit. La première d'une rangée apporte aussi
+// la clôture de ce côté-là et, de l'autre côté de la route, un petit bois (pour que le nord de l'île ne reste pas vide).
+function ajouterSalle(){
+  const i = SALLES.length, s = nouvelleSalle(i), rg = i >> 2, yc = s.y + 4.4, dx = s.x + s.w / 2; s.k = 0; SALLES.push(s);
+  PROPRIO = SALLES[rg * 4];
+  if (i % 4 === 0){
+    noeud('C' + rg, 17.15, yc); lien('C' + rg, rg === 2 ? 'C_n' : 'C' + (rg - 1));
+    mur(17.5, s.y - .4, .14, RANG, () => 8 * palier(s), C.creme);
+    for (let n = 0; n < 7; n++) planter(20.9 + H1(i, n) * 12.6, s.y - .3 + H1(i, n + 9) * 4, ['rond', 'palmier', 'buisson', 'rond', 'flamboyant', 'buisson', 'palmier'][n], .75 + H1(i, n + 20) * .4);
+    for (let n = 0; n < 40; n++){ const [sx, sy] = P(20.6 + H1(i + 11, n) * 13.4, s.y - .4 + H1(i + 7, n) * RANG), h = H1(i + n, 31);
+      if (h < .6) DECOR.push({x: sx, y: sy - 3, w: 1.2, h: 3, c: '#58b85c', s}, {x: sx + 2.2, y: sy - 2, w: 1.2, h: 2, c: '#58b85c', s});
+      else { const col = ['#ffffff', '#ffd95a', '#ff8fb3', '#c9a4ff'][Math.floor(H1(i, n + 50) * 4)]; DECOR.push({x: sx, y: sy - 2, w: 2, h: 2, c: col, s}, {x: sx + 4, y: sy, w: 2, h: 2, c: col, s}); } }
+  }
+  PROPRIO = s;
+  noeud('R' + i, dx, s.y + s.h - .45); noeud('D' + i, dx, yc); lien('R' + i, 'D' + i); lien('D' + i, 'C' + rg); if (i % 4) lien('D' + i, 'D' + (i - 1)); ZONES['salle' + i] = ['R' + i];
+  quadriller(s); batirSalle(s);
+  PROPRIO = null; FIXES.sort((a, b) => a.k - b.k);
+}
+// Il faut « n » salles : on bâtit celles qui manquent. Si la ville est déjà à l'écran, chaque nouvelle salle aura son chantier (il démarre quand on la regarde) ;
+// au chargement d'un compte, elles sont simplement là. Les salles en trop se démontent (voir animerSalles).
+function agrandirEcole(n){
+  const anime = pret && !calme;
+  while (SALLES.length < n) ajouterSalle();
+  for (let i = 8; i < SALLES.length; i++){ const s = SALLES[i];
+    if (i < n && (i >= NB_SALLES || s.k < 1)){ if (anime) s.ne = 'attente'; else { s.ne = null; s.k = 1; } s.fin = null; }
+    if (i >= n && !anime){ s.k = 0; s.ne = s.fin = null; } }
+  NB_SALLES = n;
+}
+const CHANTIER = {cam: null, fin: 0, n: 0, vise: null};
+function animerSalles(t){                                              // appelée à chaque image de la ville
+  let n = 8;
+  for (let i = 8; i < SALLES.length; i++){ const s = SALLES[i];
+    if (i < NB_SALLES){                                                // une salle ouverte : elle se construit en un peu plus de deux secondes
+      if (s.ne === 'attente'){ s.ne = t - s.k * 2.4; montrerChantier(s, t); }
+      if (s.ne !== null){ s.k = Math.min(1, (t - s.ne) / 2.4); if (s.k >= 1) s.ne = null; }
+    } else if (s.k > 0){                                               // une salle en trop : elle se démonte, puis disparaît
+      if (s.fin === null) s.fin = t - (1 - s.k) * .9;
+      s.k = Math.max(0, 1 - (t - s.fin) / .9); s.ne = null; if (s.k <= 0) s.fin = null;
+    }
+    if (i < NB_SALLES || s.k > 0) n = i + 1;
+  }
+  const nord = n > 8 ? -RANG * (Math.ceil(n / 4) - 2) : 0; if (nord !== NORD){ NORD = nord; majBord(); }
+  if (CHANTIER.cam){ CHANTIER.n++; if (CHANTIER.n === 2) CHANTIER.vise = [CAM.cx, CAM.cy, CAM.cz];
+    if (t > CHANTIER.fin){ const c = CHANTIER.cam, v = CHANTIER.vise; CHANTIER.cam = null;                                             // le chantier est fini : la caméra retourne où elle était (sauf si tu l'as déplacée entre-temps)
+      if (v && !CAM.suivi && Math.abs(CAM.cx - v[0]) < .5 && Math.abs(CAM.cy - v[1]) < .5 && Math.abs(CAM.cz - v[2]) < .001){ CAM.suivi = c.suivi; CAM.cx = c.cx; CAM.cy = c.cy; CAM.cz = c.cz; majCam(); } } }
+}
+function montrerChantier(s, t){                                        // la caméra va voir la salle qui se construit
+  if (!CHANTIER.cam) CHANTIER.cam = {cx: CAM.cx, cy: CAM.cy, cz: CAM.cz, suivi: CAM.suivi};
+  const p = P(s.x + s.w / 2, s.y + s.h / 2, 10); CAM.suivi = null; CAM.cx = p[0]; CAM.cy = p[1]; CAM.cz = Math.min(zMax(), Math.max(1, .4 * VUE.cssW / 150 / VUE.fit)); majCam();
+  CHANTIER.fin = t + 3.3; CHANTIER.n = 0; CHANTIER.vise = null;
+}
 mur(17.5, .6, .14, 11.6, 8, C.creme); mur(17.5, 13.2, .14, 2.2, 8, C.creme); mur(.6, 15.26, 17.04, .14, 8, C.creme);   // clôture
 [11.98, 13.2].forEach(y => fixe(17.6, y + .12, () => { boite(17.46, y, .22, .22, 0, 25, C.creme); boite(17.43, y - .03, .28, .28, 25, 2, '#e4572e'); }, 40));
 fixe(17.9, 13.3, () => {                                             // le fronton du portail et son enseigne
@@ -1639,6 +1925,25 @@ planter(px(6) + .45, py(0) + .5, 'rond', .95); planter(px(6) + 1.1, py(0) + 1.05
     if (animal.espece !== 'perroquet'){ boite(M.x + 2.05, M.y + 2.92, .75, .5, 0, 1.6, '#8e6cf2'); return; }
     boite(M.x + 2.24, M.y + 3.03, .36, .28, 0, 1, '#7a5a3c'); boite(M.x + 2.39, M.y + 3.14, .07, .07, 1, 8, '#9a6b45'); boite(M.x + 2.14, M.y + 3.14, .56, .07, 9, .8, '#b9834f'); }, 30);
   planter(M.x + 3.1, M.y + 3.1, 'buisson', .75);
+  // --- les décorations de la boutique : chacune n'est dessinée que si tu l'as posée chez toi ---
+  const quad = (x, y, w, h, c) => poly([P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], c);
+  fixe(M.x + 1.05, M.y + 2, () => { if (!decoPosee('d-tapis')) return;                                       // le tapis wax, par-dessus le tapis rose
+    quad(M.x + 1.05, M.y + 2, 1.5, 1.15, '#1f8a5b'); quad(M.x + 1.15, M.y + 2.08, 1.3, .99, '#f4a31c');
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) quad(M.x + 1.27 + i * .3, M.y + 2.2 + j * .29, .14, .14, (i + j) % 2 ? '#e2382f' : '#12305b'); }, 30);
+  fixe(M.x + .3, M.y + .32, () => { if (!decoPosee('d-guitare')) return;                                     // la guitare, dans le coin
+    boite(M.x + .18, M.y + .2, .22, .12, 0, 5.5, '#c98d5a'); boite(M.x + .26, M.y + .24, .06, .05, 5.5, 9, '#6b4a34'); boite(M.x + .24, M.y + .23, .1, .06, 14.5, 2, '#3a2a22'); }, 30);
+  fixe(M.x + 1.9, M.y + .41, () => { if (!decoPosee('d-aquarium')) return;                                    // l'aquarium, sur l'étagère
+    boite(M.x + 1.66, M.y + .22, .48, .22, 16, 5.4, 'rgba(201,236,250,.9)', 'rgba(143,211,239,.9)', 'rgba(111,188,222,.9)');
+    const u = (Math.sin(ENV.t * .8) + 1) / 2; surFaceY(M.x + 1.7 + u * .26, M.x + 1.8 + u * .26, M.y + .441, 18.4, 19.8, '#ff8a3d'); surFaceY(M.x + 2 - u * .22, M.x + 2.07 - u * .22, M.y + .441, 17, 18.2, '#e86a92'); }, 30);
+  fixe(M.x + .2, M.y + 1.5, () => { if (!decoPosee('d-console')) return;                                      // la télé au mur, la console posée dessous
+    surFaceX(M.x + .146, M.y + 1.02, M.y + 1.92, 8.6, 16.4, '#22222e'); surFaceX(M.x + .147, M.y + 1.07, M.y + 1.87, 9.2, 15.8, ENV.nuit > .3 ? '#5b8ff5' : '#3d5fb0');
+    surFaceX(M.x + .148, M.y + 1.07, M.y + 1.87, 9.2, 11.6, '#62c460'); const u = (Math.sin(ENV.t * 2) + 1) / 2; surFaceX(M.x + .149, M.y + 1.2 + u * .45, M.y + 1.3 + u * .45, 12.2, 13.6, '#ffd95a');
+    boite(M.x + .2, M.y + 1.32, .2, .3, 0, 1.6, '#f4f1ea'); }, 30);
+  fixe(M.x + 1.66, M.y + 2.7, () => { if (!decoPosee('d-lave')) return;                                       // la lampe à lave, sur la table basse
+    boite(M.x + 1.58, M.y + 2.62, .12, .12, 3.5, .7, '#8a8f9c'); boite(M.x + 1.6, M.y + 2.64, .08, .08, 4.2, 4.6, ENV.nuit > .3 ? '#b59cff' : '#8e6cf2'); boite(M.x + 1.58, M.y + 2.62, .12, .12, 8.8, .6, '#8a8f9c'); }, 30);
+  fixe(M.x + 3.06, M.y + 2.36, () => { if (!decoPosee('d-plante')) return;                                     // la grande plante, près du lit
+    boite(M.x + 2.94, M.y + 2.24, .26, .26, 0, 4.2, '#d9623a'); const [sx, sy] = P(M.x + 3.07, M.y + 2.37, 4.2), v = Math.sin(ENV.t * 1.2) * .5 * ENV.vent;
+    [[-1, -9, 2, 9, '#2f9e5f'], [-6 + v, -13, 6, 6, '#3fb873'], [1 - v, -16, 6, 7, '#2f9e5f'], [-4, -7, 4, 4, '#58c27a'], [2 + v, -8, 5, 5, '#3fb873']].forEach(([x, y, w, h, c]) => { ctx.fillStyle = c; ctx.fillRect(sx + x, sy + y, w, h); }); }, 40);
 }
 
 // ---------- le café du bord de mer : salle ouverte sur le dessus, vitrine, terrasse, enseigne en pixels ----------
@@ -1702,7 +2007,11 @@ fixe(31.05, 10.05, () => {                                           // la balan
 // ---------- le kiosque à garba ----------
 fixe(KX + .85, KY + .08, () => { boite(KX, KY, 1.7, .12, 0, 25, '#b9703f');
   [['#f2b632', 6], ['#d94f4f', 12], ['#2fb37a', 18]].forEach(([c, z], i) => { surFaceY(KX + .1, KX + 1.6, KY + .125, z - 1, z, '#8a5a3a'); for (let j = 0; j < 4; j++) surFaceY(KX + .2 + j * .36, KX + .42 + j * .36, KY + .125, z, z + 3.6, j % 2 ? c : teinte(c, .25)); }); }, 50);
-fixe(KX + .85, KY + .86, () => { boite(KX, KY + .72, 1.7, .3, 0, 8, '#c98d5a'); boite(KX + 1.2, KY + .76, .32, .22, 8, 3.4, '#3a3a44'); boite(KX + .25, KY + .78, .5, .18, 8, 1.2, '#f4f1ea'); }, 50);
+fixe(KX + .85, KY + .86, () => { boite(KX, KY + .72, 1.7, .3, 0, 8, '#c98d5a');                                // l'étal : la bassine d'attiéké, le thon frit, le piment, les oignons, et la marmite d'huile
+  boite(KX + .08, KY + .76, .36, .22, 8, 1.6, '#3d8bfd'); boite(KX + .12, KY + .78, .28, .18, 9.6, 1.5, '#f2d77a');
+  boite(KX + .52, KY + .78, .34, .18, 8, .8, '#f4f1ea'); boite(KX + .56, KY + .8, .11, .13, 8.8, 1, '#7a4a2b'); boite(KX + .71, KY + .8, .11, .13, 8.8, 1, '#8f5f40');
+  boite(KX + .93, KY + .8, .1, .1, 8, 1.1, '#e2382f'); boite(KX + 1.06, KY + .8, .1, .1, 8, 1.1, '#f4d9e4');
+  boite(KX + 1.2, KY + .76, .32, .22, 8, 3.4, '#3a3a44'); boite(KX + 1.23, KY + .78, .26, .18, 11.4, .3, '#e0a23a'); }, 50);
 [0, 1, 2].forEach(n => fixe(KX + .22 + n * .633, KY + 1.4, () => {                                            // l'auvent rayé, en trois morceaux
   if (n !== 1) boite(n ? KX + 1.7 : KX - .08, KY + 1.3, .08, .08, 0, 22, '#8a5a3a');
   for (let j = n * 2; j < n * 2 + 2; j++){ const a = KX - .1 + j * .317; poly([P(a, KY - .05, 30), P(a + .317, KY - .05, 30), P(a + .317, KY + 1.4, 23), P(a, KY + 1.4, 23)], j % 2 ? '#ffffff' : '#f08a24'); }
@@ -1710,10 +2019,25 @@ fixe(KX + .85, KY + .86, () => { boite(KX, KY + .72, 1.7, .3, 0, 8, '#c98d5a'); 
   if (n === 1){ const [tx, ty] = P(KX + .85, KY + 1.4, 21.2); ctx.fillStyle = '#ffffff'; ctx.font = '800 4.2px ' + POLICE; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('GARBA', tx, ty); }
 }, 50));
 TABLES_KIOSQUE.forEach(tb => fixe(tb[0], tb[1] - .1, () => { boite(tb[0] - .18, tb[1] - .2, .4, .4, 0, 6, '#f4f1ea'); boite(tb[0] - .08, tb[1] - .1, .2, .2, 6, 1.4, '#e4572e'); }, 30));
-planter(2.6, 16.6, 'rond', 1); planter(11.2, 16.4, 'flamboyant', .85); planter(1.4, 16.25, 'buisson', 1); planter(9.9, 17.4, 'buisson', .9);       // rien de haut devant le café : on doit voir ses tables
+// ta place au maquis : un banc en bois, une petite table (ton portable, un cahier), et un grand parasol
+fixe(TABLE_GARBA[0] - .46, TABLE_GARBA[1] - .06, () => { const x = TABLE_GARBA[0] - .54, y = TABLE_GARBA[1] - .2;
+  boite(x + .02, y + .03, .05, .05, 0, 3, '#7a5236'); boite(x + .02, y + .5, .05, .05, 0, 3, '#7a5236'); boite(x + .17, y + .5, .05, .05, 0, 3, '#7a5236'); boite(x, y, .24, .6, 3, 1.1, '#c98d5a'); }, 30);
+fixe(TABLE_GARBA[0], TABLE_GARBA[1] - .1, () => {
+  const x = TABLE_GARBA[0], y = TABLE_GARBA[1], allume = ELEVES[0].lieu === GARBA_MOI && ELEVES[0].arrive;
+  [[-.22, -.2], [.2, -.2], [-.22, .16], [.2, .16]].forEach(([a, b]) => boite(x + a, y + b, .05, .05, 0, 5, '#7a5236'));
+  boite(x - .24, y - .22, .5, .44, 5, 1.2, '#b9834f'); boite(x - .14, y - .12, .26, .2, 6.2, .5, '#8a8f9c'); boite(x - .2, y + .08, .15, .11, 6.2, .4, '#ffffff');
+  surFaceX(x + .12, y - .12, y + .08, 6.7, 11.2, '#5b6b82'); surFaceX(x + .121, y - .045, y + .005, 8.4, 9.5, allume ? '#ffd95a' : '#e4572e');
+}, 30);
+fixe(TABLE_GARBA[0] + .02, TABLE_GARBA[1] - .08, () => {
+  const [sx, sy] = P(TABLE_GARBA[0] - .12, TABLE_GARBA[1] - .46);
+  ctx.fillStyle = '#7a5236'; ctx.fillRect(sx - .7, sy - 34, 1.4, 34);
+  for (let i = 0; i < 8; i++){ const a0 = i / 8 * 6.2832, a1 = (i + 1) / 8 * 6.2832; ctx.fillStyle = i % 2 ? '#fff3c4' : '#1f8a5b'; ctx.beginPath(); ctx.moveTo(sx, sy - 42);
+    ctx.lineTo(sx + Math.cos(a0) * 15, sy - 33 + Math.sin(a0) * 6.4); ctx.lineTo(sx + Math.cos(a1) * 15, sy - 33 + Math.sin(a1) * 6.4); ctx.fill(); }
+}, 60);
+planter(2.6, 16.6, 'rond', 1); planter(10.4, 16.15, 'flamboyant', .85); planter(1.4, 16.25, 'buisson', 1); planter(9.9, 17.4, 'buisson', .9);       // rien de haut devant le café : on doit voir ses tables
 
 // ---------- la plage : cocotiers, parasols, pirogues, rochers ----------
-[[2.2, 18.55, 1], [12.2, 18.5, 1.05], [16.5, 18.45, .9], [19.6, 18.45, .9], [22.6, 18.45, 1], [26.6, 18.4, .95]].forEach(([x, y, s]) => planter(x, y, 'palmier', s));
+[[2.2, 18.55, 1], [10.9, 18.5, 1.05], [19.6, 18.45, .9], [22.6, 18.45, 1], [26.6, 18.4, .95]].forEach(([x, y, s]) => planter(x, y, 'palmier', s));
 PARASOLS.forEach((p, j) => fixe(p[0], p[1], () => {
   const [sx, sy] = P(p[0], p[1]), c1 = ['#e4572e', '#3d8bfd', '#f2b632', '#e86a92'][j];
   ctx.fillStyle = '#8f9bb3'; ctx.fillRect(sx - .8, sy - 24, 1.6, 24);
@@ -1760,7 +2084,7 @@ function dessinerCiel(t, h){
   if (!jour){ c2d.fillStyle = haut; c2d.beginPath(); c2d.arc(ax + ra * .45, ay - ra * .2, ra * .82, 0, 6.2832); c2d.fill(); }
   c2d.globalAlpha = 1;
   if (ENV.temps !== 'soleil'){ c2d.fillStyle = ENV.pluie ? 'rgba(58,62,100,.4)' : 'rgba(110,112,145,.16)'; c2d.fillRect(0, 0, w, hh); }
-  const nb = ENV.temps === 'soleil' ? 6 : 12, glisse = (CAM.x - CX) * VUE.ps * .06;                 // les nuages, qui dérivent
+  const nb = ENV.temps === 'soleil' ? 6 : 12, glisse = (CAM.x - BORD.cx) * VUE.ps * .06;                 // les nuages, qui dérivent
   c2d.fillStyle = ENV.pluie ? 'rgba(196,200,222,' + (.85 - n * .6) + ')' : 'rgba(255,255,255,' + (.85 - n * .68) + ')';
   for (let i = 0; i < nb; i++){ const c = NUAGES[i], x = ((c.x + t * c.v) % 1.3 - .15) * w - glisse, y = c.y * hh, u = c.s * 11 * R;
     c2d.fillRect(x, y, u * 6, u * 1.2); c2d.fillRect(x + u, y - u * .9, u * 3.6, u); c2d.fillRect(x - u, y + u * .8, u * 7.6, u * .9); }
@@ -1770,12 +2094,12 @@ function dessinerCiel(t, h){
 function flancs(t){
   const prof = u => 30 + 44 * Math.pow(Math.sin(Math.PI * u), .8), tot = GX + GY, A = [], B = [];
   for (let i = 0; i <= Math.ceil(GX); i++){ const x = Math.min(GX, i); A.push([x, GY, prof(x / tot) + 9 * H1(i, 3)]); }
-  for (let j = 0; j <= Math.ceil(GY); j++){ const y = Math.max(0, GY - j); B.push([GX, y, prof((GX + GY - y) / tot) + 9 * H1(j, 4)]); }
+  for (let j = 0; j <= Math.ceil(GY - NORD); j++){ const y = Math.max(NORD, GY - j); B.push([GX, y, prof((GX + GY - y) / (tot - NORD)) + 9 * H1(j, 4)]); }   // le flanc est : il s'allonge quand l'île grandit vers le nord
   B[0][2] = A[A.length - 1][2];
   const bande = (L, z0, z1, c) => poly(L.map(p => P(p[0], p[1], -z0)).concat(L.slice().reverse().map(p => P(p[0], p[1], -(z1 === null ? p[2] : z1)))), c);
   bande(A, 14, null, C.roche); bande(A, 0, 18, C.terre); bande(A, 9, 11, teinte(C.terre, -.12));
   bande(B, 14, null, C.roche2); bande(B, 0, 18, C.terre2); bande(B, 9, 11, teinte(C.terre2, -.12));
-  surFaceX(GX, 0, SABLE, -5, 0, '#57b85a'); surFaceX(GX, SABLE, RIVE, -5, 0, '#d2ba7c');
+  surFaceX(GX, NORD, SABLE, -5, 0, '#57b85a'); surFaceX(GX, SABLE, RIVE, -5, 0, '#d2ba7c');
   // la cascade : trois bandes de plus en plus transparentes, puis des filets blancs qui tombent
   [[0, 16, .92], [16, 36, .6], [36, 60, .28]].forEach(([z0, z1, a]) => {                        // (elle ne descend jamais plus bas que la roche)
     poly(A.map(p => P(p[0], p[1], -Math.min(z0, p[2] - 3))).concat(A.slice().reverse().map(p => P(p[0], p[1], -Math.min(z1, p[2] - 3)))), 'rgba(92,200,222,' + a + ')');
@@ -1801,30 +2125,34 @@ function mer(t){
   ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(...P(0, GY, -1)); ctx.lineTo(...P(GX, GY, -1)); ctx.stroke();
 }
 function dessinerSol(t){
-  flancs(t);
-  poly([P(0, 0), P(GX, 0), P(GX, GY), P(0, GY)], C.herbe);
+  animerSalles(t); flancs(t);
+  poly([P(0, NORD), P(GX, NORD), P(GX, GY), P(0, GY)], C.herbe);
   for (const s of PLAQUES) if (vu(s.sx, s.sy, 30)) poly(s.p, s.c);
   for (const s of SOLS) poly(s.p, s.c);
-  for (const s of SALLES) sol(s.x, s.y, s.w, s.h, teinte(couleurSalle(s), s === ENV.actif ? .28 : .6));
+  if (NORD < 0){ sol(.6, .6 + NORD, 16.9, -NORD, C.pave);                                         // l'école agrandie : sa dalle, les trottoirs et la route montent avec elle
+    sol(17.64, RY0 + NORD, .46, -NORD, C.trottoir); sol(19.8, RY0 + NORD, .55, -NORD, C.trottoir); sol(RX, RY0 + NORD, RW, -NORD, C.route);
+    ctx.strokeStyle = C.ligne; ctx.lineWidth = 1.3; ctx.setLineDash([7, 7]); ctx.beginPath(); ctx.moveTo(...P(RX + RW / 2, RY0 + NORD + .5)); ctx.lineTo(...P(RX + RW / 2, RY0 + .5)); ctx.stroke(); ctx.setLineDash([]); }
+  for (const s of SALLES) if (s.k > 0) sol(s.x, s.y, s.w, s.h, s.k < 1 ? C.pave2 : teinte(couleurSalle(s), s === ENV.actif ? .28 : .6));
   mer(t);
-  for (const l of TRAITS){ ctx.strokeStyle = l.c; ctx.lineWidth = l.w; if (l.tirets) ctx.setLineDash(l.tirets); ctx.beginPath(); ctx.moveTo(l.a[0], l.a[1]); ctx.lineTo(l.b[0], l.b[1]); ctx.stroke(); if (l.tirets) ctx.setLineDash([]); }
+  for (const l of TRAITS){ if (l.s && l.s.k < 1) continue; ctx.strokeStyle = l.c; ctx.lineWidth = l.w; if (l.tirets) ctx.setLineDash(l.tirets); ctx.beginPath(); ctx.moveTo(l.a[0], l.a[1]); ctx.lineTo(l.b[0], l.b[1]); ctx.stroke(); if (l.tirets) ctx.setLineDash([]); }
   { const c = P(SPORT.x + SPORT.w / 2, SPORT.y + SPORT.h / 2); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = .9; ctx.beginPath(); ctx.ellipse(c[0], c[1], 11, 5.5, 0, 0, 6.2832); ctx.stroke(); }
   { const c = P(ETANG.x, ETANG.y), rx = ETANG.rx * TW * .72, ry = rx * .5;                          // l'étang du parc, ses nénuphars, ses reflets
     ellipse(c[0], c[1], rx + 2.5, ry + 1.6, '#e4d4b0'); ellipse(c[0], c[1], rx, ry, '#4cc0de'); ellipse(c[0] + 2, c[1] + 1.5, rx * .7, ry * .6, '#3aa9cf');
     [[-9, 2], [6, -3], [10, 4]].forEach(([dx, dy]) => ellipse(c[0] + dx, c[1] + dy, 3, 1.5, '#3f9b5a'));
     ctx.fillStyle = 'rgba(255,255,255,.8)'; for (let i = 0; i < 4; i++) if (Math.sin(t * 2.2 + i * 2.1) > .2) ctx.fillRect(c[0] - 12 + i * 7, c[1] - 3 + (i % 2) * 5, 3, .9); }
-  for (const d of DECOR) if (vu(d.x, d.y, 6)){ ctx.fillStyle = d.c; ctx.fillRect(d.x, d.y, d.w, d.h); }
+  for (const d of DECOR) if ((!d.s || d.s.k > 0) && vu(d.x, d.y, 6)){ ctx.fillStyle = d.c; ctx.fillRect(d.x, d.y, d.w, d.h); }
   for (let i = 0; i < 2; i++){ const u = (t * .25 + i * .5) % 1, a = Math.abs(u * 2 - 1), p = P(6 + i * 17 + a * 5, 19.7 + i * .12); ctx.fillStyle = '#d9472e'; ctx.fillRect(p[0] - 2, p[1] - 2, 4, 2.2); ctx.fillRect(p[0] - 3.4, p[1] - 1.2, 1.4, 1.2); ctx.fillRect(p[0] + 2, p[1] - 1.2, 1.4, 1.2); }   // deux crabes
   if (ENV.humide > .04) for (const f of FLAQUES) if (vu(f.sx, f.sy, 12)){ ellipse(f.sx, f.sy, f.rx, f.ry, 'rgba(92,110,165,' + (.42 * ENV.humide) + ')'); ellipse(f.sx - f.rx * .25, f.sy - f.ry * .25, f.rx * .35, f.ry * .3, 'rgba(255,255,255,' + (.3 * ENV.humide) + ')'); }
-  // les grands murs crème du fond de l'école, leur bande orange et leurs fenêtres
-  boite(.6, .42, 16.9, .18, 0, 34, C.creme); boite(.42, .42, .18, 14.98, 0, 34, C.creme);
-  surFaceY(.6, 17.5, .602, 0, 7, '#f08a4b'); surFaceX(.602, .6, 15.4, 0, 7, '#d9773c');
-  for (let i = 0; i < 8; i++){ const x = 1.5 + i * 2; surFaceY(x, x + 1, .604, 15, 28, '#ffffff'); surFaceY(x + .06, x + .94, .606, 16, 27, '#a9d8f5'); surFaceY(x + .48, x + .52, .607, 16, 27, '#ffffff'); }
-  for (let j = 0; j < 6; j++){ const y = 1.6 + j * 2.3; surFaceX(.604, y, y + 1, 15, 28, '#e4dcc8'); surFaceX(.606, y + .06, y + .94, 16, 27, '#8fc0e0'); }
-  boite(.55, .36, 17, .3, 34, 2, '#e9dcbc'); boite(.36, .36, .3, 15.1, 34, 2, '#e9dcbc');
+  // les grands murs crème du fond de l'école, leur bande orange et leurs fenêtres (le mur du nord recule quand l'école s'agrandit)
+  { const n = NORD;
+    boite(.6, .42 + n, 16.9, .18, 0, 34, C.creme); boite(.42, .42 + n, .18, 14.98 - n, 0, 34, C.creme);
+    surFaceY(.6, 17.5, .602 + n, 0, 7, '#f08a4b'); surFaceX(.602, .6 + n, 15.4, 0, 7, '#d9773c');
+    for (let i = 0; i < 8; i++){ const x = 1.5 + i * 2; surFaceY(x, x + 1, .604 + n, 15, 28, '#ffffff'); surFaceY(x + .06, x + .94, .606 + n, 16, 27, '#a9d8f5'); surFaceY(x + .48, x + .52, .607 + n, 16, 27, '#ffffff'); }
+    for (let j = Math.ceil((n - .6) / 2.3); j < 6; j++){ const y = 1.6 + j * 2.3; surFaceX(.604, y, y + 1, 15, 28, '#e4dcc8'); surFaceX(.606, y + .06, y + .94, 16, 27, '#8fc0e0'); }
+    boite(.55, .36 + n, 17, .3, 34, 2, '#e9dcbc'); boite(.36, .36 + n, .3, 15.1 - n, 34, 2, '#e9dcbc'); }
   // les ombres portées
   ctx.fillStyle = C.ombre;
-  for (const o of OMBRES){ if (o.p) poly(o.p, C.ombre); else if (vu(o.sx, o.sy, 30)){ ctx.beginPath(); ctx.ellipse(o.sx, o.sy, o.rx, o.ry, 0, 0, 6.2832); ctx.fill(); } }
+  for (const o of OMBRES){ if (o.s && !(o.s.k > 0)) continue; if (o.p) poly(o.p, C.ombre); else if (vu(o.sx, o.sy, 30)){ ctx.beginPath(); ctx.ellipse(o.sx, o.sy, o.rx, o.ry, 0, 0, 6.2832); ctx.fill(); } }
   // la salle du cours en cours (contour qui respire) et celles où quelque chose est à rendre bientôt (pointillés orange)
   const contour = s => { ctx.beginPath(); [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(([a, b], i) => { const p = P(s.x + a * s.w, s.y + b * s.h); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.stroke(); };
   const bientot = aRendreBientot();
@@ -1944,7 +2272,8 @@ function vivre(dt, t, T, S, ou){
     if (calme || !pret || dist <= v){ p.x = cx; p.y = cy; p.marche = false; if (!c) p.visible = false; } else { p.x += dx / dist * v; p.y += dy / dist * v; p.marche = true; p.miroir = dx - dy < 0; }
     p.dos = dos && !p.marche; p.geste = p.marche ? '' : g; if (!p.marche && g) p.miroir = false;
   });
-  VENDEUSE.visible = T.min >= 600 && T.min < 1260; VENDEUSE.geste = H1(3, Math.floor(t / 4)) < .4 ? 'parle' : '';
+  VENDEUSE.visible = (T.min >= 600 && T.min < 1260) || (minuteur.etat !== 'arret' && minuteur.lieu === 'garba');   // de 10h à 21h — et tant que dure ta séance au maquis
+  VENDEUSE.geste = H1(3, Math.floor(t / 4)) < .4 ? 'parle' : '';
   GARDIEN.geste = H1(5, Math.floor(t / 7)) < .2 ? 'salut' : '';
   // le café : le barista derrière son comptoir, et la serveuse qui fait sa tournée (la salle, la terrasse, ta table) avec son plateau
   BARISTA.visible = SERVEUSE.visible = cafeOuvert(T) || (minuteur.etat !== 'arret' && minuteur.lieu === 'cafe');   // le café reste ouvert pour toi tant que ta séance dure BARISTA.geste = H1(7, Math.floor(t / 5)) < .4 ? 'tasse' : '';        // il prépare un café, une tasse à la main
@@ -1965,7 +2294,7 @@ function vivre(dt, t, T, S, ou){
     if (c.demi > 0){ c.demi -= dt; c.x = c.x0 + (c.x1 - c.x0) * (1 - Math.max(0, c.demi) / 1.2); if (c.demi <= 0) c.dir = -c.dir; continue; }
     const avantP = c.dir > 0 ? PASSAGE - .5 - (c.y + 1.16) : c.y - (PASSAGE + .5), stop = ENV.pietons && avantP > -.2 && avantP < 2.4, cible = stop ? Math.max(0, (avantP - .25) * 1.6) : 2.7;
     c.v += Math.max(-7 * dt, Math.min(3 * dt, Math.min(cible, 2.7) - c.v)); c.y += c.dir * c.v * dt;
-    if ((c.dir > 0 && c.y > RY1 - 1.7) || (c.dir < 0 && c.y < RY0 + .5)){ c.demi = 1.2; c.x0 = c.x; c.x1 = c.dir > 0 ? RX + 1.25 : RX + .45; c.v = 0; }
+    if ((c.dir > 0 && c.y > RY1 - 1.7) || (c.dir < 0 && c.y < RY0 + NORD + .5)){ c.demi = 1.2; c.x0 = c.x; c.x1 = c.dir > 0 ? RX + 1.25 : RX + .45; c.v = 0; }
   }
   // les oiseaux : ils picorent, puis s'envolent vers un autre coin
   for (const o of OISEAUX){
@@ -2005,7 +2334,7 @@ function objets(t){
   if (ENV.nuit < .7) for (const o of OISEAUX) dyn.push({k: o.x + o.y + (o.z > 0 ? 3 : 0), f: () => oiseau(o, t)});
   dyn.sort((a, b) => a.k - b.k);
   let j = 0;
-  for (const o of FIXES){ while (j < dyn.length && dyn[j].k <= o.k) dyn[j++].f(); if (vu(o.sx, o.sy, o.r)) o.f(); }
+  for (const o of FIXES){ while (j < dyn.length && dyn[j].k <= o.k) dyn[j++].f(); if ((!o.s || o.s.k > 0) && vu(o.sx, o.sy, o.r)) o.f(); }   // (une salle en plus n'est dessinée que si elle est là)
   while (j < dyn.length) dyn[j++].f();
 }
 // Les petites choses par-dessus : papillons le jour, fumée du kiosque, éclaboussures de pluie
@@ -2015,6 +2344,11 @@ function petitsDetails(t, T){
     const a = Math.abs(Math.sin(t * 14 + i)) * 2 + .6; ctx.fillStyle = ['#ffd95a', '#ff8fb3', '#ffffff', '#c9a4ff'][i % 4]; ctx.fillRect(p[0] - a, p[1], a, 2); ctx.fillRect(p[0] + .4, p[1], a, 2); }
   if (VENDEUSE.visible) for (let i = 0; i < 5; i++){ const u = (t * .35 + i * .2) % 1, p = P(KX + 1.36, KY + .87, 12 + u * 22); ellipse(p[0] + Math.sin(t + i * 2) * 2 * u, p[1], 1.6 + u * 3, 1.4 + u * 2.4, 'rgba(240,240,248,' + (.42 * (1 - u)) + ')'); }
   if (BARISTA.visible) for (let i = 0; i < 3; i++){ const u = (t * .4 + i * .33) % 1, p = P(CAFE.x + .52, CAFE.y + .53, 16 + u * 13); ellipse(p[0] + Math.sin(t * 1.3 + i * 2) * 1.5 * u, p[1], 1.2 + u * 2.2, 1 + u * 1.8, 'rgba(240,240,248,' + (.4 * (1 - u)) + ')'); }   // la machine à expresso fume
+  for (const s of SALLES) if (s.k > 0 && s.k < 1){                                                  // un chantier : des blocs tombent sur les murs qui montent, la poussière vole
+    const monte = s.ne !== null;
+    for (let i = 0; i < 14; i++){ const u = (s.k * 6 + H1(i, 7)) % 1, a = H1(i, 9), long = H1(i, 8) < .5, x = long ? s.x + a * s.w : s.x + (H1(i, 10) < .5 ? 0 : s.w), y = long ? s.y + (H1(i, 10) < .5 ? 0 : s.h) : s.y + a * s.h;
+      if (monte && s.k < .7){ const p = P(x, y, 19 * palier(s) + (1 - u) * 30); ctx.fillStyle = i % 3 ? '#fbefd2' : '#e4572e'; ctx.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+      const q = P(x, y, 2 + u * 13), g = 3 + u * 4; ctx.fillStyle = 'rgba(255,255,255,' + (.62 * (1 - u)) + ')'; ctx.fillRect(q[0] - g / 2 + Math.sin(i * 2.3 + u * 5) * 3, q[1] - g / 2, g, g); } }
   if (ENV.pluie){ ctx.strokeStyle = 'rgba(255,255,255,.42)'; ctx.lineWidth = .7;
     for (let i = 0; i < 48; i++){ const n = Math.floor(t * 2.5 + i * .37), u = (t * 2.5 + i * .37) % 1, p = P(1 + H1(i, n) * (GX - 2), 1 + H1(i + 50, n) * (GY - 3)); if (vu(p[0], p[1], 5)){ ctx.beginPath(); ctx.ellipse(p[0], p[1], 1 + u * 3.2, .5 + u * 1.6, 0, 0, 6.2832); ctx.stroke(); } } }
 }
@@ -2038,6 +2372,7 @@ function etiquettes(){
   const large = VUE.css >= .62, pres = VUE.css >= 1.5, actif = ENV.actif, bientot = aRendreBientot();
   const poses = [], garder = r => { if (r) poses.push([r[0], r[1], r[2] + 32 * VUE.R]); };          // les étiquettes déjà posées : un prénom ne doit recouvrir ni un autre prénom, ni le nom d'une salle
   for (const s of SALLES){                                                                        // chaque salle porte le nom que tu lui as donné (ou celui de sa matière)
+    if (s.k < 1){ if (s.k > 0 && s.ne !== null) garder(pilule('Nouvelle salle : en construction…', P(s.x + s.w / 2, s.y, 32), '#ffb627', '#1c1830')); continue; }
     const du = bientot.some(r => s.matieres.some(m => m.id === r.m)), base = s.nom || (s.matieres[0] ? court(s.matieres[0]) : ''), ou = P(s.x + s.w / 2, s.y, 32);
     if (s === actif && ENV.cours && matiere(ENV.cours.m)) garder(pilule((s.nom ? s.nom + ' · ' : '') + court(matiere(ENV.cours.m)) + ' · en cours', ou, '#1c1830', '#ffffff'));
     else if (base && (large || du)) garder(pilule(base + (du ? ' · à rendre' : ''), ou, s.c === SALLE_VIDE ? '#ffffff' : s.c, '#1c1830')); }
@@ -2097,25 +2432,25 @@ function bulles(t, T){
   c2d.fillStyle = retard ? '#ffffff' : f.niv === 2 ? '#c23b17' : '#635d7a'; c2d.fillText(l2, bx + 7.5 * R, by + 22.5 * R);
 }
 
-// Les deux boutons qui rebondissent : au-dessus de ton ordinateur (chez toi) et au-dessus du portable (au café). On les touche pour entrer dans la pièce.
-const ANCRES = {maison: [CHEZ_MOI.x + .96, CHEZ_MOI.y + .32, 16], cafe: [TABLE_MOI[0] + .06, TABLE_MOI[1] - .02, 13]};
+// Les trois boutons qui rebondissent : au-dessus de ton ordinateur (chez toi), du portable (au café), et du parasol de ta table (au maquis). On les touche pour entrer.
+const ANCRES = {maison: [CHEZ_MOI.x + .96, CHEZ_MOI.y + .32, 16], cafe: [TABLE_MOI[0] + .06, TABLE_MOI[1] - .02, 13], garba: [TABLE_GARBA[0] - .12, TABLE_GARBA[1] - .46, 44]};
 const BOUTONS = [];                                                                               // où ils sont à l'écran, pour savoir si on les touche
 function pixCanvas(g, nom, x, y, p){                                                              // une icône de PIX dessinée sur un canvas : « p » est la taille d'un pixel
   PIX[nom].forEach((ligne, j) => [...ligne].forEach((c, i) => { if (c !== '.'){ g.fillStyle = COULEURS_PIX[c] || '#1c1830'; g.fillRect(x + i * p, y + j * p, p, p); } }));
 }
 function boutonsFlottants(t){
   const R = VUE.R, b = Math.max(1, Math.round(R)); BOUTONS.length = 0;
-  for (const lieu of ['maison', 'cafe']){
-    const a = ANCRES[lieu], [x, y0] = ecran(P(a[0], a[1], a[2])), ici = minuteur.etat !== 'arret' && minuteur.lieu === lieu;
+  for (const lieu of Object.keys(ANCRES)){
+    const a = ANCRES[lieu], [x, y0] = ecran(P(a[0], a[1], a[2])), libre = lieuOuvert(lieu), ici = libre && minuteur.etat !== 'arret' && minuteur.lieu === lieu;
     if (x < -50 * R || x > VUE.cw + 50 * R || y0 < -10 * R || y0 > VUE.ch + 60 * R) continue;
-    const saut = calme ? 0 : Math.abs(Math.sin(t * 3.4 + (lieu === 'cafe' ? 1.3 : 0))), p = 2 * b, h = 9 * p + 6 * b, txt = ici ? chrono(resteMs()) : '';
+    const saut = calme ? 0 : Math.abs(Math.sin(t * 3.4 + ({cafe: 1.3, garba: 2.5}[lieu] || 0))), p = 2 * b, h = 9 * p + 6 * b, txt = ici ? chrono(resteMs()) : '';
     c2d.font = '700 ' + Math.round(16 * R) + 'px ' + POLICE;
     const w = Math.round(9 * p + 6 * b + (ici ? c2d.measureText(txt).width + 7 * R : 0)), gx = Math.round(x - w / 2), hy = Math.round(y0 - 9 * R - h - saut * 9 * R);
     c2d.fillStyle = 'rgba(24,16,56,' + (.3 - saut * .14) + ')'; c2d.fillRect(Math.round(x - (7 - saut * 2.5) * R), Math.round(y0 - 2 * R), Math.round((14 - saut * 5) * R), 2 * b);   // son ombre rétrécit quand il monte
     c2d.fillStyle = '#1c1830'; c2d.fillRect(gx - b, hy - b, w + 2 * b, h + 2 * b); c2d.fillRect(Math.round(x - 3 * b), hy + h + b, 6 * b, 2 * b); c2d.fillRect(Math.round(x - b), hy + h + 3 * b, 2 * b, 2 * b);   // le contour et la petite pointe
     c2d.fillStyle = ici && minuteur.phase !== 'travail' ? '#8fe08a' : '#ffffff'; c2d.fillRect(gx, hy, w, h);
     c2d.fillStyle = 'rgba(27,23,48,.16)'; c2d.fillRect(gx, hy + h - 2 * b, w, 2 * b);                           // un bord sombre en bas : le bouton a l'air en relief
-    pixCanvas(c2d, 'tomate', gx + 3 * b, hy + 3 * b, p);
+    pixCanvas(c2d, libre ? 'tomate' : 'cadenas', gx + (libre ? 3 : 4) * b, hy + (libre ? 3 : 4) * b, p);   // un cadenas : ce lieu est à débloquer
     if (ici && (minuteur.etat !== 'pause' || t % 1.2 < .8)){ c2d.fillStyle = '#1c1830'; c2d.textAlign = 'left'; c2d.textBaseline = 'middle'; c2d.fillText(txt, gx + 9 * p + 7 * b, hy + h / 2 + R); }
     BOUTONS.push({lieu, x: (gx - 8 * R) / R, y: (hy - 8 * R) / R, w: (w + 16 * R) / R, h: (h + 20 * R + saut * 9 * R) / R});
   }
@@ -2124,9 +2459,13 @@ function boutonSous(ev){ const r = cv.getBoundingClientRect(), x = ev.clientX - 
 cv.addEventListener('mousemove', ev => { cv.style.cursor = boutonSous(ev) ? 'pointer' : ''; });
 
 /* ============ 14. LA CAMÉRA : zoom, déplacement, suivi d'un personnage ============ */
-const BORD = {x0: P(0, GY)[0] - 26, x1: P(GX, 0)[0] + 26, y0: -64, y1: P(GX, GY)[1] + 92};
-const CX = (BORD.x0 + BORD.x1) / 2, CY = (BORD.y0 + BORD.y1) / 2;
-const CAM = {x: CX, y: CY, z: 1, cx: CX, cy: CY, cz: 1, suivi: null};
+// BORD : le rectangle qui entoure toute l'île. Il grandit quand l'école s'agrandit vers le nord — la « vue d'ensemble » s'y adapte toute seule.
+const BORD = {}, CAM = {x: 0, y: 0, z: 1, cx: 0, cy: 0, cz: 1, suivi: null};
+function majBord(){
+  BORD.x0 = P(0, GY)[0] - 26; BORD.x1 = P(GX, NORD)[0] + 26; BORD.y0 = P(0, NORD)[1] - 64; BORD.y1 = P(GX, GY)[1] + 92; BORD.cx = (BORD.x0 + BORD.x1) / 2; BORD.cy = (BORD.y0 + BORD.y1) / 2;
+  if (!CAM.suivi && CAM.cz <= 1.01 && !CHANTIER.cam){ CAM.cx = BORD.cx; CAM.cy = BORD.cy; }   // si on regardait toute l'île, on continue de la voir en entier
+}
+majBord(); CAM.x = CAM.cx; CAM.y = CAM.cy;
 let QUAL = 1;
 function taille(){
   const r = cv.getBoundingClientRect(), R = Math.max(1, Math.min(2, window.devicePixelRatio || 1) * QUAL), w = Math.max(1, Math.round(r.width * R)), h = Math.max(1, Math.round(r.height * R));
@@ -2139,8 +2478,8 @@ function cadrer(dt){
   if (CAM.suivi){ const p = P(CAM.suivi.x, CAM.suivi.y, 10); CAM.cx = p[0]; CAM.cy = p[1]; }
   CAM.cz = Math.min(zMax(), Math.max(1, CAM.cz));
   const dw = VUE.cssW / (VUE.fit * CAM.cz) / 2, dh = VUE.cssH / (VUE.fit * CAM.cz) / 2;            // on garde toujours l'île à l'écran
-  CAM.cx = BORD.x0 + dw > BORD.x1 - dw ? CX : Math.min(BORD.x1 - dw, Math.max(BORD.x0 + dw, CAM.cx));
-  CAM.cy = BORD.y0 + dh > BORD.y1 - dh ? CY : Math.min(BORD.y1 - dh, Math.max(BORD.y0 + dh, CAM.cy));
+  CAM.cx = BORD.x0 + dw > BORD.x1 - dw ? BORD.cx : Math.min(BORD.x1 - dw, Math.max(BORD.x0 + dw, CAM.cx));
+  CAM.cy = BORD.y0 + dh > BORD.y1 - dh ? BORD.cy : Math.min(BORD.y1 - dh, Math.max(BORD.y0 + dh, CAM.cy));
   const a = calme ? 1 : 1 - Math.exp(-dt * 7);
   CAM.x += (CAM.cx - CAM.x) * a; CAM.y += (CAM.cy - CAM.y) * a; CAM.z += (CAM.cz - CAM.z) * a;
   VUE.css = VUE.fit * CAM.z; VUE.ps = VUE.css * VUE.R; VUE.ox = VUE.cw / 2 - CAM.x * VUE.ps; VUE.oy = VUE.ch / 2 - CAM.y * VUE.ps;
@@ -2148,7 +2487,6 @@ function cadrer(dt){
 }
 function majCam(){
   $('cam-suivre').setAttribute('aria-pressed', CAM.suivi === ELEVES[0]);
-  cv.style.touchAction = CAM.cz > 1.02 ? 'none' : 'pan-y';                                         // vue d'ensemble : le doigt fait défiler la page ; zoomé : il déplace la ville
 }
 function zoomer(f, ax, ay, direct){                                                               // (ax, ay) : le point de la scène qui doit rester sous le doigt
   const z0 = CAM.cz, z = Math.min(zMax(), Math.max(1, z0 * f));
@@ -2160,7 +2498,7 @@ function zoomer(f, ax, ay, direct){                                             
   majCam();
 }
 function suivre(e){ CAM.suivi = e; CAM.cz = Math.max(CAM.cz, Math.min(zMax(), (VUE.cssW < 640 ? 1.5 : 2.1) / VUE.fit)); majCam(); }   // on se rapproche de celui qu'on suit
-function vueEnsemble(){ CAM.suivi = null; CAM.cz = 1; CAM.cx = CX; CAM.cy = CY; majCam(); }
+function vueEnsemble(){ CAM.suivi = null; CAM.cz = 1; CAM.cx = BORD.cx; CAM.cy = BORD.cy; majCam(); }
 $('cam-plus').addEventListener('click', () => zoomer(1.5));
 $('cam-moins').addEventListener('click', () => zoomer(1 / 1.5));
 $('cam-ensemble').addEventListener('click', vueEnsemble);
@@ -2188,7 +2526,7 @@ cv.addEventListener('pointermove', ev => {
   doigts.delete(ev.pointerId); if (doigts.size < 2) pince = 0;
   if (doigts.size === 0 && glisse){ if (!glisse.bouge && n === 'pointerup') clic(ev); glisse = null; }
 }));
-cv.addEventListener('wheel', ev => { if (!ev.ctrlKey && !ev.metaKey) return; ev.preventDefault(); const r = cv.getBoundingClientRect(); zoomer(Math.exp(-ev.deltaY * .01), ev.clientX - r.left, ev.clientY - r.top, true); }, {passive: false});
+cv.addEventListener('wheel', ev => { ev.preventDefault(); const r = cv.getBoundingClientRect(); zoomer(Math.exp(-ev.deltaY * .01), ev.clientX - r.left, ev.clientY - r.top, true); }, {passive: false});
 cv.addEventListener('dblclick', ev => { const r = cv.getBoundingClientRect(); zoomer(1.7, ev.clientX - r.left, ev.clientY - r.top); });
 cv.addEventListener('keydown', ev => {
   const pas = 40 / CAM.cz, k = ev.key;
@@ -2242,9 +2580,11 @@ if ('IntersectionObserver' in window) new IntersectionObserver(es => { enVue = e
 function image(ms){
   requestAnimationFrame(image);
   if (!COMPTE.id){ dessinerAccueil(ms / 1000); return; }                                           // personne n'est connecté : seule la page de connexion s'anime
+  if (BOUTIQUE.verrou){ dessinerVerrou(ms / 1000); return; }                                       // l'écran d'un lieu à débloquer couvre tout : on ne dessine que lui
+  if (MENU.ouvert && BOUTIQUE.objet && !$('o-boutique').hidden) dessinerApercuObjet(ms / 1000);    // l'aperçu animé d'un objet de la boutique
   if (CINE.etat !== 'ferme' && cineImage(ms)) return;                                             // la cinématique occupe tout l'écran : inutile de dessiner la ville derrière
   if (!$('o-perso').hidden && (!calme || ESSAI.sale)) dessinerEssai(ms / 1000);                     // l'aperçu de l'onglet « Perso » bouge même quand la ville n'est plus à l'écran
-  if (!enVue) return;                                                                             // inutile de dessiner quand la ville n'est pas à l'écran
+  if (!enVue || (MENU.ouvert && etroit() && CINE.etat === 'ferme')) return;                        // inutile de dessiner quand la ville n'est pas à l'écran (ou cachée par le menu, sur téléphone)
   const t = ms / 1000; let dt = t - avant; if (calme && dt < .4 && pret) return; avant = t;
   if (dt > .042 && dt < .5){ if (++lenteur > 90 && QUAL > .5){ QUAL -= .25; lenteur = 0; } } else if (lenteur > 0) lenteur--;   // si l'appareil peine, on dessine un peu moins fin
   dt = Math.min(.05, Math.max(0, dt));
@@ -2280,6 +2620,10 @@ const PIX = {
   passer:     ['#...#...##', '##..##..##', '###.###.##', '##########', '##########', '###.###.##', '##..##..##', '#...#...##'],
   arret:      ['........', '.######.', '.######.', '.######.', '.######.', '.######.', '.######.', '........'],
   sortir:     ['#####....', '#........', '#....#...', '#....##..', '#.######.', '#....##..', '#....#...', '#........', '#####....'],
+  menu:       ['.##.', '.##.', '....', '.##.', '.##.', '....', '.##.', '.##.'],
+  boutique:   ['...###...', '..#...#..', '#########', '#########', '##.###.##', '#########', '#########', '#########', '.#######.'],
+  cadenas:    ['..####..', '.##..##.', '.##..##.', '########', '########', '###..###', '###..###', '########'],
+  coche:      ['.......##', '......###', '.....###.', '##..###..', '######...', '.####....', '..##.....'],
   tomate:     ['...vv....', '..vvvv...', '.rrvvrrr.', 'rrrrrrrrr', 'rwrrrrrrr', 'rwrrrrrrr', 'rrrrrrrrr', '.rrrrrrr.', '..rrrrr..'],
 };
 const COULEURS_PIX = {r: '#e4572e', v: '#3f9b4a', w: '#ffd9cc', o: '#ffb627'};
@@ -2300,7 +2644,7 @@ const nomSalle = c => { const m = matiere(c.m); return (c.salle || (m && m.salle
 const montrer = (id, texte) => { const n = $(id); n.textContent = texte || ''; n.hidden = !texte; };     // un message qui n'apparaît que s'il y a quelque chose à dire
 
 // --- les onglets ---
-const ONGLETS = ['jour', 'rappels', 'semaine', 'perso', 'reglages'];
+const ONGLETS = ['jour', 'rappels', 'semaine', 'perso', 'boutique', 'reglages'];
 function onglet(nom){
   document.querySelectorAll('.onglets button').forEach(b => b.setAttribute('aria-selected', b.dataset.o === nom));
   ONGLETS.forEach(o => { $('o-' + o).hidden = o !== nom; });
@@ -2309,6 +2653,58 @@ function onglet(nom){
 }
 document.querySelectorAll('.onglets button').forEach(b => b.addEventListener('click', () => onglet(b.dataset.o)));
 document.querySelectorAll('[data-vers]').forEach(b => b.addEventListener('click', () => { onglet(b.dataset.vers); $('rappel-texte').focus(); }));
+
+// --- le menu « ⋮ » : tout ce qui n'est pas la ville est rangé dans un panneau qui glisse depuis la droite ---
+// Sur téléphone il couvre tout l'écran ; sur ordinateur il s'ouvre à côté de la ville.
+// Pour que le geste « retour » du téléphone ferme le panneau (au lieu de quitter le site), l'ouvrir ajoute « #menu » au bout de l'adresse :
+// revenir en arrière enlève ce « #menu », la page le remarque (« hashchange ») et referme le panneau.
+const MENU = {ouvert: false, pousse: false};
+const etroit = () => matchMedia('(max-width:760px)').matches;         // un écran de téléphone ?
+function majMenu(oui){
+  if (MENU.ouvert === oui) return; MENU.ouvert = oui;
+  $('appli').classList.toggle('menu-ouvert', oui); $('menu').inert = !oui; $('menu-bouton').setAttribute('aria-expanded', oui);
+  if (oui){ ESSAI.sale = true; $('menu-fermer').focus({preventScroll: true}); }
+  else if (!$('scene').contains(document.activeElement)) $('menu-bouton').focus({preventScroll: true});
+}
+function ouvrirMenu(nom){
+  if (nom) onglet(nom);
+  if (!MENU.ouvert && location.hash !== '#menu'){ const n = history.length; try { location.hash = 'menu'; } catch (e) {}
+    MENU.pousse = history.length > n; }                                // vrai si l'adresse a bien gagné une étape (pendant le chargement de la page, le navigateur la remplace au lieu d'en ajouter une)
+  majMenu(true);
+}
+function fermerMenu(){
+  if (location.hash === '#menu'){
+    if (MENU.pousse){ MENU.pousse = false; try { history.back(); } catch (e) {} }
+    else { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+  }
+  majMenu(false);
+}
+addEventListener('hashchange', () => { if (!COMPTE.id) return; if (location.hash === '#menu') majMenu(true); else { MENU.pousse = false; majMenu(false); } });
+$('menu-bouton').addEventListener('click', () => MENU.ouvert ? fermerMenu() : ouvrirMenu());
+$('menu-fermer').addEventListener('click', fermerMenu);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && MENU.ouvert && CINE.etat === 'ferme' && !ev.defaultPrevented) fermerMenu(); });
+const voirVille = () => { if (etroit()) fermerMenu(); };              // sur téléphone le panneau cache la ville : on le referme quand il y a quelque chose à y voir
+
+// --- le plein écran du navigateur : proposé au premier toucher sur téléphone, et réglable dans « Réglages » ---
+let pleinChoix = lire('campus-plein', '');                            // '' : jamais demandé · 'oui' · 'non'
+const pleinPossible = () => !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+function pleinEcranPage(oui){
+  try {
+    if (oui && !document.fullscreenElement){ const p = document.documentElement.requestFullscreen({navigationUI: 'hide'}); if (p && p.catch) p.catch(() => {}); }
+    else if (!oui && document.fullscreenElement){ const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); }
+  } catch (e) {}
+}
+function majPlein(){ $('reglage-plein').hidden = !pleinPossible(); $('plein-ecran').checked = pleinChoix === 'oui'; }
+function choisirPlein(oui){ pleinChoix = oui ? 'oui' : 'non'; ecrire('campus-plein', pleinChoix); $('invite-plein').hidden = true; pleinEcranPage(oui); majPlein(); }
+$('plein-ecran').addEventListener('change', e => choisirPlein(e.target.checked));
+$('invite-oui').addEventListener('click', () => choisirPlein(true));
+$('invite-non').addEventListener('click', () => choisirPlein(false));
+let premierToucher = false;
+document.addEventListener('pointerup', ev => {                        // le premier toucher de la visite : on applique ton choix, ou on te pose la question (sur un écran tactile)
+  if (premierToucher || !COMPTE.id || !pleinPossible()) return; premierToucher = true;
+  if (pleinChoix === 'oui') pleinEcranPage(true); else if (pleinChoix === '' && ev.pointerType !== 'mouse') $('invite-plein').hidden = false;
+}, true);
+majPlein();
 
 // --- l'aperçu d'un autre moment : l'heure change d'un coup, et tout le monde se met en route à pied (personne n'est téléporté) ---
 function apercu(jour, min){ sim = {jour, base: min, pose: Date.now()}; SAUT = 2; $('sim-jour').value = jour; $('sim-heure').value = Math.round(min / 5) * 5; panneau(); }
@@ -2326,13 +2722,13 @@ function majFiche(redessine){
   const e = choisi; if (!e){ $('fiche').hidden = true; return; }
   if (e.visible === false && !e.toi){ choisi = null; $('fiche').hidden = true; if (CAM.suivi === e) CAM.suivi = null; return; }   // il est rentré chez lui, ou son cours est fini
   $('fiche-nom').textContent = nomDe(e);
-  $('fiche-role').textContent = e.toi ? "C'est toi" : e.prof ? 'Professeur' : e.pnj === 'vendeuse' ? 'Tient le kiosque à garba' : e.pnj === 'gardien' ? "Gardien de l'école" : e.pnj === 'barista' ? 'Prépare les cafés' : e.pnj === 'serveuse' ? 'Sert en salle et en terrasse' : e.sab ? 'Ta voisine de table' : e.fille ? 'Étudiante de ta classe' : 'Étudiant de ta classe';
+  $('fiche-role').textContent = e.toi ? "C'est toi" : e.prof ? 'Professeur' : e.pnj === 'vendeuse' ? 'Tient le maquis garba' : e.pnj === 'gardien' ? "Gardien de l'école" : e.pnj === 'barista' ? 'Prépare les cafés' : e.pnj === 'serveuse' ? 'Sert en salle et en terrasse' : e.sab ? 'Ta voisine de table' : e.fille ? 'Étudiante de ta classe' : 'Étudiant de ta classe';
   let detail = '';
   if (e.prof){ if (e.m){ const T = maintenant(), pro = CRENEAUX.filter(c => c.m === e.m.id).map(c => ({c, e: ((c.jour - T.jour) * 1440 + c.deb - T.min + 10080) % 10080})).sort((a, b) => a.e - b.e)[0];
     detail = e.m.nom + (pro ? '. Prochain cours : ' + JOURS[pro.c.jour] + ' à ' + hm(pro.c.deb) + '.' : '.'); } }
   else if (e.pnj) detail = {vendeuse: 'Ouvert de 10h00 à 21h00. Les étudiants y passent à la pause de midi.', gardien: 'Il surveille le portail pendant les heures de cours.',
     barista: 'Le café est ouvert de 6h30 à 22h00. Sa machine à expresso fume toute la journée.', serveuse: 'Elle fait le tour de la salle et de la terrasse avec son plateau, et passe à ta table.'}[e.pnj];
-  else detail = 'Place ' + (e.siege + 1) + ' sur 48, rangée ' + ((e.siege >> 3) + 1) + '. En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.';
+  else detail = 'Place ' + (e.siege + 1) + ' sur 48, rangée ' + ((e.siege >> 3) + 1) + '. En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.arrive && e.lieu && e.lieu.zone === 'garba' ? 'au maquis' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.';
   $('fiche-detail').textContent = detail;
   $('fiche-renommer').hidden = !!e.toi || !!e.pnj; $('fiche-perso').hidden = !e.toi;
   $('fiche-input').placeholder = e.prof ? 'Le nom de ce prof' : 'Son vrai prénom';
@@ -2385,7 +2781,7 @@ function panneau(){
   $('tag').hidden = !T.sim; $('reel').disabled = !T.sim;
   const temps = tempsQuilFait(), nuitClaire = temps === 'soleil' && nuitDe(T.min / 60) > .6;
   $('hud-meteo').innerHTML = ICONES[nuitClaire ? 'lune' : temps]; $('hud-meteo').append(document.createTextNode(meteoMode === 'direct' && meteo.etat === 'ok' ? meteo.temp + ' °C' : nuitClaire ? 'Nuit claire' : NOMS_TEMPS[temps]));
-  $('hud-lieu').innerHTML = ICONES.lieu; $('hud-lieu').append(document.createTextNode(minuteur.etat === 'arret' ? NOMS_LIEU[ou.lieu] : minuteur.lieu === 'cafe' ? 'Au café' : 'À la maison'));   // pendant une séance Pomodoro, tu es là où tu travailles
+  $('hud-lieu').innerHTML = ICONES.lieu; $('hud-lieu').append(document.createTextNode(minuteur.etat === 'arret' ? NOMS_LIEU[ou.lieu] : {cafe: 'Au café', garba: 'Au maquis'}[minuteur.lieu] || 'À la maison'));   // pendant une séance Pomodoro, tu es là où tu travailles
   const n = s.suivant; let ensuite = '';
   if (n){ const ej = (n.jour - T.jour + 7) % 7, memeJour = ej === 0 && n.deb > T.min;
     ensuite = court(matiere(n.m)) + ' ' + (s.ecart < 60 ? 'dans ' + duree(s.ecart) : memeJour ? 'à ' + hm(n.deb) : (ej === 1 ? 'demain' : JOURS[n.jour]) + ' à ' + hm(n.deb)); }
@@ -2483,7 +2879,7 @@ function afficherSemaine(){
       b.type = 'button'; b.dataset.id = c.id; b.dataset.m = c.m; i.style.background = m.c;
       b.append(i, document.createTextNode(m.nom), el('small', '', hm(c.deb) + ' – ' + hm(c.fin) + (sl ? ' · ' + sl : '')), el('small', 'du'));
       b.title = 'Voir la ville à ce moment-là';
-      b.onclick = () => { apercu(j, c.deb + .2); $('scene').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); };
+      b.onclick = () => { apercu(j, c.deb + .2); voirVille(); };
       mod.type = 'button'; mod.innerHTML = CRAYON; mod.setAttribute('aria-label', 'Modifier le cours de ' + m.nom + ' du ' + JOURS[j]); mod.title = 'Modifier'; mod.onclick = () => editerCours(c);
       boite.append(b, mod); col.append(boite);
     });
@@ -2573,7 +2969,7 @@ $('ecole-nom').addEventListener('input', e => { ecoleNom = texteSur(e.target.val
 // --- l'assistant du premier lancement : « Ajoute ta première matière », puis « Place-la dans ta semaine » ---
 let etapeVue = 0;
 function afficherAssistant(){
-  const voir = !assistantVu && (!MATIERES.length || !CRENEAUX.length); $('assistant').hidden = !voir;
+  const voir = !assistantVu && (!MATIERES.length || !CRENEAUX.length); $('assistant').hidden = !voir; $('menu-bouton').classList.toggle('alerte', voir);
   if (!voir){ etapeVue = 0; return; }
   const etape = MATIERES.length ? 2 : 1, m = MATIERES[0];
   $('as-etape').textContent = 'Étape ' + etape + ' sur 2';
@@ -2600,7 +2996,7 @@ $('as-form2').addEventListener('submit', ev => {
   if (salle && !m.salle) { m.salle = salle; v.salle = ''; }               // la salle donnée ici devient la salle habituelle de la matière
   CRENEAUX.push(Object.assign({id: nouvelId()}, v)); assistantVu = true;
   majEcole(); onglet('semaine'); apercu(v.jour, v.deb + .2);              // et on regarde tout de suite la ville à l'heure de ce cours : tout le monde s'y rend
-  $('scene').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'});
+  voirVille();
 });
 $('as-plus-tard').addEventListener('click', () => { assistantVu = true; afficherAssistant(); enregistrer('ecole'); });
 
@@ -2683,7 +3079,7 @@ function majCarnet(complet){
   });
 }
 $('carnet-fermer').addEventListener('click', fermerCarnet);
-$('carnet-ajouter').addEventListener('click', () => { fermerCarnet(); onglet('rappels'); $('rappel-texte').focus(); });
+$('carnet-ajouter').addEventListener('click', () => { fermerCarnet(); ouvrirMenu('rappels'); $('rappel-texte').focus(); });
 
 // --- les notifications : la veille, le matin même, une heure avant, puis quand c'est en retard (tant que la page reste ouverte) ---
 let notifEtat = 'Notification' in window ? Notification.permission : 'absent';
@@ -2707,6 +3103,84 @@ function verifierNotifs(){
   if (change){ oublierEtat(); enregistrer('afaire'); }
 }
 $('notif').addEventListener('click', async () => { if (!('Notification' in window)) notifEtat = 'absent'; else { try { notifEtat = await Notification.requestPermission(); } catch (e) { notifEtat = 'denied'; } } panneau(); });
+
+/* ============ 16 bis. LA BOUTIQUE (1) : le catalogue, ce que tu possèdes, ce que tu portes ============ */
+// Un objet = une ligne du catalogue : {id, cat (le rayon), sous (l'étagère), nom, prix (en francs CFA ; 0 = gratuit), texte}, et selon le cas :
+//   place + val : un vêtement ou un accessoire (où il se porte, et le réglage que sprite() lit pour le dessiner) ;
+//   espece (+ race) : un animal, ou un pelage spécial ; lieu : un lieu de travail ; rien de plus : une décoration pour ta maison.
+// Pour ajouter un objet : une ligne ici, puis son dessin là où il s'affiche (sprite() pour un vêtement, la partie 8 bis pour un animal, les décors pour la maison).
+const RAYONS = [['lieux', 'Lieux'], ['vetements', 'Vêtements'], ['accessoires', 'Accessoires'], ['animaux', 'Animaux'], ['maison', 'Maison']];
+const CATALOGUE = [
+  {id: 'lieu-cafe', cat: 'lieux', sous: 'Lieux de travail', nom: 'Le café', prix: 1500, lieu: 'cafe', texte: "Une table près de la vitrine, l'odeur du café, les passants dehors. À la pause, tu commandes au comptoir."},
+  {id: 'lieu-garba', cat: 'lieux', sous: 'Lieux de travail', nom: 'Le maquis garba', prix: 1000, lieu: 'garba', texte: "Réviser sous la bâche pendant que le thon frit. À la pause : un bon garba."},
+  {id: 'h-capuche', cat: 'vetements', sous: 'Hauts', nom: 'Sweat à capuche', prix: 0, place: 'haut', val: 8, texte: 'Confortable pour réviser tard. Il prend la couleur de ton haut.'},
+  {id: 'h-boubou', cat: 'vetements', sous: 'Hauts', nom: 'Boubou brodé', prix: 500, place: 'haut', val: 9, texte: "Long, avec une encolure brodée de la couleur de tes « Détails »."},
+  {id: 'h-costume', cat: 'vetements', sous: 'Hauts', nom: 'Costume cravate', prix: 700, place: 'haut', val: 10, texte: 'Pour les jours de soutenance : veste, chemise blanche, cravate et pochette.'},
+  {id: 'b-short', cat: 'vetements', sous: 'Pantalons', nom: 'Short', prix: 0, place: 'bas', val: 'short', texte: 'Pour les journées chaudes.'},
+  {id: 'b-jogging', cat: 'vetements', sous: 'Pantalons', nom: 'Jogging à bandes', prix: 300, place: 'bas', val: 'jogging', texte: 'Deux bandes sur le côté, de la couleur de tes « Détails ».'},
+  {id: 'b-pagne', cat: 'vetements', sous: 'Pantalons', nom: 'Pantalon wax', prix: 400, place: 'bas', val: 'pagne', texte: 'Des motifs, comme un pagne.'},
+  {id: 'c-sandales', cat: 'vetements', sous: 'Chaussures', nom: 'Sandales', prix: 0, place: 'pieds', val: 'sandales', texte: 'Légères, pour aller à la plage après les cours.'},
+  {id: 'c-montantes', cat: 'vetements', sous: 'Chaussures', nom: 'Baskets montantes', prix: 400, place: 'pieds', val: 'montantes', texte: 'Elles montent sur la cheville, avec une semelle blanche.'},
+  {id: 't-casquette', cat: 'vetements', sous: 'Casquettes', nom: 'Casquette', prix: 0, place: 'tete', val: 'casquette', texte: 'Elle se pose sur ta coiffure. Couleur : tes « Détails ».'},
+  {id: 't-bob', cat: 'vetements', sous: 'Casquettes', nom: 'Bob', prix: 300, place: 'tete', val: 'bob', texte: 'Le chapeau des après-midi au soleil.'},
+  {id: 't-bonnet', cat: 'vetements', sous: 'Casquettes', nom: 'Bonnet à pompon', prix: 300, place: 'tete', val: 'bonnet', texte: 'Pour les matins de pluie.'},
+  {id: 't-paille', cat: 'vetements', sous: 'Casquettes', nom: 'Chapeau de paille', prix: 400, place: 'tete', val: 'paille', texte: 'Larges bords, ruban de couleur.'},
+  {id: 'l-coeur', cat: 'accessoires', sous: 'Lunettes', nom: 'Lunettes cœur', prix: 0, place: 'yeux', val: 'coeur', texte: 'Deux cœurs roses.'},
+  {id: 'l-pixel', cat: 'accessoires', sous: 'Lunettes', nom: 'Lunettes pixel', prix: 300, place: 'yeux', val: 'pixel', texte: 'Noires, carrées, très sérieuses.'},
+  {id: 's-banane', cat: 'accessoires', sous: 'Sacs', nom: 'Sac banane', prix: 0, place: 'sac', val: 'banane', texte: 'Autour de la taille, de la couleur de ton sac.'},
+  {id: 's-sacoche', cat: 'accessoires', sous: 'Sacs', nom: 'Sacoche', prix: 400, place: 'sac', val: 'sacoche', texte: 'En bandoulière, toujours avec toi.'},
+  {id: 'o-gamer', cat: 'accessoires', sous: 'Casques audio', nom: 'Casque lumineux', prix: 500, place: 'oreilles', val: 'gamer', texte: 'Avec un micro, et des lumières qui changent de couleur.'},
+  {id: 'm-classique', cat: 'accessoires', sous: 'Montres', nom: 'Montre', prix: 0, place: 'poignet', val: 'classique', texte: 'Bracelet en cuir, cadran doré.'},
+  {id: 'm-connectee', cat: 'accessoires', sous: 'Montres', nom: 'Montre connectée', prix: 500, place: 'poignet', val: 'connectee', texte: 'Écran bleu, bracelet noir.'},
+  {id: 'a-chien', cat: 'animaux', sous: 'Compagnons', nom: 'Chien', prix: 0, base: true, espece: 'chien', texte: 'Douze races, du rottweiler au basenji.'},
+  {id: 'a-chat', cat: 'animaux', sous: 'Compagnons', nom: 'Chat', prix: 0, base: true, espece: 'chat', texte: 'Neuf robes, du tigré au sphynx.'},
+  {id: 'a-lapin', cat: 'animaux', sous: 'Compagnons', nom: 'Lapin', prix: 0, base: true, espece: 'lapin', texte: 'Huit races, du lapin nain au bélier.'},
+  {id: 'a-perroquet', cat: 'animaux', sous: 'Compagnons', nom: 'Perroquet', prix: 0, base: true, espece: 'perroquet', texte: 'Sept espèces, du gris du Gabon à l\'ara rouge.'},
+  {id: 'a-renard', cat: 'animaux', sous: 'Compagnons', nom: 'Renard', prix: 1000, espece: 'renard', texte: 'Roux, polaire, argenté ou fennec : quatre pelages.'},
+  {id: 'a-panda', cat: 'animaux', sous: 'Compagnons', nom: 'Panda', prix: 1500, espece: 'panda', texte: 'Tout rond. Quatre pelages, dont un avec sa tige de bambou.'},
+  {id: 'a-dragon', cat: 'animaux', sous: 'Compagnons', nom: 'Petit dragon', prix: 2000, espece: 'dragon', texte: 'Il bat des ailes et crache une flammèche quand il te parle. Quatre couleurs.'},
+  {id: 'p-shiba', cat: 'animaux', sous: 'Pelages spéciaux', nom: 'Chien shiba', prix: 300, espece: 'chien', race: 'shiba', texte: 'Un pelage de plus pour ton chien.'},
+  {id: 'p-galaxie', cat: 'animaux', sous: 'Pelages spéciaux', nom: 'Chat galaxie', prix: 300, espece: 'chat', race: 'galaxie', texte: 'Bleu nuit, parsemé d\'étoiles.'},
+  {id: 'd-plante', cat: 'maison', sous: 'Décorations', nom: 'Grande plante', prix: 0, texte: 'Un monstera dans son gros pot : un coin de jungle chez toi.'},
+  {id: 'd-lave', cat: 'maison', sous: 'Décorations', nom: 'Lampe à lave', prix: 200, texte: 'Elle brille doucement sur ta table basse.'},
+  {id: 'd-tapis', cat: 'maison', sous: 'Décorations', nom: 'Tapis wax', prix: 300, texte: 'Il remplace ton tapis rose.'},
+  {id: 'd-guitare', cat: 'maison', sous: 'Décorations', nom: 'Guitare', prix: 400, texte: 'Posée dans le coin, à côté du bureau.'},
+  {id: 'd-aquarium', cat: 'maison', sous: 'Décorations', nom: 'Aquarium', prix: 500, texte: 'Deux poissons, sur ton étagère.'},
+  {id: 'd-console', cat: 'maison', sous: 'Décorations', nom: 'Console et télé', prix: 700, texte: 'Une télé au mur et une console, pour après les révisions.'},
+];
+const objet = id => CATALOGUE.find(o => o.id === id);
+const prixDit = p => p ? String(p).replace(/\B(?=(\d{3})+$)/g, ' ') + ' F' : 'Gratuit';      // 1500 → « 1 500 F »
+// Ce que le serveur dit de ton compte : es-tu le propriétaire du site (tout t'est offert) ? Qu'as-tu vraiment payé ? La page ne peut pas l'écrire elle-même.
+const DROITS = {tout: false, achats: []};
+const modeTest = () => typeof PAIEMENT !== 'object' || PAIEMENT.mode !== 'reel';                 // tant que le vrai paiement n'est pas branché : faux paiements
+function possede(id){
+  const o = objet(id); if (!o) return false;
+  if (o.base || DROITS.tout) return true;
+  return o.prix === 0 ? boutique.possede.includes(id) : DROITS.achats.includes(id) || (modeTest() && boutique.essais.includes(id));
+}
+const lieuOuvert = lieu => lieu === 'maison' || possede('lieu-' + lieu);                           // la maison est gratuite ; le café et le maquis se débloquent
+// Où chaque objet se porte, et le réglage du personnage qu'il change (lu par sprite())
+const PLACES = {haut: 'style', bas: 'basType', pieds: 'pieds', tete: 'chapeau', yeux: 'yeux', sac: 'sacoche', oreilles: 'oreilles', poignet: 'montre'};
+function habiller(e = ELEVES[0]){
+  Object.entries(PLACES).forEach(([place, champ]) => {
+    const o = objet(boutique.porte[place]);
+    if (o && possede(o.id)) e[champ] = o.val; else if (champ === 'style') e.style = look.style; else delete e[champ];
+  });
+}
+const porte = id => { const o = objet(id); return !!o && (o.place ? boutique.porte[o.place] === id : o.cat === 'maison' ? boutique.deco.includes(id) : o.espece ? animal.espece === o.espece && (!o.race || animal.race === o.race) : false); };
+const decoPosee = id => boutique.deco.includes(id) && possede(id);
+// On vérifie ce qui était enregistré : un objet inconnu, ou rangé au mauvais endroit, est ignoré
+function boutiqueValide(b){
+  const v = {possede: [], essais: [], porte: {}, deco: []}; if (!b || typeof b !== 'object') return v;
+  const ids = l => Array.isArray(l) ? [...new Set(l.filter(x => typeof x === 'string' && objet(x)))].slice(0, 200) : [];
+  v.possede = ids(b.possede).filter(x => objet(x).prix === 0); v.essais = ids(b.essais).filter(x => objet(x).prix > 0); v.deco = ids(b.deco).filter(x => objet(x).cat === 'maison');
+  if (b.porte && typeof b.porte === 'object') Object.keys(PLACES).forEach(p => { const o = objet(b.porte[p]); if (o && o.place === p) v.porte[p] = o.id; });
+  return v;
+}
+// Un animal ou un pelage payant qu'on n'a pas (ou plus) : on revient au rottweiler
+const especeLibre = k => !ESPECES[k].achat || possede(ESPECES[k].achat);
+const raceLibre = (k, r) => especeLibre(k) && (!ESPECES[k].races[r].achat || possede(ESPECES[k].races[r].achat));
+function animalPermis(){ if (!raceLibre(animal.espece, animal.race)){ animal = animalValide({espece: especeLibre(animal.espece) ? animal.espece : 'chien', collier: animal.collier}); return false; } return true; }
 
 /* ============ 17. L'ONGLET « PERSO » : ton personnage et ton animal, à ton goût ============ */
 // Les listes de choix. Une couleur = [code, nom]. Pour une coiffure ou une tenue de plus : une ligne ici, et son dessin dans sprite().
@@ -2756,9 +3230,17 @@ function pastilleLibre(champ, valeur, palette){                        // la cou
   const z = ligneChoix(h, 'Accessoires', 'coches');
   ACCESSOIRES.forEach(([cle, nom]) => { const l = el('label', 'coche'), i = el('input'); i.type = 'checkbox'; i.name = i.id = 'moi-' + cle; l.append(i, el('span', '', nom)); z.append(l); });
 }
-remplirTuiles(ligneChoix($('animal-choix'), 'Animal', 'tuiles larges quatre'), 'animal-espece', Object.entries(ESPECES).map(([k, E]) => [k, E.nom]), 144, 108);
+const ZONE_ESPECES = ligneChoix($('animal-choix'), 'Animal', 'tuiles larges quatre');
 const ZONE_RACES = ligneChoix($('animal-choix'), 'Race', 'tuiles larges'), ZONE_COLLIER = pastilles($('animal-choix'), 'animal-collier', 'Collier', P_COLLIER, true);
-const tuilesRaces = () => remplirTuiles(ZONE_RACES, 'animal-race', Object.entries(especeDe().races).map(([k, r]) => [k, r.nom]), 144, 108);
+// On ne propose que les animaux et les pelages que tu possèdes (les autres sont dans la boutique)
+const especesLibres = () => Object.keys(ESPECES).filter(especeLibre), racesLibres = k => Object.keys(ESPECES[k].races).filter(r => raceLibre(k, r));
+let tuilesFaites = '';
+function tuilesAnimaux(){
+  const cle = especesLibres().join() + '|' + animal.espece + ':' + racesLibres(animal.espece).join(); if (cle === tuilesFaites) return; tuilesFaites = cle;
+  remplirTuiles(ZONE_ESPECES, 'animal-espece', especesLibres().map(k => [k, ESPECES[k].nom]), 144, 108);
+  remplirTuiles(ZONE_RACES, 'animal-race', racesLibres(animal.espece).map(r => [r, especeDe().races[r].nom]), 144, 108);
+}
+const tuilesRaces = tuilesAnimaux;
 
 // --- les petits dessins des tuiles : chaque coiffure et chaque tenue sur TON personnage, chaque animal avec son collier ---
 function vignettes(){
@@ -2774,6 +3256,7 @@ function vignettes(){
 }
 // On recopie l'état (look, animal) dans les boutons, puis on redessine les vignettes
 function majPerso(){
+  animalPermis(); tuilesAnimaux();
   Object.entries(COULEURS_MOI).forEach(([k, [, palette]]) => { cocher('moi-' + k, look[k]); pastilleLibre('moi-' + k, look[k], palette); });
   cocher('moi-coiffe', look.coiffe);
   cocher('moi-tenue', TENUES.findIndex(x => x[1] === look.style && (x[1] !== 0 || !!x[2] === !!look.logo)));
@@ -2794,7 +3277,7 @@ function textesAnimal(){
 }
 // Après chaque changement : on enregistre dans ton compte, on applique dans la ville, et l'aperçu réagit
 function garderLook(){
-  enregistrer('perso'); Object.assign(ELEVES[0], look); ESSAI.salut = performance.now() / 1000 + 1.1; majPerso();
+  enregistrer('perso'); Object.assign(ELEVES[0], look); habiller(); ESSAI.salut = performance.now() / 1000 + 1.1; majPerso();
   if (choisi === ELEVES[0]) majFiche(true);
 }
 function garderAnimal(){
@@ -2802,8 +3285,8 @@ function garderAnimal(){
   signatureJour = ''; afficherRappels(); majCarnet(true); panneau();
 }
 function changerEspece(espece, race){
-  const autre = espece !== animal.espece; animal = animalValide({espece, race: race || DERNIERE_RACE[espece], collier: animal.collier});
-  if (autre) tuilesRaces();
+  if (!especeLibre(espece)) return;
+  animal = animalValide({espece, race: race || DERNIERE_RACE[espece], collier: animal.collier}); animalPermis(); tuilesAnimaux();
 }
 function lookAuHasard(){
   const t = auHasard(TENUES), u = Math.random(), haut = auHasard(P_VIF)[0]; let acc; do acc = auHasard(P_VIF)[0]; while (acc === haut);
@@ -2842,12 +3325,12 @@ document.querySelectorAll('#o-perso .segments button').forEach(b => b.addEventLi
 $('essai-tourner').addEventListener('click', () => { ESSAI.dos = !ESSAI.dos; $('essai-tourner').textContent = ESSAI.dos ? 'Voir de face' : 'Voir de dos'; ESSAI.sale = true; });
 $('essai-hasard').addEventListener('click', () => {                      // au hasard : le personnage ou l'animal, selon le volet ouvert
   if (ESSAI.volet === 'moi'){ Object.assign(look, lookAuHasard()); garderLook(); return; }
-  const espece = auHasard(Object.keys(ESPECES)); changerEspece(espece, auHasard(Object.keys(ESPECES[espece].races))); animal.collier = auHasard(P_COLLIER)[0]; garderAnimal();
+  const espece = auHasard(especesLibres()); changerEspece(espece, auHasard(racesLibres(espece))); animal.collier = auHasard(P_COLLIER)[0]; garderAnimal();
 });
 $('moi-defaut').addEventListener('click', () => { look = Object.assign({}, MOI_DEFAUT, {nom: look.nom}); garderLook(); });
 $('animal-defaut').addEventListener('click', () => { changerEspece('chien', 'rottweiler'); animal.collier = '#e4572e'; garderAnimal(); });
-$('fiche-perso').addEventListener('click', () => { onglet('perso'); volet('moi'); $('o-perso').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); });
-$('vers-animal').addEventListener('click', () => { onglet('perso'); volet('animal'); });
+$('fiche-perso').addEventListener('click', () => { ouvrirMenu('perso'); volet('moi'); });
+$('vers-animal').addEventListener('click', () => { onglet('perso'); volet('animal'); $('menu-corps').scrollTop = 0; });
 
 // --- l'aperçu animé : ton personnage et ton animal côte à côte, à la même échelle que dans la ville ---
 function dessinerEssai(t){
@@ -2868,7 +3351,7 @@ function dessinerEssai(t){
 
 $('moi-nom').value = look.nom; $('animal-nom').value = animalNom;
 DERNIERE_RACE[animal.espece] = animal.race;
-tuilesRaces(); majPerso(); textesAnimal();
+majPerso(); textesAnimal();
 
 /* ============ 17 bis. LE COMPTE : qui est connecté, et où ses données sont enregistrées ============ */
 // Trois façons d'enregistrer, choisies toutes seules :
@@ -2885,7 +3368,7 @@ const DOCS = {                                                         // les qu
   ecole:    () => ({matieres: MATIERES, creneaux: CRENEAUX, ecole: ecoleNom, assistant: assistantVu}),
   afaire:   () => ({rappels, taches}),
   presence: () => ({presences, pomo}),
-  perso:    () => ({look, animal, animalNom, noms}),
+  perso:    () => ({look, animal, animalNom, noms, boutique}),
 };
 const FICHES = Object.keys(DOCS), MAJ = {}, SALE = {}, ENVOI = {};      // pour chaque fiche : la date de sa dernière version, « à envoyer », « envoi en cours »
 let minuterie = 0, reessai = 0, cxMode = 'attente';                     // cxMode : 'attente' (on cherche Claude), 'ligne', 'firebase' ou 'local'
@@ -2968,15 +3451,15 @@ function appliquer(doc, d){
       if (j && typeof j === 'object') pomo.jours[k] = {n: entre(j.n, 0, 999, 0), s: Number.isFinite(j.s) && j.s > 0 ? Math.floor(j.s) : 0, m: secondes(j.m)}; });
   } else if (doc === 'perso'){
     const src = d.noms && typeof d.noms === 'object' ? d.noms : {}; noms = {};
-    look = Object.assign({}, MOI_DEFAUT, lookValide(d.look)); animal = animalValide(d.animal); animalNom = texteSur(d.animalNom, 14);
+    look = Object.assign({}, MOI_DEFAUT, lookValide(d.look)); animal = animalValide(d.animal); animalNom = texteSur(d.animalNom, 14); boutique = boutiqueValide(d.boutique);
     Object.keys(src).slice(0, 80).forEach(k => { const v = texteSur(src[k], 20); if (v && /^e\d+$/.test(k)) noms[k] = v; });
   }
 }
 // Après une connexion (ou un changement venu d'un autre appareil) : tout ce qui dépend des données est recalculé et réaffiché
 function toutAfficher(){
-  Object.assign(ELEVES[0], look); DERNIERE_RACE[animal.espece] = animal.race;
+  Object.assign(ELEVES[0], look); habiller(); animalPermis(); DERNIERE_RACE[animal.espece] = animal.race;
   $('moi-nom').value = look.nom; $('animal-nom').value = animalNom; $('ecole-nom').value = ecoleNom;
-  tuilesRaces(); majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo();
+  majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo(); majBoutique();
   if (choisi === ELEVES[0]) majFiche(true);
 }
 // La toute première fois, sur un appareil où l'ancienne version de la page a servi : on reprend ce qu'elle avait gardé (rappels, présence, prénoms, personnage, animal)
@@ -3002,6 +3485,7 @@ async function ouvrirCompte(id, mode, nom, nouveau, source){
     if (nom && !look.nom) look.nom = nom;
   }
   ecrire('campus-session', {mode, id});
+  await chargerDroits();                                                // ce que le serveur dit de ce compte : propriétaire du site ? achats payés ?
   entrer();
   if (nouveau) FICHES.forEach(enregistrer);                             // un compte tout neuf : on crée ses quatre fiches
   if (nuage() && FICHES.some(d => SALE[d])){ clearTimeout(minuterie); minuterie = setTimeout(envoyer, 300); }
@@ -3009,11 +3493,13 @@ async function ouvrirCompte(id, mode, nom, nouveau, source){
   if (mode === 'firebase') derniereSynchro = COMPTE.etat === 'ok' ? Date.now() : 0;
 }
 function entrer(){
-  $('connexion').hidden = true; $('appli').hidden = false;
+  $('connexion').hidden = true; $('appli').hidden = false; document.documentElement.classList.add('ville');   // la ville prend tout l'écran : la page ne défile plus
   sim = null; pret = false; choisi = null; $('fiche').hidden = true; fermerCarnet(); $('form-cours').hidden = true; $('form-matiere').hidden = true;
   taille(); if (VUE.cssW < 640){ CAM.suivi = ELEVES[0]; CAM.cz = CAM.z = Math.min(zMax(), 1.15 / VUE.fit); } else vueEnsemble();   // sur téléphone, on commence près de toi
   cadrer(0); majCam(); toutAfficher(); pomoOuvrir(); chargerMeteo();
   $('sim-jour').value = maintenant().jour; window.scrollTo(0, 0);
+  MENU.pousse = false; premierToucher = false;
+  if (!$('assistant').hidden) ouvrirMenu('jour'); else if (location.hash === '#menu') majMenu(true);   // un nouveau compte : le menu s'ouvre sur l'assistant
 }
 // Dans Claude : les changements faits sur un autre appareil arrivent tout seuls (la base prévient la page)
 function ecouter(){
@@ -3046,7 +3532,8 @@ async function synchroniser(){
       appliquer(d, copie(e)); MAJ[d] = e.maj; garder(d, true); neuf = true;
     });
     COMPTE.etat = 'ok'; derniereSynchro = Date.now();
-    if (neuf) toutAfficher();
+    const avant = JSON.stringify(DROITS); await chargerDroits(); if (COMPTE.id !== id) return;
+    if (neuf || JSON.stringify(DROITS) !== avant) toutAfficher();
     if (FICHES.some(d => SALE[d])){ clearTimeout(minuterie); minuterie = setTimeout(envoyer, 300); }
   } catch (e){
     if (COMPTE.id === id){ if (refuse(e)) COMPTE.etat = 'refus'; else { COMPTE.etat = 'horsligne'; reessai = setTimeout(synchroniser, 30000); } }   // pas de réseau : nouvel essai dans 30 secondes
@@ -3065,10 +3552,12 @@ async function deconnexion(){
   NUAGE.abonnements.forEach(stop => { try { stop(); } catch (e) {} }); NUAGE.abonnements = [];
   if (mode === 'firebase'){
     if (FB.ok){ try { await FB.a.signOut(FB.auth); } catch (e) {} } else ecrire('campus-sortie', true);   // Firebase n'est pas joignable : la déconnexion se terminera au prochain chargement
-    if (!FICHES.some(d => SALE[d] || ENVOI[d])){ FICHES.forEach(d => oublier('campus:' + id + ':' + d)); oublier('campus-pomo:' + id); }   // tout est en ligne : on ne laisse pas de copie ici (le téléphone n'est peut-être pas le tien)
+    if (!FICHES.some(d => SALE[d] || ENVOI[d])){ FICHES.forEach(d => oublier('campus:' + id + ':' + d)); oublier('campus-pomo:' + id); oublier('campus-droits:' + id); }   // tout est en ligne : on ne laisse pas de copie ici (le téléphone n'est peut-être pas le tien)
   }
-  COMPTE.id = null; COMPTE.mode = null; COMPTE.nom = ''; oublier('campus-session');
+  COMPTE.id = null; COMPTE.mode = null; COMPTE.nom = ''; oublier('campus-session'); DROITS.tout = false; DROITS.achats = [];
+  fermerPaiement(); fermerVerrou(); BOUTIQUE.objet = null;
   FICHES.forEach(d => appliquer(d, null)); toutAfficher();              // on vide la page : le prochain compte ne doit rien voir de celui-ci
+  fermerMenu(); $('invite-plein').hidden = true; document.documentElement.classList.remove('ville');
   $('deconnexion').disabled = false; $('appli').hidden = true; $('connexion').hidden = false;
   ['cx-prenom', 'cx-email', 'cx-mdp', 'cx-email2', 'cx-mdp2'].forEach(i => { $(i).value = ''; });
   cxVolet('entrer'); afficherConnexion(); window.scrollTo(0, 0);
@@ -3086,6 +3575,43 @@ function majCompte(){                                                    // la l
     : COMPTE.mode === 'firebase' ? 'Connecté avec ton email' + (email ? ' (' + email + ')' : '') + '. Tes données sont enregistrées en ligne et te suivent sur tes autres appareils. Ta position, elle, reste sur cet appareil.'
     : 'Relié à ton compte Claude. Tes données sont dans ton espace privé et te suivent sur tes autres appareils. Ta position, elle, reste sur cet appareil.';
 }
+
+// --- ce que le serveur dit de ton compte : l'accès du propriétaire du site, et les achats vraiment payés ---
+// Ce n'est pas cette page qui décide : ce sont les règles de sécurité de la base, sur le serveur. La fiche « acces/proprietaire » ne se laisse lire
+// que par le compte dont l'email, vérifié, est celui du propriétaire ; la fiche des achats ne peut être écrite que par le serveur de paiement.
+// Quelqu'un qui modifierait le code de sa page ne peut donc ni se déclarer propriétaire, ni s'inscrire un achat.
+async function chargerDroits(){
+  const cle = 'campus-droits:' + COMPTE.id, garde = lire(cle, null);
+  DROITS.tout = !!(garde && garde.tout === true); DROITS.achats = garde && Array.isArray(garde.achats) ? garde.achats.filter(x => typeof x === 'string').slice(0, 300) : [];
+  if (COMPTE.mode !== 'firebase' || !FB.ok || !FB.auth.currentUser) return;
+  const lecture = chemin => FB.f.getDoc(FB.f.doc(FB.fs, chemin)).then(s => ({ok: true, d: s.exists() ? s.data() : null}), e => { if (refuse(e)) return {ok: false, d: null}; throw e; });
+  try {
+    const [p, a] = await Promise.race([Promise.all([lecture('acces/proprietaire'), lecture('campus/' + COMPTE.id + '/achats/liste')]), tropLong(4000)]);
+    DROITS.tout = p.ok; DROITS.achats = a.d && Array.isArray(a.d.objets) ? a.d.objets.filter(x => typeof x === 'string').slice(0, 300) : [];
+    ecrire(cle, {tout: DROITS.tout, achats: DROITS.achats});            // une copie pour les jours sans réseau
+  } catch (e) {}                                                         // pas de réseau : on garde ce qu'on savait la dernière fois
+}
+// --- vérifier ton email : Firebase t'envoie un lien ; une fois cliqué, ton compte est marqué « email vérifié » (c'est ce que les règles de la base regardent) ---
+function majEmail(){
+  const u = COMPTE.mode === 'firebase' && FB.ok ? FB.auth.currentUser : null; $('email-bloc').hidden = !u; if (!u) return;
+  $('email-verifier').hidden = $('email-fait').hidden = !!u.emailVerified;
+  $('email-note').textContent = u.emailVerified ? 'Ton email est vérifié.' + (DROITS.tout ? ' Ce compte est celui du propriétaire du site : toute la boutique lui est offerte.' : '')
+    : "Ton email n'est pas encore vérifié. Demande le lien, ouvre-le depuis ta boîte mail, puis reviens ici.";
+}
+$('email-verifier').addEventListener('click', async () => {
+  const u = FB.ok && FB.auth.currentUser; if (!u) return; $('email-verifier').disabled = true;
+  try { await FB.a.sendEmailVerification(u); $('email-note').textContent = 'Lien envoyé à ' + u.email + '. Regarde aussi dans les courriers indésirables.'; } catch (e){ $('email-note').textContent = messageFirebase(e); }
+  $('email-verifier').disabled = false;
+});
+$('email-fait').addEventListener('click', async () => {
+  const u = FB.ok && FB.auth.currentUser; if (!u) return; $('email-fait').disabled = true;
+  try {
+    await u.reload();
+    if (FB.auth.currentUser.emailVerified){ await FB.auth.currentUser.getIdToken(true); await chargerDroits(); toutAfficher(); }   // un nouveau « laissez-passer », qui dit que l'email est vérifié
+    else $('email-note').textContent = "Pas encore : le lien n'a pas été ouvert. Regarde dans ta boîte mail.";
+  } catch (e){ $('email-note').textContent = messageFirebase(e); }
+  $('email-fait').disabled = false;
+});
 
 /* ============ 17 ter. FIREBASE : la connexion par email et mot de passe, sur ton propre site ============ */
 // Firebase est un service de Google. Sa bibliothèque n'est pas recopiée dans cette page : elle est téléchargée depuis le site de Google au moment où on en a besoin.
@@ -3323,7 +3849,7 @@ async function demarrer(){
 // C'est pour cela qu'il reste juste même si tu changes d'onglet, ou si le navigateur ralentit la page.
 const PHASES = {travail: 'Travail', pause: 'Pause', longue: 'Grande pause'};
 const minuteurNeuf = () => ({phase: 'travail', etat: 'arret', fin: 0, reste: 0, serie: 0, lieu: 'maison', m: null, vu: 0, attente: 0});
-// phase : travail, pause ou longue · etat : arret, marche ou pause · serie : sessions finies dans le cycle de 4 · lieu : maison ou cafe · m : la matière liée
+// phase : travail, pause ou longue · etat : arret, marche ou pause · serie : sessions finies dans le cycle de 4 · lieu : maison, cafe ou garba · m : la matière liée
 // vu : jusqu'à quand le temps de travail a déjà été compté · attente : temps de travail (en millisecondes) pas encore rangé dans ton compte
 let minuteur = minuteurNeuf(), paroleFin = 0, tics = 0, vifAvant = '';
 const dureeDe = phase => pomo.reglages[phase] * 60000;
@@ -3332,8 +3858,9 @@ const chrono = ms => { const s = Math.ceil(ms / 1000); return String(Math.floor(
 const garderMinuteur = () => { if (COMPTE.id) ecrire('campus-pomo:' + COMPTE.id, minuteur); };
 const jourPomo = creer => { const k = cleDate(new Date()); return pomo.jours[k] || (creer ? (pomo.jours[k] = {n: 0, s: 0, m: {}}) : {n: 0, s: 0, m: {}}); };
 const tempsDit = s => s < 60 ? 'moins d\'une minute' : duree(Math.floor(s / 60));
-// Où est ton personnage pendant une séance : à son bureau ou à sa table du café pour travailler ; sur le canapé ou au comptoir pendant la pause
-const lieuDeSeance = () => minuteur.etat === 'arret' ? null : minuteur.lieu === 'cafe' ? (minuteur.phase === 'travail' ? CAFE_MOI : CAFE_COMMANDE) : (minuteur.phase === 'travail' ? CHEZ.bureau : CHEZ.canape);
+// Où est ton personnage pendant une séance : à son bureau, à sa table du café ou à celle du maquis pour travailler ; sur le canapé, au comptoir ou devant l'étal pendant la pause
+const PLACES_SEANCE = {maison: [CHEZ.bureau, CHEZ.canape], cafe: [CAFE_MOI, CAFE_COMMANDE], garba: [GARBA_MOI, GARBA_COMMANDE]};
+const lieuDeSeance = () => minuteur.etat === 'arret' || !lieuOuvert(minuteur.lieu) ? null : (PLACES_SEANCE[minuteur.lieu] || PLACES_SEANCE.maison)[minuteur.phase === 'travail' ? 0 : 1];
 
 // --- le temps de travail : compté au fil de l'eau, puis rangé dans ton compte (le total du jour, et celui de la matière liée) ---
 function pomoCompter(){
@@ -3398,9 +3925,10 @@ function sonnerie(notes){
   } catch (e) {}
 }
 function parler(texte){                                                 // la bulle de ton animal, en bas de l'écran
-  const p = $('parole'), bas = document.querySelector('.cine-bas');
-  // pendant une séance, sur un écran en hauteur, la bulle se pose juste au-dessus des boutons (sinon elle les cacherait)
-  p.style.bottom = CINE.etat === 'ouvert' && matchMedia('(orientation:portrait)').matches ? Math.round(innerHeight - bas.getBoundingClientRect().top + 8) + 'px' : '';
+  // La bulle se pose juste au-dessus de ce qu'elle cacherait : les boutons de la séance (écran en hauteur), ou la carte du cours en bas de la ville
+  const p = $('parole'), seance = CINE.etat === 'ouvert';
+  const sous = seance ? (matchMedia('(orientation:portrait)').matches ? document.querySelector('.cine-bas') : null) : MENU.ouvert && etroit() ? null : document.querySelector('#scene .bg');
+  p.style.bottom = sous ? Math.round(innerHeight - sous.getBoundingClientRect().top + 8) + 'px' : '';
   $('parole-texte').textContent = texte; p.hidden = false; paroleFin = Date.now() + 9000;
   vignetteAnimal($('parole-portrait'), animal, {aboie: true, content: true}, 8);
 }
@@ -3454,8 +3982,9 @@ function majPomoVif(){                                                  // ce qu
 }
 
 // --- les branchements : le bloc de l'onglet « Jour », la pastille posée sur la ville, les Réglages, les boutons de la cinématique ---
-$('pomo-maison').addEventListener('click', () => cineOuvrir('maison'));
-$('pomo-cafe').addEventListener('click', () => cineOuvrir('cafe'));
+$('pomo-maison').addEventListener('click', () => { voirVille(); cineOuvrir('maison'); });
+$('pomo-cafe').addEventListener('click', () => { voirVille(); cineOuvrir('cafe'); });
+$('pomo-garba').addEventListener('click', () => { voirVille(); cineOuvrir('garba'); });
 $('hud-pomo').addEventListener('click', () => cineOuvrir(minuteur.lieu));
 [['pomo-travail', 'travail', 180], ['pomo-pause', 'pause', 60], ['pomo-longue', 'longue', 90]].forEach(([id, cle, max]) => $(id).addEventListener('change', e => {
   const v = Math.round(+e.target.value); if (Number.isFinite(v) && e.target.value !== '') pomo.reglages[cle] = Math.min(max, Math.max(1, v));
@@ -3476,7 +4005,7 @@ function pomoOuvrir(){
     ['fin', 'reste', 'vu'].forEach(k => { if (Number.isFinite(v[k]) && v[k] >= 0) m[k] = v[k]; });
     if (Number.isFinite(v.attente) && v.attente > -1000) m.attente = Math.min(v.attente, 4 * 3600e3);
     if (Number.isInteger(v.serie) && v.serie >= 0 && v.serie <= 4) m.serie = v.serie;
-    if (v.lieu === 'cafe') m.lieu = 'cafe';
+    if (v.lieu === 'cafe' || v.lieu === 'garba') m.lieu = v.lieu;
     if (typeof v.m === 'string' && matiere(v.m)) m.m = v.m;
   }
   if (m.etat === 'marche' && !(m.fin > 0)) m.etat = 'arret';
@@ -3490,13 +4019,13 @@ function pomoFermer(){
   pomoRanger(); garderMinuteur(); minuteur = minuteurNeuf(); paroleFin = 0; $('parole').hidden = true; vifAvant = ''; majPomoVif();
 }
 
-/* ============ 20. LA CINÉMATIQUE DE TRAVAIL : ta chambre, ou le café, en plein écran ============ */
+/* ============ 20. LA CINÉMATIQUE DE TRAVAIL : ta chambre, le café ou le maquis garba, en plein écran ============ */
 // Une pièce dessinée de face, en pixels, avec les mêmes outils que la ville : des rectangles, et le même personnage.
 // Tout s'y mesure en « unités » (ton personnage en fait 24 de haut). Le point (0, 0) est au milieu de la pièce, là où le mur touche le sol.
 // etat : ferme → zoom (la caméra de la ville s'approche) → entree (fondu en mosaïque) → ouvert → sortie (fondu en mosaïque) → ferme
 const CINE = {etat: 'ferme', lieu: 'maison', t0: 0, flash: 0, cam: null, avecVille: false, plein: false, veille: null, frappe: 0, dernier: 0, retour: null, w: 1, h: 1, R: 1, vu: null};
 // « Réduire les animations » : la pièce devient une image fixe. On choisit un instant où personne n'a les yeux fermés.
-const T_FIGE = [0, .5, 1, 1.5, 2, 2.5, 3].find(t => [ELEVES[0], BARISTA, SERVEUSE].every(e => (t * .7 + e.ph) % 3.7 >= .13)) || 0;
+const T_FIGE = [0, .5, 1, 1.5, 2, 2.5, 3].find(t => [ELEVES[0], BARISTA, SERVEUSE, VENDEUSE].every(e => (t * .7 + e.ph) % 3.7 >= .13)) || 0;
 const cineCv = $('cine-vue'), cine2d = cineCv.getContext('2d');
 const TAMPON = calque(), MOSA = calque(), VOILE = calque();             // trois feuilles de brouillon : la pièce entière, la mosaïque du fondu, le voile de la nuit
 const B = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };   // un rectangle plein, avec le « crayon » courant
@@ -3556,7 +4085,7 @@ function pieceMaison(S){
   const {t, X0, X1, Y0, Y1, nuit, J} = S, W = X1 - X0, v = calme ? 0 : Math.round(Math.sin(t * 1.3)), lampe = nuit > .25;   // v : le balancement des feuilles (−1, 0 ou 1 unité)
   B(X0, Y0, W, -Y0, '#f6e2b8'); B(X0, -20, W, 20, '#efd29c'); B(X0, -21, W, 1, '#d9a45e'); B(X0, -2, W, 2, '#b9834f');              // le mur, sa frise, la plinthe
   B(X0, 0, W, Y1, '#d9a86a'); for (let y = 6; y < Y1; y += 6) B(X0, y, W, 1, '#c99558');                                           // le plancher
-  B(-32, 5, 64, 15, '#e86a92'); B(-29, 7, 58, 11, '#f6a9c2');                                                                     // le tapis
+  if (decoVue('d-tapis')) DECOS['d-tapis'].piece(S); else { B(-32, 5, 64, 15, '#e86a92'); B(-29, 7, 58, 11, '#f6a9c2'); }           // le tapis (rose, ou le tapis wax de la boutique)
   for (let x = Math.floor(X0 / 3) * 3; x < X1; x += 3){ const y = -76 + Math.round(Math.sin(x * .07) * 2.4); B(x, y, 3, 1, '#7a5a3c');     // la guirlande, tout en haut
     if (((x % 9) + 9) % 9 === 0){ const k = ((Math.round(x / 9) % 5) + 5) % 5, on = lampe && (calme || Math.sin(t * 2 + x) > -.5); B(x, y + 1, 2, 3, on ? ['#ff8a6a', '#ffd95a', '#8fe08a', '#8fb4ff', '#ff9cc0'][k] : ['#e4572e', '#ffb627', '#62c460', '#5b8ff5', '#e86a92'][k]); if (on) S.lum.push({x: x + 1, y: y + 2, r: 6, a: .55, chaud: true}); } }
   // la fenêtre : le quartier, un palmier, les lumières des voisins le soir
@@ -3576,12 +4105,13 @@ function pieceMaison(S){
   }
   // l'affiche (ton île), le tableau en liège, la grande plante
   B(-54, -58, 20, 16, '#9a6b45'); B(-53, -57, 18, 14, '#a98be8'); B(-53, -47, 18, 4, '#4cc9d6'); B(-50, -49, 12, 3, '#78d06c'); B(-48, -46, 8, 2, '#8f5f40'); B(-39, -55, 2, 2, '#ffd95a');
-  B(-53, -38, 17, 12, '#c98d5a'); B(-52, -37, 5, 4, '#ffd95a'); B(-46, -36, 5, 5, '#ffffff'); B(-51, -32, 6, 4, '#f6a9c2'); B(-43, -30, 5, 3, '#9fd0ff'); B(-50, -37, 1, 1, '#e4572e'); B(-44, -36, 1, 1, '#e4572e');
+  if (!decoVue('d-console')){ B(-53, -38, 17, 12, '#c98d5a'); B(-52, -37, 5, 4, '#ffd95a'); B(-46, -36, 5, 5, '#ffffff'); B(-51, -32, 6, 4, '#f6a9c2'); B(-43, -30, 5, 3, '#9fd0ff'); B(-50, -37, 1, 1, '#e4572e'); B(-44, -36, 1, 1, '#e4572e'); }
+  decorer(S, 'mur');
   B(-49, -8, 9, 9, '#d9623a'); B(-50, -9, 11, 2, '#e4572e'); B(-47 + v, -21, 3, 12, '#2f9e5f'); B(-45, -25, 3, 16, '#3fb873'); B(-42 - v, -19, 3, 10, '#2f9e5f'); B(-51 + v, -16, 3, 7, '#58c27a'); B(-39 - v, -15, 3, 6, '#58c27a');
   // l'étagère : des livres, et une petite plante dessus
   B(34, -42, 18, 42, '#9a6b45'); B(35, -41, 16, 40, '#7a5236'); [-31, -20, -9].forEach(y => B(35, y, 16, 1, '#9a6b45'));
   [-32, -21, -10, 0].forEach((y, r) => { for (let i = 0; i < 6; i++){ const hh = 6 + Math.floor(H1(i, r + 3) * 4); if (H1(i + 9, r) < .85) B(36 + i * 2.5, y - hh, 2, hh, ['#d94f4f', '#3d8bfd', '#f2b632', '#62c460', '#8e6cf2', '#f4f1ea'][(i + r * 2) % 6]); } });
-  B(40, -46, 6, 4, '#f4f1ea'); B(41 + v, -51, 2, 5, '#3fb873'); B(43, -53, 2, 7, '#2f9e5f'); B(45 - v, -50, 2, 4, '#58c27a');
+  if (!decoVue('d-aquarium')){ B(40, -46, 6, 4, '#f4f1ea'); B(41 + v, -51, 2, 5, '#3fb873'); B(43, -53, 2, 7, '#2f9e5f'); B(45 - v, -50, 2, 4, '#58c27a'); }
   if (X1 > 62){ B(60, -10, 44, 10, '#f4f1ea'); B(60, -10, 28, 10, '#7c8ee8'); B(60, -10, 28, 2, '#9aa9f0'); B(92, -13, 10, 4, '#ffffff'); B(104, -24, 3, 24, '#9a6b45'); B(60, 0, 3, 2, '#9a6b45'); B(101, 0, 3, 2, '#9a6b45'); }   // le lit (sur un grand écran)
   if (X0 < -62){ B(-106, -18, 44, 12, '#d94f2c'); B(-106, -7, 44, 7, '#f07a52'); B(-64, -13, 5, 13, '#d94f2c'); B(-102, -12, 9, 6, '#ffb627'); B(-104, 0, 3, 2, '#7a3a22'); B(-66, 0, 3, 2, '#7a3a22'); }                    // le canapé
   // le bureau contre le mur, l'ordinateur, le clavier, la lampe, la tasse
@@ -3593,6 +4123,7 @@ function pieceMaison(S){
   if (lampe){ poly([[-25, -20], [-21, -20], [-13, -10], [-33, -10]], 'rgba(255,230,150,.2)'); S.lum.push({x: -23, y: -13, r: 30, a: 1, chaud: true}); }
   S.lum.push({x: 0, y: -23, r: J.ecran === 'code' ? 36 : 22, a: J.ecran === 'code' ? 1 : .6});
   if (!J.tasse){ B(20, -13, 4, 3, '#ffffff'); B(24, -12, 1, 2, '#ffffff'); B(20, -13, 4, 1, '#6b4a34'); vapeur(S, 22, -14); }
+  decorer(S, 'sol');
   // le coin de ton animal
   { const A = animal.espece === 'perroquet', parle = Date.now() < paroleFin, dodo = (S.heure < 6 || S.heure >= 22.5) && !parle;
     if (A){ B(44, -4, 2, 14, '#9a6b45'); B(39, 9, 12, 2, '#7a5a3c'); B(39, -5, 12, 1, '#b9834f'); } else { B(35, 10, 20, 4, '#8e6cf2'); B(36, 9, 18, 1, '#a58af5'); }
@@ -3602,6 +4133,20 @@ function pieceMaison(S){
   else { chaise(0, 2); B(J.x - 5, J.y, 11, 1, 'rgba(24,16,56,.2)'); sprite(ELEVES[0], J.x, J.y, 1, t, {pose: 'debout', geste: J.geste, marche: J.marche}); if (J.tasse) vapeur(S, J.x + 2, J.y - (J.geste === 'boit' ? 16 : 11.5)); }
   if (nuit < .3 && S.temps === 'soleil' && !calme) for (let i = 0; i < 9; i++) B(-20 + H1(i, 7) * 44 + Math.sin(t * .4 + i) * 3, -22 + ((H1(i, 8) * 40 + t * 1.5) % 40), 1, 1, 'rgba(255,255,255,.55)');   // la poussière qui danse dans le rayon de soleil
 }
+// Les décorations de la boutique, dans ta chambre vue de face. zone : [x, y, largeur, hauteur], pour cadrer sa vignette · couche : quand la dessiner
+const DECOS = {
+  'd-tapis':    {zone: [-34, 3, 68, 19], couche: 'tapis', piece(S){ B(-32, 5, 64, 15, '#1f8a5b'); B(-30, 6, 60, 13, '#f4a31c'); for (let i = 0; i < 10; i++){ B(-28 + i * 6, 8, 3, 3, i % 2 ? '#e2382f' : '#12305b'); B(-25 + i * 6, 14, 3, 3, i % 2 ? '#12305b' : '#e2382f'); } }},
+  'd-console':  {zone: [-59, -47, 31, 49], couche: 'mur', piece(S){ const t = calme ? 0 : S.t; B(-53, -45, 23, 15, '#22222e'); B(-52, -44, 21, 13, '#3d8bfd'); B(-52, -37, 21, 6, '#62c460'); B(-46 + Math.round(Math.sin(t * 2) * 4), -40, 3, 3, '#ffd95a'); B(-42, -30, 1, 2, '#22222e');
+    B(-57, -4, 8, 4, '#f4f1ea'); B(-56, -3, 2, 1, '#3d8bfd'); B(-52, -2, 2, 1, '#22222e'); S.lum.push({x: -42, y: -38, r: 16, a: .7}); }},
+  'd-guitare':  {zone: [25, -30, 13, 31], couche: 'sol', piece(S){ B(28, -10, 7, 10, '#c98d5a'); B(29, -12, 5, 2, '#c98d5a'); B(30, -7, 3, 3, '#3a2a22'); B(30, -25, 3, 13, '#6b4a34'); B(31, -25, 1, 15, '#e9dcbc'); B(29, -28, 5, 3, '#3a2a22'); }},
+  'd-aquarium': {zone: [33, -55, 20, 15], couche: 'sol', piece(S){ const t = calme ? 1 : S.t; B(36, -52, 14, 10, '#8fd3ef'); B(36, -52, 14, 2, '#c9ecfa'); B(36, -44, 14, 2, '#e8c877'); B(35, -53, 16, 1, '#22222e'); B(35, -42, 16, 1, '#22222e');
+    B(38 + Math.round((Math.sin(t * .8) + 1) * 4), -49, 3, 2, '#ff8a3d'); B(46 - Math.round((Math.sin(t * .6 + 2) + 1) * 3.5), -47, 2, 2, '#e86a92'); B(40, -46 - Math.floor(t * 3 % 5), 1, 1, '#ffffff'); B(48, -45, 1, 3, '#3f9b4a'); }},
+  'd-lave':     {zone: [-24, -22, 12, 13], couche: 'sol', piece(S){ const u = calme ? .4 : (S.t * .25) % 1; B(-20, -11, 4, 1, '#8a8f9c'); B(-19, -18, 2, 7, '#8e6cf2'); B(-20, -19, 4, 1, '#8a8f9c'); B(-19, -13 - Math.round(u * 4), 1, 2, '#ff9cc0'); B(-18, -17 + Math.round(u * 4), 1, 1, '#ffd95a'); if (S.nuit > .25) S.lum.push({x: -18, y: -15, r: 10, a: .8, chaud: true}); }},
+  'd-plante':   {zone: [-56, -16, 18, 37], couche: 'sol', piece(S){ const v = calme ? 0 : Math.round(Math.sin(S.t * 1.1)); B(-52, 11, 9, 8, '#d9623a'); B(-53, 10, 11, 2, '#e4572e'); B(-49, -5, 2, 15, '#2f9e5f'); B(-54 + v, -11, 7, 6, '#3fb873'); B(-47 - v, -15, 6, 7, '#2f9e5f'); B(-52, -1, 4, 4, '#58c27a'); B(-46 + v, -3, 5, 5, '#3fb873'); B(-55 - v, 3, 5, 4, '#2f9e5f'); }},
+};
+// Une décoration se voit si tu l'as posée — ou si la boutique est en train de la présenter (« demo »)
+const decoVue = id => CINE.demo && CINE.demo.deco ? CINE.demo.deco === id || (!CINE.demo.seul && decoPosee(id)) : decoPosee(id);
+function decorer(S, couche){ Object.keys(DECOS).forEach(id => { if (DECOS[id].couche === couche && decoVue(id)) DECOS[id].piece(S); }); }
 function chaise(x, y){                                                  // vue de dos : le dossier bas, l'assise, le pied, les roulettes
   B(x - 6, y - 7, 12, 2, '#5b6bc0'); B(x - 6, y - 7, 12, 1, '#7c8ee8'); B(x - 6, y - 5, 12, 2, '#4a5aa8'); B(x - 1, y - 3, 2, 3, '#8a8f9c'); B(x - 6, y, 12, 1, '#8a8f9c'); [-7, -1, 5].forEach(d => B(x + d, y + 1, 2, 1, '#22222e'));
 }
@@ -3682,6 +4227,98 @@ function pieceCafe(S){
   else if (J.tasse) vapeur(S, J.x + 2, J.y - (J.geste === 'boit' ? 15 : 10));
 }
 
+// --- le maquis garba : dehors, sous la bâche, au bord de la rue ---
+const LETTRES = {G: '111100101101111', A: '010101111101101', R: '110101110101101', B: '110101110101110'};   // des lettres de 3 pixels sur 5, pour l'enseigne
+function motPixel(mot, x, y, c){ [...mot].forEach((l, n) => { const b = LETTRES[l] || ''; for (let i = 0; i < 15; i++) if (b[i] === '1') B(x + n * 4 + i % 3, y + Math.floor(i / 3), 1, 1, c); }); }
+function jeuGarba(t){
+  const m = minuteur, tb = (dureeDe(m.phase) - resteMs()) / 1000, vif = m.etat === 'marche' && !calme, A = {x: 14, y: 16}, C = {x: -25, y: 7};   // A : ta table · C : devant l'étal
+  if (m.phase === 'travail') return {x: A.x, y: A.y, pose: 'assis', geste: vif && rythme(t) ? 'tape' : '', ecran: m.etat === 'marche' ? 'code' : 'attente'};
+  if (calme) return {x: A.x, y: A.y, pose: 'assis', geste: 'mange', ecran: 'veille', plat: true};
+  if (tb < 1) return {x: A.x, y: A.y, pose: 'debout', geste: '', ecran: 'veille'};
+  if (tb < 3.5) return {x: A.x, y: A.y, pose: 'debout', geste: vif ? 'etire' : '', ecran: 'veille'};
+  if (tb < 7){ const k = lisse(3.5, 7, tb); return {x: A.x + (C.x - A.x) * k, y: A.y + (C.y - A.y) * k, pose: 'debout', marche: vif, miroir: true, ecran: 'veille'}; }   // il va jusqu'à l'étal
+  if (tb < 12) return {x: C.x, y: C.y, pose: 'debout', dos: true, ecran: 'veille', commande: tb < 10, servi: tb >= 10};                                    // il commande, la vendeuse le sert
+  if (tb < 15.5){ const k = lisse(12, 15.5, tb); return {x: C.x + (A.x - C.x) * k, y: C.y + (A.y - C.y) * k, pose: 'debout', marche: vif, geste: 'assiette', ecran: 'veille'}; }
+  return {x: A.x, y: A.y, pose: 'assis', geste: vif && (tb - 15.5) % 4 < 1.5 ? 'mange' : '', ecran: 'veille', plat: true};                                  // de retour à sa table, il mange son garba
+}
+function taxi(x, y, sens, nuit, S){                                     // un taxi orange, vu de côté (sens : 1 = il roule vers la droite)
+  B(x, y - 7, 26, 5, '#f08a24'); B(x + 5, y - 11, 14, 4, '#f08a24'); B(x + 6, y - 10, 5, 3, '#bfe6f5'); B(x + 12, y - 10, 6, 3, '#bfe6f5'); B(x, y - 4, 26, 1, '#c96a12'); B(x + 10, y - 12, 5, 1, '#ffd95a');
+  B(x + 3, y - 3, 5, 3, '#22222e'); B(x + 18, y - 3, 5, 3, '#22222e'); B(x + 4, y - 2, 3, 1, '#8a8f9c'); B(x + 19, y - 2, 3, 1, '#8a8f9c');
+  const av = sens > 0 ? x + 25 : x; B(av, y - 6, 1, 2, nuit > .3 ? '#fff3c4' : '#f4f1ea'); B(sens > 0 ? x : x + 25, y - 6, 1, 2, '#d94f4f');
+  if (nuit > .3) S.lum.push({x: av + sens * 8, y: y - 4, r: 13, a: .7, chaud: true});
+}
+function motoRue(x, y, sens, c, peau, nuit, S){                            // une moto et son pilote
+  B(x, y - 3, 3, 3, '#22222e'); B(x + 9, y - 3, 3, 3, '#22222e'); B(x + 1, y - 5, 10, 2, c); B(x + 4, y - 6, 4, 1, '#22222e');
+  B(x + 4, y - 11, 4, 5, '#f4f1ea'); B(x + 4, y - 14, 4, 3, peau); B(x + 4, y - 15, 4, 2, '#22222e'); B(sens > 0 ? x + 8 : x + 1, y - 9, 3, 1, peau); B(sens > 0 ? x + 11 : x, y - 8, 1, 3, '#8a8f9c');
+  if (nuit > .3) S.lum.push({x: x + 6 + sens * 10, y: y - 5, r: 10, a: .6, chaud: true});
+}
+function pieceGarba(S){
+  const {t, X0, X1, Y0, Y1, nuit, J, heure} = S, W = X1 - X0, tm = calme ? 0 : t, soir = nuit > .22 || S.pluie, v = calme ? 0 : Math.round(Math.sin(t * 1.1));
+  // le ciel ; de l'autre côté de la rue : un mur, des maisons, deux cocotiers, un poteau et ses fils, un lampadaire
+  cielFenetre(S, X0, Y0, W, -30 - Y0); S.lum.push({rect: [X0, Y0, W, -30 - Y0], a: .7});
+  B(X0, -33, W, 9, '#e9dcbc'); B(X0, -33, W, 1, '#d9623a');
+  for (let x = Math.floor(X0 / 26) * 26 - 8, i = 0; x < X1; x += 26, i++){ const n = Math.round(x / 26), h = 10 + Math.floor(H1(n, 21) * 6), mur = ['#f6dccb', '#e9e4f6', '#fde9b0', '#f4d9e4', '#dcf0f1'][((n % 5) + 5) % 5], toit = ['#d9623a', '#4f86c6', '#3f9b74', '#8a6fd1', '#c94f3d'][((n % 5) + 5) % 5];
+    B(x, -24 - h, 20, h, mur); B(x - 1, -27 - h, 22, 3, toit); B(x + 3, -21 - h, 4, 4, nuit > .4 ? (H1(n, 5) < .6 ? '#ffe9a6' : '#3a4470') : '#a9d8f5'); B(x + 12, -32, 5, 8, '#7a4a2b'); }
+  [[-37, 0], [43, 1]].forEach(([x, k]) => { const h = 38 - k * 5; for (let i = 0; i < h; i += 4) B(x + Math.round(i * .08 * (k ? -1 : 1)), -24 - i - 4, 2, 4, '#946a41');
+    const cx = x + Math.round(h * .08 * (k ? -1 : 1)) + v, cy = -24 - h; B(cx - 7, cy - 1, 16, 2, '#2f9e5f'); B(cx - 5, cy - 3, 12, 2, '#3fb873'); B(cx - 9, cy + 1, 5, 2, '#2f9e5f'); B(cx + 6, cy + 1, 5, 2, '#2f9e5f'); B(cx - 2, cy - 5, 6, 2, '#58c27a'); B(cx, cy + 1, 2, 2, '#8f5f40'); });
+  B(18, -66, 2, 44, '#6b4a34'); B(13, -64, 12, 1, '#6b4a34');
+  for (let x = Math.floor(X0 / 4) * 4; x < X1; x += 4){ const u = (((x - 19) % 90) + 90) % 90 / 45 - 1; B(x, -63 + Math.round(5 * (1 - u * u)), 4, 1, 'rgba(34,34,46,.75)'); }
+  B(-8, -50, 1, 28, '#4a4660'); B(-8, -51, 6, 1, '#4a4660'); B(-5, -50, 3, 2, nuit > .3 ? '#fff3c4' : '#dcd8ea'); if (nuit > .3) S.lum.push({x: -4, y: -38, r: 26, a: .8, chaud: true});
+  // le trottoir d'en face, la rue (et ceux qui passent : taxis et motos), le trottoir de ce côté-ci, puis la terre battue du maquis
+  B(X0, -24, W, 2, '#cfc9bd'); B(X0, -22, W, 16, S.pluie ? '#5d5a6c' : '#6b6878'); for (let x = Math.floor(X0 / 14) * 14; x < X1; x += 14) B(x, -14, 7, 1, '#e9e4f6');
+  { const nb = nuit > .8 ? 1 : nuit > .4 ? 2 : 3, tour = W + 70;
+    for (let i = 0; i < nb; i++){ const sens = i % 2 ? -1 : 1, vit = (calme ? 0 : t) * (15 + H1(i, 13) * 9) * sens, px = X0 - 35 + ((((H1(i, 15) + i * .37) * tour + vit) % tour) + tour) % tour, y = sens > 0 ? -15 : -8;
+      if ((i + Math.floor(heure)) % 3 === 2) motoRue(Math.round(px), y, sens, ['#d94f4f', '#3d8bfd', '#2fb37a'][i % 3], PEAUX[i % PEAUX.length], nuit, S); else taxi(Math.round(px), y, sens, nuit, S); } }
+  B(X0, -6, W, 3, '#cfc9bd'); B(X0, -3, W, 1, '#a8a296');
+  B(X0, -2, W, Y1 + 2, '#cf8f5f'); for (let i = 0; i < 70; i++){ const x = X0 + H1(i, 31) * W, y = -1 + H1(i, 32) * (Y1 + 1); B(Math.floor(x), Math.floor(y), 2, 1, H1(i, 33) < .5 ? '#b9764a' : '#dca070'); }
+  if (S.pluie){ const H = -3 - Y0; B(X0, -22, W, 16, 'rgba(150,170,220,.12)');                                                                          // la pluie tombe sur la rue ; sous la bâche, on reste au sec
+    for (let i = 0; i < 38; i++) B(Math.floor(X0 + ((H1(i, 71) * W + tm * 6) % W)), Math.floor(Y0 + ((H1(i, 72) * H + tm * (62 + H1(i, 73) * 30)) % H)), 1, 4, 'rgba(235,240,255,.5)');
+    for (let i = 0; i < 9; i++) if (calme || Math.sin(t * 5 + i * 2.3) > .2) B(Math.floor(X0 + H1(i + Math.floor(tm * 2), 75) * W), -21 + Math.floor(H1(i, 76) * 14), 2, 1, 'rgba(255,255,255,.55)'); }
+  // les passants du trottoir : plus nombreux à midi et en fin d'après-midi
+  { const pointe = (heure >= 12 && heure < 14) || (heure >= 17.5 && heure < 20.5), nb = nuit > .8 ? 0 : pointe ? 3 : 1, tour = W + 30;
+    for (let i = 0; i < nb; i++){ const e = ELEVES[2 + (i * 13 + Math.floor(heure) * 5) % 46], sens = i % 2 ? 1 : -1, px = X0 - 15 + ((((H1(i, 5) * tour + (calme ? 0 : t) * (5 + H1(i, 3) * 3) * sens) % tour) + tour) % tour);
+      sprite(e, px, -3, .8, t, {marche: !calme, miroir: sens < 0}); } }
+  // la bâche bleue, ses poteaux, la guirlande d'ampoules, l'enseigne
+  [-53, -15, 50].forEach(x => B(x, -52, 2, 54, '#7a5236'));
+  B(-58, -59, 112, 7, '#2f6fd0'); B(-58, -59, 112, 2, '#5b8ff5'); for (let x = -58; x < 54; x += 8){ B(x, -52, 6, 2, '#2456a8'); if (x % 16 === 6 || x % 16 === -10) B(x, -57, 1, 5, '#2456a8'); }
+  B(-52, -49, 103, 1, '#22222e');
+  for (let x = -46, i = 0; x < 50; x += 12, i++){ const on = soir && (calme || Math.sin(t * 1.7 + i * 1.3) > -.7); B(x, -48, 2, 3, on ? ['#ffd95a', '#ff8a6a', '#8fe08a', '#8fb4ff'][i % 4] : '#d9d6e6'); if (on) S.lum.push({x: x + 1, y: -42, r: 15, a: .7, chaud: true}); }
+  if (soir){ S.lum.push({x: -24, y: -16, r: 54, a: .75, chaud: true}); S.lum.push({x: 26, y: -12, r: 50, a: .7, chaud: true}); }                      // sous la bâche, il fait bon : les ampoules éclairent l'étal et les tables
+  B(-44, -50, 1, 3, '#22222e'); B(-22, -50, 1, 3, '#22222e'); B(-47, -47, 29, 9, '#22222e'); B(-46, -46, 27, 7, '#ffd95a'); motPixel('GARBA', -42, -45, '#c23b17');
+  if (S.pluie) for (let i = 0; i < 6; i++){ const u = calme ? i / 6 : (t * .9 + H1(i, 61)) % 1; B(-50 + i * 19, Math.round(-50 + u * 46), 1, 2, 'rgba(235,240,255,.7)'); }   // l'eau goutte du bord de la bâche
+  // les clients assis sur le banc du fond : ils discutent et mangent
+  { const ouvert = heure >= 10 && heure < 21.5, pointe = (heure >= 12 && heure < 14) || (heure >= 18 && heure < 20.5), nb = !ouvert ? 0 : pointe || Math.floor(heure) % 2 ? 2 : 1, gs = e => calme ? '' : H1(e.i, Math.floor(t / 4)) < .4 ? 'parle' : H1(e.i, Math.floor(t / 3)) < .35 ? 'mange' : '';
+    B(21, -2, 29, 2, '#a9743f'); B(21, -2, 29, 1, '#c98d5a'); B(22, 0, 2, 4, '#8a5a3a'); B(47, 0, 2, 4, '#8a5a3a');
+    [[28, 0], [43, 1]].slice(0, nb).forEach(([x, c]) => { const e = ELEVES[2 + (c * 17 + Math.floor(heure) * 7 + 5) % 46]; sprite(e, x, 3, .95, t, {pose: 'banc', miroir: !!c, geste: gs(e)}); });
+    B(33, -5, 6, 1, '#f4f1ea'); B(35, -4, 2, 6, '#9a6b45'); B(33, 2, 6, 1, '#9a6b45'); if (nb){ B(34, -6, 4, 1, '#f2d77a'); B(36, -7, 2, 1, '#7a4a2b'); } }
+  // la vendeuse (derrière), puis son étal : la bassine d'attiéké, le thon frit, le piment, les oignons
+  { const c = calme ? 6 : t % 12; sprite(VENDEUSE, -32, -5, 1, t, {geste: J.commande ? 'parle' : J.servi ? 'pointe' : c < 3.5 ? 'assiette' : c > 6 && c < 8 ? 'pointe' : c > 9.5 && c < 11 ? 'parle' : '', miroir: !J.servi && c > 6 && c < 8}); }
+  B(-50, -13, 35, 2, '#d9a45e'); B(-50, -13, 35, 1, '#e9c48a'); B(-49, -11, 33, 11, '#c23b17'); B(-49, -1, 33, 1, '#8f2a12');
+  for (let i = 0; i < 6; i++){ B(-47 + i * 5.5, -9, 3, 3, '#ffd95a'); B(-46 + i * 5.5, -8, 1, 1, '#1f8a5b'); if (i < 5){ B(-44 + i * 5.5, -5, 2, 2, '#1f8a5b'); } }
+  B(-48, -17, 11, 4, '#f4f1ea'); B(-48, -17, 11, 1, '#3d8bfd'); B(-47, -20, 9, 3, '#f2d77a'); B(-45, -22, 5, 2, '#f7e39a'); B(-43, -23, 2, 1, '#f7e39a');
+  B(-35, -15, 9, 2, '#cfd3dc'); B(-34, -17, 3, 2, '#7a4a2b'); B(-30, -17, 3, 2, '#8f5f40'); B(-32, -18, 2, 1, '#a9743f');
+  B(-25, -16, 4, 3, '#ffffff'); B(-25, -17, 4, 1, '#e2382f'); B(-24, -18, 1, 1, '#3fb873'); B(-20, -16, 3, 3, '#ffffff'); B(-20, -17, 3, 1, '#d9a4c8');
+  if (J.servi){ B(-29, -15, 7, 1, '#ffffff'); B(-28, -17, 4, 2, '#f2d77a'); B(-24, -16, 2, 1, '#7a4a2b'); }
+  // le fourneau : les braises, la poêle d'huile où frit le thon, et la fumée qui monte
+  B(-11, -5, 8, 7, '#3a3a44'); B(-10, -2, 6, 2, calme || Math.sin(t * 9) > 0 ? '#ffb627' : '#e4572e'); B(-11, 2, 1, 1, '#22222e'); B(-4, 2, 1, 1, '#22222e');
+  B(-13, -7, 12, 2, '#22222e'); B(-1, -7, 3, 1, '#22222e'); B(-12, -8, 10, 1, '#e0a23a'); B(-10 + (calme ? 0 : Math.round(Math.sin(t * 3))), -9, 2, 1, '#8f5f40'); B(-6, -9, 2, 1, '#7a4a2b');
+  if (!calme) for (let i = 0; i < 3; i++) if (Math.sin(t * 7 + i * 2.1) > .5) B(-11 + i * 3, -9, 1, 1, '#ffe9a6');
+  for (let i = 0; i < 7; i++){ const u = calme ? i / 7 : (t * .28 + i / 7) % 1; B(Math.round(-8 + Math.sin(t * 1.2 + i * 2) * 4 * u), Math.round(-11 - u * 36), 2 + Math.round(u * 3), 2 + Math.round(u * 2), 'rgba(236,236,244,' + (.55 * (1 - u)) + ')'); }
+  S.lum.push({x: -7, y: -3, r: 20, a: .9, chaud: true});
+  if (X1 > 62){ B(64, -9, 12, 9, '#3d8bfd'); B(64, -9, 12, 2, '#ffffff'); B(63, -10, 14, 1, '#2456a8'); [0, 1, 2].forEach(i => B(82, -12 + i * 3, 9, 2, i % 2 ? '#e4572e' : '#f4f1ea')); B(83, -3, 1, 3, '#8a8f9c'); B(89, -3, 1, 3, '#8a8f9c'); }   // sur un grand écran : la glacière et les chaises empilées
+  // toi : ton banc, ta table en bois, ton portable, ton cahier — et ton assiette de garba pendant la pause
+  if (J.pose === 'assis') sprite(ELEVES[0], J.x, J.y, 1, t, {pose: 'assis', geste: J.geste});
+  B(1, 9, 28, 2, '#c98d5a'); B(1, 9, 28, 1, '#d9a45e'); B(1, 11, 28, 1, '#a9743f'); B(3, 12, 2, 7, '#8a5a3a'); B(25, 12, 2, 7, '#8a5a3a');
+  B(8, 8, 12, 1, '#8a8f9c'); B(9, 4, 10, 4, '#5b6b82'); B(10, 5, 8, 2, '#6b7b96'); B(13, 5, 2, 2, J.ecran === 'code' ? '#ffd95a' : J.ecran === 'attente' ? '#e4572e' : '#8a8f9c');
+  if (J.geste === 'tape') for (let i = 0; i < 3; i++){ const n = Math.floor(t * 9) + i * 7; if (H1(n, 2) < .6) B(9 + Math.floor(H1(n, 6) * 10), 3 - Math.floor(H1(n, 8) * 2), 1, 1, '#ffffff'); }
+  if (J.ecran === 'code') S.lum.push({x: 14, y: 2, r: 14, a: .8});
+  B(4, 5, 2, 4, '#c0396b'); B(4, 4, 2, 1, '#ffffff');                                                                              // sa bouteille de bissap
+  if (J.plat){ B(21, 8, 7, 1, '#ffffff'); B(22, 6, 4, 2, '#f2d77a'); B(25, 7, 2, 1, '#7a4a2b'); }
+  else { B(22, 8, 5, 1, '#ffffff'); B(22, 8, 1, 1, '#e4572e'); B(23, 7, 3, 1, '#3d8bfd'); }
+  if (J.pose !== 'assis'){ B(J.x - 5, J.y, 11, 1, 'rgba(24,16,56,.2)'); sprite(ELEVES[0], J.x, J.y, 1, t, {pose: 'debout', dos: J.dos, geste: J.geste, marche: J.marche, miroir: J.miroir});
+    if (J.commande){ B(J.x + 6, J.y - 35, 13, 10, '#ffffff'); B(J.x + 7, J.y - 25, 2, 2, '#ffffff'); B(J.x + 8, J.y - 28, 9, 1, '#cfd3dc'); B(J.x + 9, J.y - 31, 5, 3, '#f2d77a'); B(J.x + 14, J.y - 30, 2, 2, '#7a4a2b'); } }   // sa bulle : une assiette de garba
+}
+
 // --- la lumière : le voile bleu de la nuit, troué par les lampes, l'écran et la fenêtre. Le voile est une toute petite image (1 pixel par unité)
 //     qu'on agrandit sans la lisser : la lumière a donc des bords en escalier, comme le reste. ---
 function eclairage(g, S){
@@ -3704,12 +4341,22 @@ function eclairage(g, S){
 function dessinerPiece(g, w, h, t){
   if (calme) t = T_FIGE;
   const {u, ox, oy} = cadreCine(w, h), garde = ctx, T = maintenant(), heure = T.min / 60, temps = tempsQuilFait();
-  const S = {t, u, X0: -ox / u, X1: (w - ox) / u, Y0: -oy / u, Y1: (h - oy) / u, heure, nuit: nuitDe(heure), temps, pluie: temps === 'pluie', lum: [], J: CINE.lieu === 'cafe' ? jeuCafe(t) : jeuMaison(t)};
+  const piece = PIECES[CINE.lieu] || PIECES.maison;
+  const S = {t, u, X0: -ox / u, X1: (w - ox) / u, Y0: -oy / u, Y1: (h - oy) / u, heure, nuit: nuitDe(heure), temps, pluie: temps === 'pluie', lum: [], J: piece.jeu(t)};
   ctx = g; g.setTransform(u, 0, 0, u, ox, oy); g.imageSmoothingEnabled = false; g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
   if (S.J.geste === 'tape') CINE.frappe += Math.min(.1, Math.max(0, t - CINE.dernier)); CINE.dernier = t;
-  (CINE.lieu === 'cafe' ? pieceCafe : pieceMaison)(S);
+  piece.dessin(S);
   eclairage(g, S);
   g.setTransform(1, 0, 0, 1, 0, 0); ctx = garde;
+}
+// Chaque lieu de travail : la fonction qui dessine sa pièce, et celle qui dit ce que fait ton personnage
+const PIECES = {maison: {dessin: pieceMaison, jeu: jeuMaison}, cafe: {dessin: pieceCafe, jeu: jeuCafe}, garba: {dessin: pieceGarba, jeu: jeuGarba}};
+// Une démonstration (boutique, lieu à débloquer) : la même pièce, avec un faux minuteur qui tourne en boucle — 12 secondes de travail, puis 14 de pause
+function dessinerDemo(g, w, h, t, lieu, extra){
+  const garde = {m: minuteur, l: CINE.lieu, f: CINE.frappe, d: CINE.dernier}, c = t % 26, duree = phase => pomo.reglages[phase] * 60000;
+  minuteur = Object.assign(minuteurNeuf(), {etat: 'marche'}, c < 12 ? {phase: 'travail', fin: Date.now() + duree('travail') - c * 1000} : {phase: 'pause', fin: Date.now() + duree('pause') - (c - 12) * 1000});
+  CINE.lieu = lieu; CINE.frappe = 5 + c; CINE.demo = extra || {};
+  try { dessinerPiece(g, w, h, t); } finally { minuteur = garde.m; CINE.lieu = garde.l; CINE.frappe = garde.f; CINE.dernier = garde.d; CINE.demo = null; }
 }
 // Un changement de phase : un éclair blanc qui s'éteint, et des confettis carrés qui retombent
 function fete(g, w, h, ms){
@@ -3761,6 +4408,7 @@ function montrerCine(){
 }
 function cineOuvrir(lieu){
   if (!COMPTE.id || ['zoom', 'entree', 'sortie'].includes(CINE.etat)) return;
+  if (!lieuOuvert(lieu)){ ouvrirVerrou(lieu); return; }                  // un lieu payant pas encore débloqué : on le présente, avec le bouton pour le débloquer
   if (minuteur.lieu !== lieu){ minuteur.lieu = lieu; garderMinuteur(); }
   CINE.lieu = lieu; sonPret();
   if (CINE.etat === 'ouvert') return;
@@ -3818,6 +4466,162 @@ function cineImage(ms){
 }
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && CINE.etat === 'ouvert'){ ev.preventDefault(); cineFermer(); } });
 $('cine-plein').addEventListener('click', () => { if (document.fullscreenElement){ CINE.plein = true; pleinEcran(false); } else pleinEcran(true); });
+
+/* ============ 21. LA BOUTIQUE (2) : les rayons, la fiche d'un objet et son aperçu animé, l'inventaire, le paiement, l'écran des lieux à débloquer ============ */
+const BOUTIQUE = {rayon: 'lieux', volet: 'rayons', objet: null, depuis: 'rayons', apres: null, paie: null, verrou: null, t0: 0};
+const NOMS_PLACES = {haut: 'haut', bas: 'pantalon', pieds: 'chaussures', tete: 'chapeau', yeux: 'lunettes', sac: 'sac', oreilles: 'casque', poignet: 'montre'};
+
+// --- les petits dessins : chaque objet sur TON personnage (ou ton animal), chaque lieu en miniature ---
+function modeleAvec(o){                                                 // une copie de ton personnage qui ne porte que cet objet (pour bien le voir)
+  const m = Object.assign({}, ELEVES[0], {ph: 1, style: look.style}); Object.values(PLACES).forEach(c => { if (c !== 'style') delete m[c]; });
+  if (o && o.place) m[PLACES[o.place]] = o.val; return m;
+}
+function animalDe(o){ const E = ESPECES[o.espece]; return {espece: o.espece, race: o.race || (animal.espece === o.espece && !E.races[animal.race].achat ? animal.race : Object.keys(E.races)[0]), collier: animal.collier}; }
+function vignetteObjet(c, o){
+  const g = c.getContext('2d'), w = c.width, h = c.height, garde = ctx; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+  if (o.espece){ vignetteAnimal(c, animalDe(o), {content: true}, 8); return; }
+  if (o.lieu){ g.imageSmoothingEnabled = false; const T = TAMPON, tw = 208, th = 172; T.canvas.width = tw; T.canvas.height = th;                        // un lieu : la pièce entière, dessinée en petit
+    dessinerDemo(T.ctx, tw, th, 3, o.lieu); g.drawImage(T.canvas, 0, 0, tw, th, 0, 0, w, h); return; }
+  if (o.cat === 'maison'){ const z = DECOS[o.id].zone, u = Math.max(2, Math.min(10, Math.floor(Math.min(w / z[2], h / z[3])))), T = TAMPON, tw = 112 * u, th = 130 * u;   // une décoration : ta chambre dessinée en grand, puis recadrée sur elle (des pixels entiers, bien nets)
+    T.canvas.width = tw; T.canvas.height = th; dessinerDemo(T.ctx, tw, th, 3, 'maison', {deco: o.id, seul: true});
+    const cad = cadreCine(tw, th), zw = z[2] * cad.u, zh = z[3] * cad.u; g.imageSmoothingEnabled = false;
+    const k = Math.min(1, w / zw, h / zh); g.drawImage(T.canvas, cad.ox + z[0] * cad.u, cad.oy + z[1] * cad.u, zw, zh, Math.round((w - zw * k) / 2), Math.round((h - zh * k) / 2), zw * k, zh * k); return; }
+  ctx = g; const m = modeleAvec(o), p = o.place;
+  if (p === 'tete' || p === 'yeux' || p === 'oreilles') sprite(m, w / 2, h * 1.56, h * .0604, 0, {pose: 'debout'});               // cadré sur la tête
+  else if (p === 'bas' || p === 'pieds') sprite(m, w / 2, h * .94, h * .094, 0, {pose: 'debout'});                                 // sur les jambes
+  else sprite(m, w / 2, h * 1.24, h * .0552, 0, {pose: 'debout'});                                                                 // sur le buste
+  ctx = garde;
+}
+const etatObjet = o => porte(o.id) && !o.base ? [o.espece ? 'Avec toi' : 'Porté', 'bon'] : o.cat === 'maison' && decoPosee(o.id) ? ['Posé', 'bon'] : possede(o.id) ? ['À toi', 'bon'] : [prixDit(o.prix), o.prix ? '' : 'vif'];
+
+// --- la boutique : les rayons, les étagères, l'inventaire ---
+function majBoutique(){
+  habiller();
+  $('boutique-test').hidden = !modeTest(); $('paie-test').hidden = !modeTest();
+  const R = $('rayons'); R.replaceChildren();
+  RAYONS.forEach(([cle, nom]) => { const b = el('button', '', nom); b.type = 'button'; b.dataset.r = cle; b.setAttribute('aria-pressed', cle === BOUTIQUE.rayon); R.append(b); });
+  const E = $('etageres'), I = $('inventaire'); E.replaceChildren(); I.replaceChildren();
+  const carte = o => { const b = el('button', 'article'), c = el('canvas'), [txt, cls] = etatObjet(o); b.type = 'button'; b.dataset.id = o.id; c.width = 120; c.height = 96; c.setAttribute('aria-hidden', 'true');
+    b.append(c, el('b', '', o.nom), el('span', 'etat ' + cls, txt)); vignetteObjet(c, o); return b; };
+  const ranger = (hote, liste) => { let sous = '', grille = null; liste.forEach(o => { if (o.sous !== sous){ sous = o.sous; hote.append(el('h3', '', sous)); grille = el('div', 'articles'); hote.append(grille); } grille.append(carte(o)); }); };
+  ranger(E, CATALOGUE.filter(o => o.cat === BOUTIQUE.rayon));
+  const miens = CATALOGUE.filter(o => possede(o.id) && !o.base); ranger(I, miens); $('inventaire-vide').hidden = miens.length > 0;
+  ['rayons', 'inventaire'].forEach(v => { $('seg-' + v).setAttribute('aria-selected', v === BOUTIQUE.volet); $('b-' + v).hidden = v !== BOUTIQUE.volet || !!BOUTIQUE.objet; });
+  $('objet').hidden = !BOUTIQUE.objet; if (BOUTIQUE.objet) majObjet();
+  [['cafe', 'Travailler au café'], ['garba', 'Travailler au maquis']].forEach(([l, nom]) => { const b = $('pomo-' + l); if (b) b.innerHTML = (lieuOuvert(l) ? '' : pix('cadenas', 12)) + nom; });   // un petit cadenas sur les lieux pas encore débloqués
+  majEmail();
+}
+// --- la fiche d'un objet : son aperçu animé, son prix, et le bon bouton (Obtenir, Acheter, Équiper, Retirer…) ---
+function majObjet(){
+  const o = objet(BOUTIQUE.objet); if (!o){ BOUTIQUE.objet = null; return; }
+  const a = possede(o.id), [txt, cls] = etatObjet(o), z = $('objet-actions'); z.replaceChildren();
+  $('objet-nom').textContent = o.nom; $('objet-texte').textContent = o.texte; $('objet-prix').textContent = a && o.prix ? 'À toi' : txt; $('objet-prix').className = 'etat ' + (a ? 'bon' : cls);
+  const bouton = (texte, fort, f) => { const b = el('button', 'btn' + (fort ? ' fort' : ''), texte); b.type = 'button'; b.onclick = f; z.append(b); };
+  let note = '';
+  if (!a){
+    if (o.prix) bouton('Acheter · ' + prixDit(o.prix), true, () => acheter(o.id)); else bouton('Obtenir', true, () => obtenir(o.id));
+    note = o.prix ? (modeTest() ? 'Mode test : le paiement est faux, rien ne sera débité.' : 'Paiement par Mobile Money ou carte bancaire.') : 'Cet objet est gratuit.';
+  } else if (o.lieu){ bouton('Y travailler', true, () => { voirVille(); cineOuvrir(o.lieu); }); note = 'Ce lieu est débloqué : son bouton rebondit dans la ville.'; }
+  else if (o.place){ if (porte(o.id)) bouton('Retirer', false, () => equiper(o.id, false)); else bouton('Équiper', true, () => equiper(o.id, true)); note = 'Se porte comme ' + NOMS_PLACES[o.place] + ' : un seul à la fois.'; }
+  else if (o.cat === 'maison'){ if (decoPosee(o.id)) bouton('Ranger', false, () => equiper(o.id, false)); else bouton('Poser chez moi', true, () => equiper(o.id, true)); note = 'Elle apparaît dans ta maison, dans la ville et pendant tes séances de travail.'; }
+  else if (o.espece){ if (!porte(o.id)) bouton(o.race ? 'Choisir ce pelage' : 'Choisir cet animal', true, () => equiper(o.id, true)); note = porte(o.id) ? "C'est ton compagnon en ce moment. Ses pelages se choisissent dans l'onglet « Perso »." : "Tu pourras changer son pelage et son collier dans l'onglet « Perso »."; }
+  $('objet-note').textContent = note;
+}
+function ouvrirObjet(id){ BOUTIQUE.objet = id; BOUTIQUE.t0 = performance.now() / 1000; majBoutique(); $('menu-corps').scrollTop = 0; $('objet-retour').focus({preventScroll: true}); }
+function fermerObjet(){ const id = BOUTIQUE.objet; BOUTIQUE.objet = null; majBoutique(); const b = document.querySelector('.article[data-id="' + id + '"]'); if (b && b.offsetParent) b.focus({preventScroll: true}); }
+function obtenir(id){ const o = objet(id); if (!o || o.prix || boutique.possede.includes(id)) return; boutique.possede.push(id); enregistrer('perso'); majBoutique(); }
+function equiper(id, oui){
+  const o = objet(id); if (!o || !possede(id)) return;
+  if (o.place){ if (oui) boutique.porte[o.place] = id; else if (boutique.porte[o.place] === id) delete boutique.porte[o.place]; }
+  else if (o.cat === 'maison'){ boutique.deco = boutique.deco.filter(x => x !== id); if (oui) boutique.deco.push(id); }
+  else if (o.espece && oui){ changerEspece(o.espece, o.race); garderAnimal(); }
+  enregistrer('perso'); ESSAI.salut = performance.now() / 1000 + 1.1; majBoutique(); majPerso(); if (choisi === ELEVES[0]) majFiche(true);
+}
+// L'aperçu animé de la fiche : ton personnage qui porte l'objet (de face, puis de dos), ton futur animal, ta chambre avec la décoration, ou le lieu en pleine séance
+function dessinerApercuObjet(t){
+  const o = objet(BOUTIQUE.objet), c = $('objet-vue'), b = c.getBoundingClientRect(); if (!o || b.width < 2) return;
+  const R = Math.min(2, window.devicePixelRatio || 1), W = Math.round(b.width * R), H = Math.round(b.height * R); if (c.width !== W || c.height !== H){ c.width = W; c.height = H; }
+  const g = c.getContext('2d'), tt = calme ? 2 : t - BOUTIQUE.t0;
+  if (o.lieu || o.cat === 'maison'){ dessinerDemo(g, W, H, calme ? 3 : t, o.lieu || 'maison', o.lieu ? null : {deco: o.id}); return; }
+  const garde = ctx, w = b.width, h = b.height, sol = h - 30, k = Math.min(6.6, (h - 46) / 25.5);
+  g.setTransform(R, 0, 0, R, 0, 0); g.clearRect(0, 0, w, h); ctx = g;
+  ellipse(w / 2, sol + 2, w * .4, 12 + k * 2, 'rgba(255,255,255,.34)');
+  if (o.espece){ const a = animalDe(o), E = ESPECES[a.espece], ech = E.races[a.race].t || 1, ca = cadreAnimal(a), cyc = tt % 9, xa = w / 2 - (ca.x0 + ca.x1) / 2 * k;
+    ellipse(xa + k, sol + .4 * k, E.ombre[0] * ech * k, E.ombre[1] * ech * k, 'rgba(24,16,56,.2)');
+    animalSprite(xa, sol, k, t, {content: true, marche: !calme && cyc > 3 && cyc < 6, aboie: !calme && cyc > 7.4}, a);
+  } else { const dos = !calme && tt % 8 > 5, m = modeleAvec(o);
+    ellipse(w / 2 + k, sol + .4 * k, 5.6 * k, 2.3 * k, 'rgba(24,16,56,.2)');
+    sprite(m, w / 2, sol, k, t, {pose: 'debout', dos, sac: dos, geste: !dos && !calme && tt % 8 < 1.4 ? 'salut' : ''}); }
+  ctx = garde;
+}
+
+// --- payer. En mode test, le paiement est faux : il sert à essayer la boutique. Le vrai paiement passera par un serveur (voir PAIEMENT, en haut du fichier). ---
+function acheter(id, apres){
+  const o = objet(id); if (!o || possede(id)) return;
+  BOUTIQUE.paie = id; BOUTIQUE.apres = apres || null; BOUTIQUE.retour = document.activeElement;
+  $('paie-nom').textContent = o.nom; $('paie-prix').textContent = prixDit(o.prix); vignetteObjet($('paie-vue'), o);
+  $('paie-choix').hidden = false; $('paie-fait').hidden = true; montrer('paie-erreur', ''); $('paie-ok').disabled = false; $('paie-ok').textContent = modeTest() ? 'Payer ' + prixDit(o.prix) + ' (faux paiement)' : 'Payer ' + prixDit(o.prix);
+  $('paiement').hidden = false; $('appli').inert = true; $('verrou').inert = true; $('paie-ok').focus({preventScroll: true});
+}
+function fermerPaiement(){
+  $('paiement').hidden = true; $('appli').inert = CINE.etat !== 'ferme' || !!BOUTIQUE.verrou; $('verrou').inert = false; BOUTIQUE.paie = null;
+  const r = BOUTIQUE.retour; BOUTIQUE.retour = null; if (r && r.focus && document.contains(r)){ try { r.focus({preventScroll: true}); } catch (e) {} }
+}
+async function payer(){
+  const id = BOUTIQUE.paie, o = objet(id), moyen = (document.querySelector('input[name="paie-moyen"]:checked') || {}).value; if (!o) return;
+  if (!moyen){ montrer('paie-erreur', 'Choisis un moyen de paiement.'); return; }
+  montrer('paie-erreur', ''); $('paie-ok').disabled = true; $('paie-ok').textContent = 'Paiement en cours…';
+  try {
+    if (modeTest()){ await new Promise(r => setTimeout(r, calme ? 200 : 900)); if (BOUTIQUE.paie !== id) return; if (!boutique.essais.includes(id)) boutique.essais.push(id); enregistrer('perso'); }
+    else { await payerPourDeVrai(o, moyen); return; }                   // le vrai paiement : la page du prestataire s'ouvre, la suite se passe au retour
+  } catch (e){ montrer('paie-erreur', (e && e.dit) || "Le paiement n'a pas abouti. Rien n'a été débité : tu peux réessayer."); $('paie-ok').disabled = false; $('paie-ok').textContent = 'Payer ' + prixDit(o.prix); return; }
+  sonPret(); sonnerie([523, 659, 784, 1047]);
+  $('paie-choix').hidden = true; $('paie-fait').hidden = false; $('paie-fait-texte').textContent = o.nom + (o.lieu ? ' est débloqué.' : ' est dans ton inventaire.') + (modeTest() ? ' (Achat d\'essai : aucun argent n\'a été débité.)' : '');
+  majBoutique(); $('paie-suite').focus({preventScroll: true});
+}
+// Le vrai paiement (à brancher) : la page demande à TON serveur de préparer le paiement ; le serveur répond avec l'adresse de la page du prestataire
+// (CinetPay, FedaPay…) ; après le paiement, c'est le serveur — et lui seul — qui inscrit l'achat dans ton compte. La page ne peut pas le faire elle-même.
+async function payerPourDeVrai(o, moyen){
+  if (COMPTE.mode !== 'firebase' || !FB.ok || !FB.auth.currentUser) throw {dit: 'Pour acheter, connecte-toi avec ton email : les achats sont rangés dans ton compte en ligne.'};
+  if (!PAIEMENT.serveur) throw {dit: "Le paiement n'est pas encore branché sur ce site."};
+  const jeton = await FB.auth.currentUser.getIdToken();
+  const r = await fetch(PAIEMENT.serveur.replace(/\/$/, '') + '/payer', {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton}, body: JSON.stringify({objet: o.id, moyen, retour: location.origin + location.pathname})});
+  const d = await r.json().catch(() => ({})); if (!r.ok || !d.lien || !/^https:\/\//.test(d.lien)) throw {dit: d.message || ''};
+  location.href = d.lien;
+}
+
+// --- l'écran d'un lieu à débloquer : sa cinématique tourne derrière, en démonstration ---
+function ouvrirVerrou(lieu){
+  const o = objet('lieu-' + lieu); if (!o) return;
+  BOUTIQUE.verrou = lieu; BOUTIQUE.retourVerrou = document.activeElement;
+  $('verrou-nom').textContent = o.nom; $('verrou-texte').textContent = o.texte; $('verrou-ok').textContent = 'Débloquer · ' + prixDit(o.prix);
+  $('verrou-note').textContent = modeTest() ? 'Mode test : le paiement est faux, rien ne sera débité. La maison, elle, reste gratuite.' : 'Paiement par Mobile Money ou carte bancaire. La maison, elle, reste gratuite.';
+  $('verrou').hidden = false; $('appli').inert = true; $('verrou-ok').focus({preventScroll: true});
+}
+function fermerVerrou(){
+  if (!BOUTIQUE.verrou) return; BOUTIQUE.verrou = null; $('verrou').hidden = true; $('appli').inert = CINE.etat !== 'ferme';
+  const r = BOUTIQUE.retourVerrou; BOUTIQUE.retourVerrou = null; if (r && r.focus && document.contains(r)){ try { r.focus({preventScroll: true}); } catch (e) {} }
+}
+function dessinerVerrou(t){
+  const c = $('verrou-vue'), b = c.getBoundingClientRect(), R = Math.min(2, window.devicePixelRatio || 1), W = Math.max(2, Math.round(b.width * R)), H = Math.max(2, Math.round(b.height * R));
+  if (c.width !== W || c.height !== H){ c.width = W; c.height = H; }
+  dessinerDemo(c.getContext('2d'), W, H, calme ? 3 : t, BOUTIQUE.verrou);
+}
+
+// --- les branchements ---
+$('rayons').addEventListener('click', ev => { const b = ev.target.closest('button[data-r]'); if (!b) return; BOUTIQUE.rayon = b.dataset.r; majBoutique(); });
+$('o-boutique').addEventListener('click', ev => { const b = ev.target.closest('.article'); if (b){ BOUTIQUE.depuis = BOUTIQUE.volet; ouvrirObjet(b.dataset.id); } });
+document.querySelectorAll('#o-boutique .segments button').forEach(b => b.addEventListener('click', () => { BOUTIQUE.volet = b.dataset.b; BOUTIQUE.objet = null; majBoutique(); }));
+$('objet-retour').addEventListener('click', fermerObjet);
+$('paie-ok').addEventListener('click', payer);
+$('paie-annuler').addEventListener('click', fermerPaiement);
+$('paie-suite').addEventListener('click', () => { const f = BOUTIQUE.apres; fermerPaiement(); if (f) f(); });
+$('verrou-non').addEventListener('click', fermerVerrou);
+$('verrou-ok').addEventListener('click', () => { const lieu = BOUTIQUE.verrou; acheter('lieu-' + lieu, () => { fermerVerrou(); if (lieuOuvert(lieu)) cineOuvrir(lieu); }); });
+document.addEventListener('keydown', ev => {                             // Échap : on ferme d'abord la feuille de paiement, puis l'écran du lieu
+  if (ev.key !== 'Escape') return;
+  if (!$('paiement').hidden){ ev.preventDefault(); fermerPaiement(); } else if (BOUTIQUE.verrou){ ev.preventDefault(); fermerVerrou(); }
+}, true);
 
 /* ============ 18. LES DERNIERS BRANCHEMENTS, PUIS LE DÉMARRAGE ============ */
 ORDRE_JOURS.forEach(j => $('sim-jour').append(new Option(JOURS[j], j)));
