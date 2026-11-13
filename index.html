@@ -218,6 +218,18 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .editeur{display:flex;flex-direction:column;gap:12px;border:2px solid var(--trait);padding:14px;background:var(--creux)}
 .editeur input[type=text],.editeur input[type=time],.editeur select{background-color:var(--panneau)}
 .etroit{max-width:320px}
+/* ----- les horaires d'une matière : une petite carte par créneau (jour, salle, début, fin) ----- */
+.horaires,.horaires-liste{display:flex;flex-direction:column;gap:10px}
+.horaires-liste:empty{display:none}
+.horaire{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--panneau);border:2px solid var(--trait);box-shadow:4px 4px 0 var(--filet)}
+.horaire.faux{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
+.horaire-tete{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.horaire-tete b{font:400 9px/1.6 var(--f-titre);text-transform:uppercase;color:var(--sourdine)}
+.horaire-champs{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px 10px;align-items:end}   /* deux champs par ligne ; un seul sur un très petit écran, pour que les heures ne soient jamais coupées */
+.editeur .horaire input[type=text],.editeur .horaire input[type=time],.editeur .horaire select{background-color:var(--creux)}
+.croix{width:36px;height:36px;flex:none;border:2px solid var(--trait);background:var(--panneau);color:var(--encre);display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:0 3px 0 var(--trait);margin-bottom:3px}
+.croix:hover{color:var(--accent)}
+.croix:active{transform:translateY(3px);box-shadow:none}
 .erreur{color:var(--accent);font-weight:700}
 .case{-webkit-appearance:none;appearance:none;width:22px;height:22px;flex:none;margin:0;cursor:pointer;background:var(--creux);border:2px solid var(--trait);display:inline-grid;place-items:center}
 .case:checked{background:var(--accent)}
@@ -243,6 +255,9 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .cellule:hover{border-color:var(--accent)}
 .cellule.actif{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent);background:var(--panneau);font-weight:700}
 .cellule .du{color:var(--accent);font-weight:700;font-size:16px}
+.cellule.neuf{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent);animation:neuf .8s steps(2,jump-none) 3}   /* un créneau qu'on vient d'enregistrer clignote un instant */
+@keyframes neuf{from{box-shadow:3px 3px 0 var(--accent)}to{box-shadow:3px 3px 0 var(--or)}}
+@media (prefers-reduced-motion:reduce){.cellule.neuf{animation:none}}
 
 /* ----- le Pomodoro : les tomates, la carte de l'onglet « Jour », la bulle de ton animal ----- */
 .tomates{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:20px}
@@ -565,6 +580,12 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
           <label class="champ"><span>Salle (facultatif)</span><input id="matiere-salle" type="text" maxlength="20" autocomplete="off" list="salles-connues" placeholder="Ex. : B12"></label>
         </div>
         <div class="choix"><span class="choix-nom">Couleur</span><div class="pastilles" id="matiere-couleurs" role="group" aria-label="Couleur de la matière"></div></div>
+        <div class="horaires" role="group" aria-labelledby="horaires-titre">
+          <span class="choix-nom" id="horaires-titre">Horaires</span>
+          <p class="note" id="horaires-vide">Pas encore d'horaire. Ajoute un créneau pour dire quand tu as cette matière : le jour, l'heure de début et l'heure de fin.</p>
+          <div class="horaires-liste" id="horaires-liste"></div>
+          <div class="rang"><button class="btn" id="horaire-ajouter" type="button"><i data-pix="plus" data-t="10"></i>Ajouter un créneau</button><span class="note" id="horaires-max" hidden>12 créneaux au maximum par matière.</span></div>
+        </div>
         <p class="note erreur" id="matiere-erreur" role="alert" hidden></p>
         <div class="rang"><button class="btn fort" type="submit">Enregistrer</button><button class="btn" id="matiere-annuler" type="button">Annuler</button><button class="btn" id="matiere-supprimer" type="button" hidden>Supprimer cette matière</button></div>
       </form>
@@ -2837,12 +2858,13 @@ const CRAYON = pix('crayon', 14);
 const ORDRE_JOURS = [1, 2, 3, 4, 5, 6, 0];                              // on affiche la semaine du lundi au dimanche
 const minutesDe = v => { const [h, m] = (v || '').split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN; };   // « 08:30 » → 510
 const heureDe = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');                                          // 510 → « 08:30 »
-let coursEdite = null, matiereEditee = null, supprPret = false;         // ce qu'on est en train de modifier (rien = on crée du neuf)
+let coursEdite = null, coursBase = null, matiereEditee = null, supprPret = false;   // ce qu'on est en train de modifier (rien = on crée du neuf)
+let coursOuvert = null, matiereOuverte = null;                         // … et leurs identifiants, pour les retrouver si les données sont rechargées (synchronisation)
 
 // Quand les matières ou les cours changent : on recalcule ce qui en dépend (index par jour, salles de la ville), on réaffiche, puis on enregistre
 function majEcole(garde = true){
   indexerCours(); attribuerSalles(); _bulles = {}; signatureJour = '';
-  afficherSemaine(); afficherMatieres(); listesMatieres(); afficherAssistant(); afficherPresence();
+  afficherSemaine(); afficherMatieres(); listesMatieres(); afficherAssistant(); afficherPresence(); accorderFormulaires();
   if (garde) enregistrer('ecole');
   panneau();
 }
@@ -2867,8 +2889,8 @@ remplirCouleurs($('matiere-couleurs'), 'matiere-couleur'); remplirCouleurs($('as
 function afficherSemaine(){
   const z = $('semaine'); z.replaceChildren();
   $('cours-ajouter').disabled = !MATIERES.length;
-  $('semaine-aide').textContent = !MATIERES.length ? 'Commence par ajouter une matière, juste en dessous : tu pourras ensuite la placer dans ta semaine.'
-    : !CRENEAUX.length ? 'Aucun cours pour l\'instant. Touche « Ajouter un cours » pour placer une matière dans ta semaine.' : 'Touche un cours pour voir la ville à ce moment-là, ou son crayon pour le modifier.';
+  $('semaine-aide').textContent = !MATIERES.length ? 'Commence par ajouter une matière, juste en dessous, avec ses horaires : ses cours apparaîtront ici.'
+    : !CRENEAUX.length ? 'Aucun cours pour l\'instant. Touche « Ajouter un cours », ou « Modifier » sur une matière pour lui donner ses horaires.' : 'Touche un cours pour voir la ville à ce moment-là, ou son crayon pour le modifier.';
   if (!CRENEAUX.length) return;
   ORDRE_JOURS.forEach(j => {
     const l = coursDuJour(j); if (!l.length && (j === 6 || j === 0)) return;                       // le week-end n'apparaît que s'il a des cours
@@ -2876,7 +2898,7 @@ function afficherSemaine(){
     if (!l.length) col.append(el('div', 'jour-libre', 'Libre'));
     l.forEach(c => {
       const m = matiere(c.m), sl = nomSalle(c), boite = el('div', 'creneau'), b = el('button', 'cellule'), i = el('i'), mod = el('button', 'modifier');
-      b.type = 'button'; b.dataset.id = c.id; b.dataset.m = c.m; i.style.background = m.c;
+      b.type = 'button'; b.dataset.id = c.id; b.dataset.m = c.m; i.style.background = m.c; if (NEUFS.includes(c.id)) b.classList.add('neuf');
       b.append(i, document.createTextNode(m.nom), el('small', '', hm(c.deb) + ' – ' + hm(c.fin) + (sl ? ' · ' + sl : '')), el('small', 'du'));
       b.title = 'Voir la ville à ce moment-là';
       b.onclick = () => { apercu(j, c.deb + .2); voirVille(); };
@@ -2889,13 +2911,14 @@ function afficherSemaine(){
 
 // --- ajouter ou modifier un cours ---
 function editerCours(c){
-  coursEdite = c || null; $('form-cours').hidden = false;
+  coursEdite = c || null; coursOuvert = c ? c.id : null; $('form-cours').hidden = false;
   $('cours-titre').textContent = c ? 'Modifier ce cours' : 'Nouveau cours'; $('cours-supprimer').hidden = !c; montrer('cours-erreur', '');
-  if (c){ $('cours-matiere').value = c.m; $('cours-jour').value = c.jour; $('cours-deb').value = heureDe(c.deb); $('cours-fin').value = heureDe(c.fin); $('cours-salle').value = c.salle || ''; }
-  else { const j = maintenant().jour, l = coursDuJour(j), deb = l.length ? Math.min(l[l.length - 1].fin + 15, 1260) : 480;     // on propose la suite de la journée
+  if (c) remplirCours(c);
+  else { coursBase = null; const j = maintenant().jour, l = coursDuJour(j), deb = l.length ? Math.min(l[l.length - 1].fin + 15, 1260) : 480;     // on propose la suite de la journée
     $('cours-jour').value = j; $('cours-deb').value = heureDe(deb); $('cours-fin').value = heureDe(Math.min(deb + 120, 1439)); $('cours-salle').value = ''; }
   majSalleCours(); $('form-cours').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); $('cours-matiere').focus();
 }
+function remplirCours(c){ $('cours-matiere').value = c.m; $('cours-jour').value = c.jour; $('cours-deb').value = heureDe(c.deb); $('cours-fin').value = heureDe(Math.min(c.fin, 1439)); $('cours-salle').value = c.salle || ''; coursBase = photo(c) + c.m; majSalleCours(); }
 const majSalleCours = () => { const m = matiere($('cours-matiere').value); $('cours-salle').placeholder = m && m.salle ? m.salle : 'Ex. : B12'; };
 // On lit et on vérifie les champs d'un cours : la fonction renvoie le cours, ou bien une phrase qui explique ce qui ne va pas
 function lireCours(m, jour, deb, fin, salle, sauf){
@@ -2922,10 +2945,10 @@ $('form-cours').addEventListener('submit', ev => {
 // --- la liste des matières, et le formulaire pour en ajouter ou en modifier une ---
 function afficherMatieres(){
   const ul = $('matieres'); ul.replaceChildren();
-  if (!MATIERES.length){ ul.append(el('li', 'vide', "Aucune matière pour l'instant. Ajoute la première : son nom, sa couleur, son prof et sa salle.")); return; }
+  if (!MATIERES.length){ ul.append(el('li', 'vide', "Aucune matière pour l'instant. Ajoute la première : son nom, sa couleur, son prof, sa salle et ses horaires.")); return; }
   MATIERES.forEach(m => {
-    const n = CRENEAUX.filter(c => c.m === m.id).length, li = el('li'), txt = el('div', 'txt'), b = el('button', 'btn mini', 'Modifier');
-    txt.append(el('b', '', m.nom), el('small', '', [m.prof, m.salle && 'salle ' + m.salle, n ? n + ' cours par semaine' : 'pas encore dans ta semaine', pomo.matieres[m.id] >= 60 && tempsDit(pomo.matieres[m.id]) + ' de travail au Pomodoro'].filter(Boolean).join(' · ')));
+    const cs = creneauxDe(m), n = cs.length, li = el('li'), txt = el('div', 'txt'), b = el('button', 'btn mini', 'Modifier');
+    txt.append(el('b', '', m.nom), el('small', '', [m.prof, m.salle && 'salle ' + m.salle, n ? n + ' cours par semaine' + (n <= 4 ? ' : ' + cs.map(c => jourCourt(c.jour) + ' ' + hm(c.deb)).join(', ') : '') : 'pas encore dans ta semaine', pomo.matieres[m.id] >= 60 && tempsDit(pomo.matieres[m.id]) + ' de travail au Pomodoro'].filter(Boolean).join(' · ')));
     b.type = 'button'; b.setAttribute('aria-label', 'Modifier ' + m.nom); b.onclick = () => editerMatiere(m);
     li.append(pastille(m.c), txt, b); ul.append(li);
   });
@@ -2936,24 +2959,139 @@ function listesMatieres(){                                             // les li
   const d = $('salles-connues'), vues = []; d.replaceChildren();
   MATIERES.map(m => m.salle).concat(CRENEAUX.map(k => k.salle)).forEach(s => { s = (s || '').trim(); if (s && !vues.includes(s.toLowerCase())){ vues.push(s.toLowerCase()); const o = el('option'); o.value = s; d.append(o); } });
 }
+// --- la section « Horaires » du formulaire d'une matière : une petite carte par créneau (jour, salle, début, fin) ---
+// Ces cartes sont un brouillon : rien ne change dans ta semaine tant que tu n'as pas touché « Enregistrer ».
+const HORAIRES = [];                                                   // les cartes affichées : {id (celui du créneau déjà enregistré, ou null s'il est nouveau), n, jour, deb, fin, salle, err…}
+let OTES = [], NEUFS = [], minuterieNeufs = 0;                         // créneaux retirés du brouillon · créneaux à faire clignoter dans la grille
+const photo = c => c.jour + '|' + c.deb + '|' + c.fin + '|' + (c.salle || '');                    // un créneau résumé en un texte : pour savoir s'il a changé
+const jourCourt = j => JOURS[j].slice(0, 3) + '.';
+const creneauxDe = m => CRENEAUX.filter(c => c.m === m.id).sort((a, b) => ORDRE_JOURS.indexOf(a.jour) - ORDRE_JOURS.indexOf(b.jour) || a.deb - b.deb);   // les créneaux d'une matière, du lundi au dimanche
+const idLibre = () => { let i; do i = nouvelId(); while (CRENEAUX.some(c => c.id === i) || MATIERES.some(m => m.id === i)); return i; };                    // un identifiant que personne n'a encore
+const valeurHoraire = h => ({jour: +h.jour.value, deb: minutesDe(h.deb.value), fin: minutesDe(h.fin.value), salle: texteSur(h.salle.value, 20)});          // ce qui est écrit dans une carte
+function remplirHoraire(h, c){                                         // on écrit un créneau dans une carte, et on retient ce qu'on y a écrit
+  h.jour.value = c.jour; h.deb.value = heureDe(c.deb); h.fin.value = heureDe(Math.min(c.fin, 1439)); h.salle.value = c.salle || '';
+  h.avant = c.deb; h.base = h.id ? photo(c) : null; h.vu = photo(valeurHoraire(h));
+}
+function ajouterHoraire(c, id){                                        // une carte de plus. c : {jour, deb, fin, salle} · id : celui du créneau, s'il existe déjà
+  const n = el('div', 'horaire'), tete = el('div', 'horaire-tete'), titre = el('b'), croix = el('button', 'croix'), champs = el('div', 'horaire-champs'), err = el('p', 'note erreur');
+  const champ = (nom, c) => { const l = el('label', 'champ'); l.append(el('span', '', nom), c); champs.append(l); return c; };
+  const jour = champ('Jour', el('select')), salle = champ('Salle (facultatif)', el('input')), deb = champ('Début', el('input')), fin = champ('Fin', el('input'));
+  ORDRE_JOURS.forEach(j => jour.append(new Option(majuscule(JOURS[j]), j)));
+  deb.type = fin.type = 'time'; salle.type = 'text'; salle.maxLength = 20; salle.autocomplete = 'off'; salle.setAttribute('list', 'salles-connues');
+  croix.type = 'button'; croix.innerHTML = pix('fermer', 12); croix.title = 'Retirer ce créneau'; err.setAttribute('role', 'alert'); err.hidden = true;
+  tete.append(titre, croix); n.append(tete, champs, err); $('horaires-liste').append(n);
+  const h = {id: id || null, n, titre, croix, jour, deb, fin, salle, err};
+  croix.onclick = () => { if (h.id) OTES.push(h.id); retirerHoraire(h); verifierHoraires(); $('horaire-ajouter').focus(); };
+  deb.addEventListener('change', () => {                               // on déplace le début : la fin suit, pour garder la même durée
+    const d = minutesDe(deb.value), f = minutesDe(fin.value);
+    if (d >= 0 && h.avant >= 0 && f > h.avant) fin.value = heureDe(Math.min(d + f - h.avant, 1439));
+    if (d >= 0) h.avant = d;
+  });
+  HORAIRES.push(h); remplirHoraire(h, c); numeroterHoraires(); return h;
+}
+function retirerHoraire(h){ h.n.remove(); HORAIRES.splice(HORAIRES.indexOf(h), 1); numeroterHoraires(); }
+function viderHoraires(){ HORAIRES.length = 0; OTES = []; $('horaires-liste').replaceChildren(); numeroterHoraires(); }
+function numeroterHoraires(){                                          // « Créneau 1 », « Créneau 2 »… et ce qui dépend du nombre de cartes
+  const salle = texteSur($('matiere-salle').value, 20);
+  HORAIRES.forEach((h, i) => { h.titre.textContent = 'Créneau ' + (i + 1); h.croix.setAttribute('aria-label', 'Retirer le créneau ' + (i + 1)); h.salle.placeholder = salle || 'Ex. : B12'; });
+  $('horaires-vide').hidden = HORAIRES.length > 0; $('horaire-ajouter').disabled = HORAIRES.length >= 12; $('horaires-max').hidden = HORAIRES.length < 12;
+}
+// Quel créneau proposer quand on en ajoute un ? La même heure que le précédent, un autre jour ; sinon le premier moment libre de la semaine.
+function proposerHoraire(){
+  const idm = matiereEditee ? matiereEditee.id : null, lignes = HORAIRES.map(valeurHoraire).filter(a => a.deb >= 0 && a.fin > a.deb), der = lignes[lignes.length - 1];
+  const pris = (j, d, f) => lignes.some(l => l.jour === j && d < l.fin && f > l.deb) || CRENEAUX.some(c => c.m !== idm && c.jour === j && d < c.fin && f > c.deb && matiere(c.m));
+  const duree = der ? Math.min(der.fin - der.deb, 600) : 120, deb = der ? Math.min(der.deb, 1439 - duree) : 480, j0 = der ? der.jour + 1 : maintenant().jour;
+  const jours = [0, 1, 2, 3, 4, 5, 6].map(k => (j0 + k) % 7).sort((a, b) => (a % 6 === 0) - (b % 6 === 0));                       // d'abord du lundi au vendredi, puis le week-end
+  for (const j of jours) if (!pris(j, deb, deb + duree)) return {jour: j, deb, fin: deb + duree, salle: ''};
+  for (const j of jours) for (let d = 420; d + duree <= 1260; d += 30) if (!pris(j, d, d + duree)) return {jour: j, deb: d, fin: d + duree, salle: ''};
+  return {jour: jours[0], deb, fin: deb + duree, salle: ''};             // semaine pleine : on propose quand même, et l'avertissement dira ce qui gêne
+}
+// On vérifie toutes les cartes, à chaque changement : heures manquantes, fin avant le début, chevauchement (entre elles, ou avec une autre matière).
+// Chaque carte fautive passe en rouge avec une phrase qui dit pourquoi. La fonction renvoie les valeurs lues, et « ok » si tout est bon.
+function verifierHoraires(){
+  const idm = matiereEditee ? matiereEditee.id : null, v = HORAIRES.map(valeurHoraire), dit = c => JOURS[c.jour] + ' ' + hm(c.deb) + ' – ' + hm(c.fin);
+  let ok = true;
+  HORAIRES.forEach((h, i) => {
+    const a = v[i]; let e = '';
+    if (!(a.deb >= 0) || !(a.fin >= 0)) e = 'Indique une heure de début et une heure de fin.';
+    else if (a.fin <= a.deb) e = "L'heure de fin (" + hm(a.fin) + ") doit être après l'heure de début (" + hm(a.deb) + ').';
+    else if (a.fin - a.deb < 10) e = 'Un cours dure au moins 10 minutes.';
+    else {
+      const k = v.findIndex((b, n) => n !== i && b.jour === a.jour && b.deb >= 0 && b.fin > b.deb && a.deb < b.fin && a.fin > b.deb);
+      const c = k < 0 && CRENEAUX.find(c => c.m !== idm && c.jour === a.jour && a.deb < c.fin && a.fin > c.deb && matiere(c.m));
+      if (k >= 0) e = 'Ce créneau chevauche le créneau ' + (k + 1) + ' (' + dit(v[k]) + ').';
+      else if (c) e = 'Ce créneau chevauche ' + matiere(c.m).nom + ' (' + dit(c) + ').';
+    }
+    a.erreur = e; if (e) ok = false;
+    h.n.classList.toggle('faux', !!e); if (h.err.textContent !== e) h.err.textContent = e; h.err.hidden = !e;
+  });
+  return {v, ok};
+}
+// Les deux formulaires (matière et cours) travaillent sur les mêmes créneaux. Quand l'un enregistre — ou quand le compte se synchronise —, l'autre, s'il est ouvert, se met à jour.
+function accorderFormulaires(){
+  if (!$('form-cours').hidden && coursOuvert){
+    const c = CRENEAUX.find(x => x.id === coursOuvert);
+    if (!c || !matiere(c.m)){ $('form-cours').hidden = true; coursEdite = null; }                 // ce cours n'existe plus
+    else { coursEdite = c; if (photo(c) + c.m !== coursBase) remplirCours(c); }                    // il a changé ailleurs : on montre ses nouvelles valeurs
+  }
+  if ($('form-matiere').hidden) return;
+  if (matiereOuverte){
+    const m = matiere(matiereOuverte); if (!m){ $('form-matiere').hidden = true; matiereEditee = null; viderHoraires(); return; }     // cette matière a été supprimée ailleurs
+    matiereEditee = m;
+    const siens = CRENEAUX.filter(c => c.m === m.id);
+    HORAIRES.filter(h => h.id).forEach(h => { const c = siens.find(x => x.id === h.id); if (!c) retirerHoraire(h); else if (photo(c) !== h.base) remplirHoraire(h, c); });   // retiré ou modifié dans la grille : la carte suit
+    siens.forEach(c => { if (!OTES.includes(c.id) && !HORAIRES.some(h => h.id === c.id)) ajouterHoraire(c, c.id); });                                                       // ajouté dans la grille : une carte de plus
+  }
+  verifierHoraires();
+}
+function signalerCreneaux(ids){                                         // après l'enregistrement : on remonte à la grille, où les créneaux touchés clignotent un instant
+  NEUFS = ids; clearTimeout(minuterieNeufs); minuterieNeufs = setTimeout(() => { NEUFS = []; document.querySelectorAll('.cellule.neuf').forEach(b => b.classList.remove('neuf')); }, 2600);
+  document.querySelectorAll('#semaine .cellule').forEach(b => b.classList.toggle('neuf', ids.includes(b.dataset.id)));
+  $('semaine').closest('.bloc').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'start'});
+}
+$('horaire-ajouter').addEventListener('click', () => { const h = ajouterHoraire(proposerHoraire()); verifierHoraires(); h.n.scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); h.jour.focus({preventScroll: true}); });
+['input', 'change'].forEach(t => $('horaires-liste').addEventListener(t, () => { verifierHoraires(); montrer('matiere-erreur', ''); }));
+$('matiere-salle').addEventListener('input', numeroterHoraires);
+
 function editerMatiere(m){
-  matiereEditee = m || null; supprPret = false; $('form-matiere').hidden = false;
+  matiereEditee = m || null; matiereOuverte = m ? m.id : null; supprPret = false; $('form-matiere').hidden = false;
   $('matiere-titre').textContent = m ? 'Modifier ' + m.nom : 'Nouvelle matière'; montrer('matiere-erreur', '');
   $('matiere-supprimer').hidden = !m; $('matiere-supprimer').textContent = 'Supprimer cette matière';
   $('matiere-nom').value = m ? m.nom : ''; $('matiere-prof').value = m ? m.prof : ''; $('matiere-salle').value = m ? m.salle : '';
   choisirCouleur($('matiere-couleurs'), m ? m.c : couleurLibre());
+  viderHoraires();                                                     // les horaires : ceux que la matière a déjà. Une nouvelle matière n'en a aucun : rien n'entre dans ta semaine sans que tu l'aies demandé
+  if (m) creneauxDe(m).forEach(c => ajouterHoraire(c, c.id));
+  verifierHoraires();
   $('form-matiere').scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); $('matiere-nom').focus();
 }
 $('matiere-ajouter').addEventListener('click', () => editerMatiere(null));
-$('matiere-annuler').addEventListener('click', () => { $('form-matiere').hidden = true; matiereEditee = null; });
+$('matiere-annuler').addEventListener('click', () => { $('form-matiere').hidden = true; matiereEditee = null; viderHoraires(); });
 $('form-matiere').addEventListener('submit', ev => {
   ev.preventDefault();
   const nom = texteSur($('matiere-nom').value, 40);
   if (!nom){ montrer('matiere-erreur', 'Donne un nom à cette matière.'); $('matiere-nom').focus(); return; }
   if (!matiereEditee && MATIERES.length >= 40){ montrer('matiere-erreur', 'Tu as déjà 40 matières : supprime-en une avant d\'en ajouter.'); return; }
-  const v = {nom, c: couleurChoisie($('matiere-couleurs')), prof: texteSur($('matiere-prof').value, 24), salle: texteSur($('matiere-salle').value, 20)};
-  if (matiereEditee) Object.assign(matiereEditee, v); else MATIERES.push(Object.assign({id: nouvelId()}, v));
-  matiereEditee = null; $('form-matiere').hidden = true; majEcole();
+  const {v, ok} = verifierHoraires();
+  if (!ok){                                                            // un horaire ne va pas : on n'enregistre rien, et on montre lequel
+    const i = v.findIndex(a => a.erreur), h = HORAIRES[i];
+    montrer('matiere-erreur', 'Le créneau ' + (i + 1) + ' est à corriger (en rouge) avant d\'enregistrer.');
+    h.n.scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); (v[i].fin <= v[i].deb ? h.fin : h.deb).focus({preventScroll: true}); return;
+  }
+  const idm = matiereEditee ? matiereEditee.id : null;
+  if (CRENEAUX.filter(c => c.m !== idm).length + v.length > 120){ montrer('matiere-erreur', 'Ta semaine ne peut pas dépasser 120 cours : retire un créneau.'); return; }
+  const val = {nom, c: couleurChoisie($('matiere-couleurs')), prof: texteSur($('matiere-prof').value, 24), salle: texteSur($('matiere-salle').value, 20)};
+  const m = matiereEditee ? Object.assign(matiereEditee, val) : Object.assign({id: idLibre()}, val); if (!matiereEditee) MATIERES.push(m);
+  // les horaires : on garde les créneaux encore affichés, on retire les autres, on modifie ceux qui ont changé, on crée les nouveaux
+  const avant = CRENEAUX.length, gardes = HORAIRES.map(h => h.id).filter(Boolean), touches = [];
+  CRENEAUX = CRENEAUX.filter(c => c.m !== m.id || gardes.includes(c.id));
+  const otes = avant - CRENEAUX.length;
+  HORAIRES.forEach((h, i) => {
+    const a = v[i], salle = a.salle.toLowerCase() === m.salle.toLowerCase() ? '' : a.salle, c = h.id && CRENEAUX.find(x => x.id === h.id);
+    if (c){ if (photo(a) !== h.vu){ Object.assign(c, {jour: a.jour, deb: a.deb, fin: a.fin, salle}); touches.push(c.id); } }   // un créneau qu'on n'a pas touché reste exactement comme il était
+    else { const neuf = {id: idLibre(), jour: a.jour, deb: a.deb, fin: a.fin, m: m.id, salle}; CRENEAUX.push(neuf); touches.push(neuf.id); }
+  });
+  matiereEditee = null; $('form-matiere').hidden = true; viderHoraires(); majEcole();
+  if (touches.length || otes) signalerCreneaux(touches);
 });
 $('matiere-supprimer').addEventListener('click', () => {                // supprimer une matière supprime aussi ses cours : on le dit, et on demande un second clic
   const m = matiereEditee; if (!m) return;
@@ -2961,7 +3099,7 @@ $('matiere-supprimer').addEventListener('click', () => {                // suppr
   if (n && !supprPret){ supprPret = true; $('matiere-supprimer').textContent = 'Confirmer : supprimer aussi ' + (n > 1 ? 'ses ' + n + ' cours' : 'son cours'); return; }
   MATIERES = MATIERES.filter(x => x !== m); CRENEAUX = CRENEAUX.filter(c => c.m !== m.id);
   const touche = rappels.some(r => r.m === m.id); rappels.forEach(r => { if (r.m === m.id) r.m = null; });     // ce qui était à rendre dans cette matière reste, sans matière
-  matiereEditee = null; $('form-matiere').hidden = true; $('form-cours').hidden = true; coursEdite = null;
+  matiereEditee = null; $('form-matiere').hidden = true; viderHoraires(); $('form-cours').hidden = true; coursEdite = null;
   majEcole(); if (touche) majAFaire();
 });
 $('ecole-nom').addEventListener('input', e => { ecoleNom = texteSur(e.target.value, 10); enregistrer('ecole'); });
