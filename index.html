@@ -1,5 +1,5 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style></head><body>
-<title>Campus des cours</title>
+<title>Kampix</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <script>
 /* ============ LA CONNEXION PAR EMAIL ET MOT DE PASSE : les coordonnées de ton projet Firebase ============
@@ -485,7 +485,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
 <main class="connexion entree" id="connexion">
   <canvas id="accueil-vue" role="img" aria-label="Le campus au coucher du soleil, en pixel art : l'école et son drapeau sur la colline, la lagune, des habitants et leurs animaux qui se promènent"></canvas>
   <header class="cx-nav">
-    <button class="cx-logo" id="cx-logo" type="button" aria-label="Campus des cours : revenir au grand titre"><i data-pix="ecole" data-t="27"></i><span>Campus des cours</span></button>
+    <button class="cx-logo" id="cx-logo" type="button" aria-label="Kampix : revenir au grand titre"><i data-pix="ecole" data-t="27"></i><span>Kampix</span></button>
     <div class="segments" role="tablist" aria-label="Connexion ou création de compte">
       <button role="tab" type="button" id="cx-seg-entrer" data-c="entrer" aria-selected="true" aria-controls="cx-entrer">Connexion</button>
       <button role="tab" type="button" id="cx-seg-creer" data-c="creer" aria-selected="false" aria-controls="cx-creer">Créer un compte</button>
@@ -494,13 +494,13 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
   <p class="cx-rouvre" id="cx-rouvre" role="status">Un instant : ton campus se rouvre<span aria-hidden="true">...</span></p>
   <section class="cx-hero" id="cx-hero" aria-labelledby="cx-h1">
     <div class="cx-titre">
-      <h1 id="cx-h1">Le campus des cours</h1>
+      <h1 id="cx-h1">Kampix</h1>
       <p class="cx-accroche">Ta ville en pixel art, qui vit au rythme de ton emploi du temps.</p>
       <div class="cx-actions">
         <button class="cx-btn plein" id="cx-go-entrer" type="button">Connexion</button>
         <button class="cx-btn creux" id="cx-go-creer" type="button">Créer un compte</button>
       </div>
-      <a class="cx-apk" id="cx-apk" href="#" download="campus-des-cours.apk" hidden><i data-pix="bas" data-t="14"></i>Installer l'appli Android</a>
+      <a class="cx-apk" id="cx-apk" href="#" download="kampix.apk" hidden><i data-pix="bas" data-t="14"></i>Installer l'appli Android</a>
     </div>
     <button class="cx-bas" id="cx-descendre" type="button" aria-label="Descendre vers la connexion"><i data-pix="bas" data-t="24"></i></button>
   </section>
@@ -591,7 +591,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
 
   <aside class="menu" id="menu" aria-label="Menu" inert>
     <header class="menu-tete">
-      <h1>Le campus des cours</h1>
+      <h1>Kampix</h1>
       <button class="fermer" id="menu-fermer" type="button" aria-label="Fermer le menu et revenir à la ville" title="Fermer"><i data-pix="fermer" data-t="12"></i></button>
     </header>
     <div class="menu-corps" id="menu-corps">
@@ -872,7 +872,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       </div>
       <div class="reglage" id="reglage-apk" style="margin-top:16px" hidden>
         <div><h2>Appli Android</h2><p class="note" id="apk-note"></p></div>
-        <div><div><a class="btn" id="apk-lien" href="#" download="campus-des-cours.apk" hidden><i data-pix="bas" data-t="14"></i>Télécharger l'appli</a></div></div>
+        <div><div><a class="btn" id="apk-lien" href="#" download="kampix.apk" hidden><i data-pix="bas" data-t="14"></i>Télécharger l'appli</a></div></div>
       </div>
       <div class="reglage" id="reglage-plein" style="margin-top:16px" hidden>
         <div><h2>Plein écran</h2><p class="note">La ville prend tout l'écran, sans la barre du navigateur. Pour en sortir : le geste « retour », ou la touche Échap.</p></div>
@@ -4613,7 +4613,7 @@ function majPomoVif(){                                                  // ce qu
   const p = $('hud-pomo'); p.hidden = !actif;
   if (actif){ p.innerHTML = pix(minuteur.etat === 'pause' ? 'pauser' : 'tomate', 14); p.append(document.createTextNode(t));
     p.setAttribute('aria-label', ph + ' : il reste ' + t + '. Rouvrir la séance.'); p.classList.toggle('vif', minuteur.phase === 'travail'); }
-  document.title = minuteur.etat === 'marche' ? t + ' · ' + ph + ' — Campus des cours' : 'Campus des cours';   // sur ton site, le temps s'affiche aussi dans l'onglet du navigateur
+  document.title = minuteur.etat === 'marche' ? t + ' · ' + ph + ' — Kampix' : 'Kampix';   // sur ton site, le temps s'affiche aussi dans l'onglet du navigateur
   if (CINE.etat === 'ferme') return;
   const j = jourPomo(), m = matiere(minuteur.m), sm = m ? Math.max(0, (j.m[m.id] || 0) + Math.round(minuteur.attente / 1000)) : 0;
   $('cine-phase').textContent = ph + (minuteur.etat === 'pause' ? ' · en pause' : '');
@@ -5469,9 +5469,9 @@ function dessinerAccueil(t){
 }
 
 // --- L'appli Android : un bouton pour la télécharger (sur la page de connexion, pour les téléphones Android ; et dans Réglages) ---
-// Le fichier campus-des-cours.apk est posé à côté de index.html, dans le dépôt campus-cours (il y est recopié tout seul à chaque nouvelle version de l'appli).
+// Le fichier kampix.apk est posé à côté de index.html, dans le dépôt campus-cours (il y est recopié tout seul à chaque nouvelle version de l'appli).
 // Le bouton n'apparaît que si le fichier est bien là, et jamais dans l'appli elle-même.
-const APK = 'https://tidianeirl-source.github.io/campus-cours/campus-des-cours.apk';
+const APK = 'https://tidianeirl-source.github.io/campus-cours/kampix.apk';
 const UA = navigator.userAgent || '', SUR_ANDROID = /Android/i.test(UA), DANS_APPLI = /CampusApp\//.test(UA), SUR_IPHONE = /iPhone|iPad|iPod/i.test(UA);
 (async function proposerAppli(){
   if (DANS_APPLI) return;                                              // déjà dans l'appli : rien à proposer
