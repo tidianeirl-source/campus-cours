@@ -175,6 +175,19 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .segments button{border:2px solid var(--trait);background:var(--panneau);box-shadow:0 4px 0 var(--trait);padding:8px 4px;font-weight:700;font-size:19px;color:var(--sourdine);cursor:pointer}
 .segments button:active,.segments button[aria-selected=true]{transform:translateY(4px);box-shadow:none}
 .segments button[aria-selected=true]{background:var(--or);color:#1b1730}
+.segments.trois{grid-template-columns:repeat(3,minmax(0,1fr))}
+.segments button[aria-pressed=true]{transform:translateY(4px);box-shadow:none;background:var(--or);color:#1b1730}
+/* ----- le drapeau de la cour : celui qui est choisi, puis la liste des pays ----- */
+.drapeau-choisi{display:flex;align-items:center;gap:12px}
+.drapeau-choisi canvas{width:72px;height:48px;flex:none;border:2px solid var(--trait);image-rendering:pixelated;background:var(--creux)}
+.drapeau-choisi b{font-size:22px;line-height:1;overflow-wrap:anywhere;min-width:0}
+.drapeaux{list-style:none;margin:0;padding:0;max-height:236px;overflow-y:auto;border:2px solid var(--trait);background:var(--creux)}
+.drapeaux button{width:100%;min-height:40px;display:flex;align-items:center;gap:10px;padding:5px 8px;border:0;border-bottom:2px solid var(--filet);background:transparent;text-align:left;cursor:pointer;line-height:1}
+.drapeaux li:last-child button{border-bottom:0}
+.drapeaux button span{min-width:0;overflow-wrap:anywhere}
+.drapeaux canvas{width:36px;height:24px;flex:none;border:2px solid var(--trait);image-rendering:pixelated}
+.drapeaux button:hover{background:var(--panneau)}
+.drapeaux button[aria-selected=true]{background:var(--or);color:#1b1730;font-weight:700}
 .choix{display:grid;grid-template-columns:minmax(0,1fr);gap:6px 12px;align-items:start}
 .choix-nom{font-size:18px;font-weight:600;color:var(--sourdine)}
 .pastilles,.coches{display:flex;flex-wrap:wrap;gap:8px}
@@ -198,10 +211,110 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .pastille input:focus-visible + span{outline:3px solid var(--or);outline-offset:5px}
 .tuile input:focus-visible + .tuile-boite,.coche input:focus-visible + span{outline:3px solid var(--or);outline-offset:2px}
 
-/* ----- la page de connexion ----- */
-.connexion{display:flex;justify-content:center;padding:28px 0 12px}
-.connexion-carte{width:min(440px,100%);background:var(--panneau);border:3px solid var(--trait);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:8px 8px 0 var(--ombre);margin-right:8px}
-.connexion-carte canvas{display:block;width:100%;height:128px;background:var(--ciel);border:2px solid var(--trait)}
+/* ----- la page de connexion : une grande scène (le campus au coucher du soleil), un grand titre, puis le formulaire sur fond de nuit.
+   Les deux « écrans » sont posés l'un sous l'autre : on passe de l'un à l'autre en faisant défiler (ou avec les boutons). ----- */
+.connexion{position:fixed;inset:0;z-index:11;height:100vh;height:100dvh;overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;scrollbar-width:none;
+  background:#1b1238;color:#ffffff;color-scheme:dark;--p:0;
+  --panneau:#2a1d55;--encre:#ffffff;--sourdine:#cfc3f2;--trait:#8f7be0;--filet:#4a3a86;--creux:#221646;--accent:#ff8a5b;--accent-fonce:#b84a2a;--sur-accent:#1b1238;--or:#ffd27a;--ombre:#0d0820;
+  --cx-g:max(20px,env(safe-area-inset-left,0px));--cx-d:max(20px,env(safe-area-inset-right,0px));--cx-haut:env(safe-area-inset-top,0px);
+  --cx-contour:2px 0 0 #2a1d5e,-2px 0 0 #2a1d5e,0 2px 0 #2a1d5e,0 -2px 0 #2a1d5e,2px 2px 0 #2a1d5e,-2px 2px 0 #2a1d5e,2px -2px 0 #2a1d5e,-2px -2px 0 #2a1d5e}
+.connexion::-webkit-scrollbar{display:none}
+#accueil-vue{position:fixed;left:0;top:0;width:100%;height:100%;display:block;z-index:0;image-rendering:pixelated}
+/* la barre du haut : le nom à gauche, les deux volets à droite */
+.cx-nav{position:fixed;left:0;right:0;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + var(--cx-haut)) var(--cx-d) 14px var(--cx-g);pointer-events:none}
+.connexion.bas .cx-nav{background:linear-gradient(#1b1238 60%,rgba(27,18,56,0))}
+.cx-nav > *{pointer-events:auto}
+.cx-logo{display:flex;align-items:center;gap:10px;min-height:40px;padding:0;background:none;border:0;color:#ffffff;font:400 11px/1.4 var(--f-titre);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;text-shadow:var(--cx-contour)}
+.cx-logo svg{flex:none;filter:drop-shadow(2px 2px 0 #2a1d5e)}
+.connexion .segments{display:flex;gap:8px;padding:0}
+.connexion .segments button{min-height:40px;padding:0 12px;border:2px solid transparent;background:none;box-shadow:none;transform:none;color:#ffffff;font:700 21px/1 var(--f-texte);letter-spacing:.02em;text-shadow:var(--cx-contour)}
+.connexion .segments button[aria-selected=true]{background:none;color:#ffffff;transform:none;box-shadow:inset 0 -3px 0 #ffd27a}
+.connexion .segments #cx-seg-creer{border-color:#ffffff;background:rgba(27,18,56,.35)}
+.connexion .segments #cx-seg-creer[aria-selected=true]{background:#ffffff;color:#1b1238;text-shadow:none;box-shadow:none}
+.connexion .segments button:active{transform:translateY(2px)}
+/* premier écran : le grand titre */
+.cx-hero{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:flex-end;padding:calc(76px + var(--cx-haut)) var(--cx-d) 110px var(--cx-g)}
+.cx-titre{position:relative;width:min(48%,660px);margin-right:2%;display:flex;flex-direction:column;align-items:flex-start;gap:18px;transform:translateY(calc(var(--p) * -70px));opacity:calc(1 - var(--p) * 1.7)}
+.cx-titre h1{margin:0;font:400 clamp(24px,4.2vw,60px)/1.32 var(--f-titre);letter-spacing:.06em;text-transform:uppercase;color:#ffffff;text-shadow:.07em .07em 0 #7a2f86,.14em .14em 0 rgba(27,18,56,.5);text-wrap:balance}
+.cx-titre h1 > span{display:inline-block;white-space:nowrap}
+.cx-titre h1 > span > span{display:inline-block}
+.cx-accroche{margin:0;max-width:30ch;font:400 clamp(21px,1.9vw,28px)/1.1 var(--f-texte);color:#ffffff;text-shadow:var(--cx-contour)}
+.cx-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px}
+.cx-btn{min-height:48px;padding:0 20px;border:3px solid #1b1238;font:400 12px/1.25 var(--f-titre);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-bottom:5px}
+.cx-btn.plein{background:#ffffff;color:#1b1238;box-shadow:0 5px 0 #1b1238}
+.cx-btn.creux{background:rgba(27,18,56,.45);color:#ffffff;border-color:#ffffff;box-shadow:0 5px 0 rgba(27,18,56,.75)}
+.cx-btn:active:not([disabled]){transform:translateY(5px);box-shadow:none}
+.cx-btn[disabled]{opacity:.6;cursor:default}
+.cx-bas{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:44px;height:44px;margin-left:-22px;padding:0;display:grid;place-items:center;background:none;border:0;color:#ffffff;cursor:pointer;opacity:calc(1 - var(--p) * 3)}
+.cx-bas svg{animation:cx-rebond 1.4s steps(4) infinite;filter:drop-shadow(2px 2px 0 #2a1d5e)}
+/* second écran : le formulaire */
+.cx-zone{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;padding:calc(84px + var(--cx-haut)) var(--cx-d) calc(36px + env(safe-area-inset-bottom,0px)) var(--cx-g)}
+.cx-form{width:min(430px,100%);min-width:0;margin-left:clamp(0px,7vw,130px);display:flex;flex-direction:column;gap:14px;opacity:calc(var(--p) * 2.4 - 1.3);transform:translateY(calc((1 - var(--p)) * 60px))}
+.cx-sur{margin:0;font:400 21px/1 var(--f-texte);letter-spacing:.06em;color:#ffb3c7}
+.cx-form h2{margin:0 0 4px;font:400 clamp(20px,3vw,34px)/1.35 var(--f-titre);letter-spacing:.04em;text-transform:uppercase;color:#ffffff;text-shadow:.1em .1em 0 #7a2f86;text-wrap:balance}
+.connexion input[type=text],.connexion input[type=email],.connexion input[type=password],.connexion select{height:44px;background-color:#221646;border-color:#8f7be0;color:#ffffff;box-shadow:inset 0 3px 0 rgba(0,0,0,.25)}
+.connexion input::placeholder{color:#9d90c9;opacity:1}
+.connexion input:focus-visible,.connexion select:focus-visible{border-color:#ffd27a}
+.connexion .btn{min-height:44px}
+.connexion .btn.fort{min-height:48px;background:#ffffff;color:#1b1238;border-color:#1b1238;box-shadow:0 4px 0 #0d0820;font:400 11px/1.3 var(--f-titre);letter-spacing:.05em;text-transform:uppercase}
+.connexion .lien{color:#ffd27a}
+.connexion .compte-bouton{color:#ffffff;box-shadow:0 4px 0 #0d0820}
+.connexion #cx-info{margin:0;font-size:17px;line-height:1.12;color:#a99cd6;max-width:54ch}
+/* les messages : une erreur se voit tout de suite (cadre orange, point d'exclamation, petite secousse) ; une bonne nouvelle est en vert */
+.connexion #cx-etat{position:relative;margin:0;padding:10px 12px 10px 44px;border:2px solid #ff8a5b;background:rgba(255,138,91,.15);color:#ffe9df;font-weight:600;font-size:19px;line-height:1.12}
+.connexion #cx-etat::before{content:"!";position:absolute;left:10px;top:9px;width:22px;height:22px;display:grid;place-items:center;background:#ff8a5b;color:#1b1238;font:400 11px/1 var(--f-titre)}
+.connexion #cx-etat.bon{border-color:#7ee0a1;background:rgba(126,224,161,.13);color:#e9fff1}
+.connexion #cx-etat.bon::before{content:"";background:#7ee0a1 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 5' shape-rendering='crispEdges'%3E%3Cpath fill='%231b1238' d='M5 0h1v1H5zM4 1h1v1H4zM0 2h1v1H0zM3 2h1v1H3zM1 3h2v1H1zM2 4h1v1H2z'/%3E%3C/svg%3E") center/12px 10px no-repeat}
+.connexion #cx-etat.secoue{animation:cx-secoue .4s steps(8)}
+/* un compte était resté ouvert : pendant qu'il se rouvre, on ne montre que la scène et un petit mot */
+.cx-rouvre{display:none;position:fixed;left:0;right:0;top:40%;z-index:2;margin:0;padding:0 20px;text-align:center;font:400 clamp(11px,1.5vw,16px)/1.7 var(--f-titre);letter-spacing:.06em;color:#ffffff;text-shadow:var(--cx-contour)}
+.cx-rouvre span{display:inline-block;width:0;overflow:hidden;white-space:nowrap;vertical-align:bottom;animation:cx-points 1.2s steps(4,jump-none) infinite}
+.connexion.rouvre{overflow:hidden}
+.connexion.rouvre .cx-rouvre{display:block}
+.connexion.rouvre .cx-hero,.connexion.rouvre .cx-zone,.connexion.rouvre .segments{visibility:hidden}
+@keyframes cx-points{to{width:3.3em}}
+/* les animations : par petits « pas », comme dans un jeu en pixel art */
+@keyframes cx-monte{from{opacity:0;transform:translateY(18px)}}
+@keyframes cx-descend{from{opacity:0;transform:translateY(-16px)}}
+@keyframes cx-lettre{from{opacity:0;transform:translateY(-45%)}}
+@keyframes cx-pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.08)}}
+@keyframes cx-gauche{from{opacity:0;transform:translateX(-12px)}}
+@keyframes cx-droite{from{opacity:0;transform:translateX(12px)}}
+@keyframes cx-secoue{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes cx-rebond{50%{transform:translateY(6px)}}
+.connexion.entree .cx-nav{animation:cx-descend .5s steps(5) .15s both}
+.connexion.entree .cx-titre h1 > span > span{animation:cx-lettre .3s steps(4) both;animation-delay:calc(.4s + var(--i) * 42ms)}
+.connexion.entree .cx-accroche{animation:cx-monte .45s steps(5) 1.15s both}
+.connexion.entree .cx-btn.plein{animation:cx-pop .35s steps(4) 1.4s both}
+.connexion.entree .cx-btn.creux{animation:cx-pop .35s steps(4) 1.52s both}
+.connexion.entree .cx-bas{animation:cx-monte .4s steps(4) 1.9s both}
+.cx-form.vers-d > .cx-sur,.cx-form.vers-d > h2,.cx-form.vers-d > [role=tabpanel]{animation:cx-droite .34s steps(6) both}
+.cx-form.vers-g > .cx-sur,.cx-form.vers-g > h2,.cx-form.vers-g > [role=tabpanel]{animation:cx-gauche .34s steps(6) both}
+.cx-form.vers-d > [role=tabpanel],.cx-form.vers-g > [role=tabpanel]{animation-delay:.08s}
+@media (prefers-reduced-motion:reduce){.connexion *{animation:none!important}}
+/* téléphone tenu debout : le titre en haut, la scène au milieu, les boutons en bas ; le formulaire prend toute la largeur, sous une petite scène */
+@media (max-aspect-ratio:21/20){
+  .cx-hero{flex-direction:column;justify-content:flex-start;align-items:stretch;padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+  .cx-titre{flex:1;width:100%;margin:0;align-items:center;text-align:center;gap:14px}
+  .cx-titre h1{font-size:clamp(22px,7.6vw,44px)}
+  .cx-accroche{max-width:26ch}
+  .cx-actions{margin-top:auto;width:100%;flex-direction:column;align-items:stretch;gap:8px}
+  .cx-zone{align-items:flex-start;padding-top:calc(206px + var(--cx-haut))}
+  .cx-form{width:100%;margin-left:0}
+}
+@media (max-width:520px){.cx-logo span{display:none}}
+@media (max-width:400px){.connexion .segments{gap:6px}.connexion .segments button{padding:0 8px;font-size:19px}.connexion .segments #cx-seg-creer{white-space:normal;width:84px;line-height:.9}}
+/* écran peu haut (téléphone couché) : tout se resserre */
+@media (max-height:480px){
+  .cx-hero{padding-top:calc(58px + var(--cx-haut));padding-bottom:18px}
+  .cx-titre{gap:10px;width:min(56%,660px)}
+  .cx-titre h1{font-size:clamp(18px,6.6vh,32px)}
+  .cx-accroche{font-size:20px}
+  .cx-btn{min-height:42px;padding:0 12px;font-size:10px}
+  .cx-actions{gap:10px}
+  .cx-bas{display:none}
+  .cx-zone{padding-top:calc(64px + var(--cx-haut))}
+}
 .compte-bouton{display:flex;width:100%;align-items:center;gap:10px;text-align:left;background:var(--creux);border:2px solid var(--trait);box-shadow:0 4px 0 var(--trait);padding:9px 10px;cursor:pointer;font-weight:700;margin-bottom:4px}
 .compte-bouton:active{transform:translateY(4px);box-shadow:none}
 .compte-bouton small{margin-left:auto;color:var(--sourdine);font-weight:500}
@@ -365,42 +478,57 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
 @media (prefers-reduced-motion:reduce){.menu,.scene{transition:none}}
 </style>
 
-<main class="connexion" id="connexion">
-  <div class="connexion-carte">
-    <canvas id="accueil-vue" role="img" aria-label="Des personnages et des animaux en pixel art qui se promènent"></canvas>
-    <div>
-      <h1>Le campus des cours</h1>
-      <p class="doux">Ta ville en pixel art, qui vit au rythme de ton emploi du temps.</p>
-    </div>
-    <div class="segments" role="tablist" aria-label="Connexion">
-      <button role="tab" type="button" id="cx-seg-entrer" data-c="entrer" aria-selected="true" aria-controls="cx-entrer">Se connecter</button>
+<main class="connexion entree" id="connexion">
+  <canvas id="accueil-vue" role="img" aria-label="Le campus au coucher du soleil, en pixel art : l'école et son drapeau sur la colline, la lagune, des habitants et leurs animaux qui se promènent"></canvas>
+  <header class="cx-nav">
+    <button class="cx-logo" id="cx-logo" type="button" aria-label="Campus des cours : revenir au grand titre"><i data-pix="ecole" data-t="27"></i><span>Campus des cours</span></button>
+    <div class="segments" role="tablist" aria-label="Connexion ou création de compte">
+      <button role="tab" type="button" id="cx-seg-entrer" data-c="entrer" aria-selected="true" aria-controls="cx-entrer">Connexion</button>
       <button role="tab" type="button" id="cx-seg-creer" data-c="creer" aria-selected="false" aria-controls="cx-creer">Créer un compte</button>
     </div>
-    <div class="bloc" id="cx-entrer" role="tabpanel" aria-labelledby="cx-seg-entrer">
-      <form class="bloc" id="cx-email-form" novalidate hidden>
-        <label class="champ"><span>Ton email</span><input id="cx-email" type="email" inputmode="email" maxlength="120" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="toi@exemple.com"></label>
-        <label class="champ"><span>Ton mot de passe</span><input id="cx-mdp" type="password" maxlength="128" autocomplete="current-password"></label>
-        <label class="voir"><input class="case" id="cx-voir" type="checkbox"> Afficher le mot de passe</label>
-        <button class="btn fort" id="cx-entrer-ok" type="submit">Se connecter</button>
-        <button class="lien" id="cx-oubli" type="button">Mot de passe oublié ?</button>
-      </form>
-      <p class="note" id="cx-comptes-titre" hidden>Comptes gardés sur cet appareil, sans mot de passe :</p>
-      <ul class="liste" id="cx-comptes"></ul>
-      <button class="btn fort" id="cx-claude" type="button" hidden>Se connecter avec mon compte Claude</button>
-    </div>
-    <form class="bloc" id="cx-creer" role="tabpanel" aria-labelledby="cx-seg-creer" novalidate hidden>
-      <label class="champ"><span>Ton prénom ou ton pseudo</span><input id="cx-prenom" type="text" maxlength="14" autocomplete="off" placeholder="Ex. : Sam"></label>
-      <div class="bloc" id="cx-creer-email" hidden>
-        <label class="champ"><span>Ton email</span><input id="cx-email2" type="email" inputmode="email" maxlength="120" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="toi@exemple.com"></label>
-        <label class="champ"><span>Choisis un mot de passe (6 caractères au moins)</span><input id="cx-mdp2" type="password" maxlength="128" autocomplete="new-password"></label>
-        <label class="voir"><input class="case" id="cx-voir2" type="checkbox"> Afficher le mot de passe</label>
-        <label class="champ" id="cx-champ-reprise" hidden><span>Tu avais déjà un compte sur cet appareil ?</span><select id="cx-reprise"></select></label>
+  </header>
+  <p class="cx-rouvre" id="cx-rouvre" role="status">Un instant : ton campus se rouvre<span aria-hidden="true">...</span></p>
+  <section class="cx-hero" id="cx-hero" aria-labelledby="cx-h1">
+    <div class="cx-titre">
+      <h1 id="cx-h1">Le campus des cours</h1>
+      <p class="cx-accroche">Ta ville en pixel art, qui vit au rythme de ton emploi du temps.</p>
+      <div class="cx-actions">
+        <button class="cx-btn plein" id="cx-go-entrer" type="button">Connexion</button>
+        <button class="cx-btn creux" id="cx-go-creer" type="button">Créer un compte</button>
       </div>
-      <button class="btn fort" id="cx-creer-ok" type="submit">Créer mon compte</button>
-    </form>
-    <p class="note erreur" id="cx-etat" role="status" hidden></p>
-    <p class="note" id="cx-info"></p>
-  </div>
+    </div>
+    <button class="cx-bas" id="cx-descendre" type="button" aria-label="Descendre vers la connexion"><i data-pix="bas" data-t="24"></i></button>
+  </section>
+  <section class="cx-zone" id="cx-zone" aria-labelledby="cx-tete">
+    <div class="cx-form" id="cx-form">
+      <p class="cx-sur" id="cx-sur">Bon retour au campus</p>
+      <h2 id="cx-tete">Connexion</h2>
+      <div class="bloc" id="cx-entrer" role="tabpanel" aria-labelledby="cx-seg-entrer">
+        <form class="bloc" id="cx-email-form" novalidate hidden>
+          <label class="champ"><span>Ton email</span><input id="cx-email" type="email" inputmode="email" maxlength="120" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="toi@exemple.com"></label>
+          <label class="champ"><span>Ton mot de passe</span><input id="cx-mdp" type="password" maxlength="128" autocomplete="current-password"></label>
+          <label class="voir"><input class="case" id="cx-voir" type="checkbox"> Afficher le mot de passe</label>
+          <button class="btn fort" id="cx-entrer-ok" type="submit">Se connecter</button>
+          <button class="lien" id="cx-oubli" type="button">Mot de passe oublié ?</button>
+        </form>
+        <p class="note" id="cx-comptes-titre" hidden>Comptes gardés sur cet appareil, sans mot de passe :</p>
+        <ul class="liste" id="cx-comptes"></ul>
+        <button class="btn fort" id="cx-claude" type="button" hidden>Se connecter avec mon compte Claude</button>
+      </div>
+      <form class="bloc" id="cx-creer" role="tabpanel" aria-labelledby="cx-seg-creer" novalidate hidden>
+        <label class="champ"><span>Ton prénom ou ton pseudo</span><input id="cx-prenom" type="text" maxlength="14" autocomplete="off" placeholder="Ex. : Sam"></label>
+        <div class="bloc" id="cx-creer-email" hidden>
+          <label class="champ"><span>Ton email</span><input id="cx-email2" type="email" inputmode="email" maxlength="120" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="toi@exemple.com"></label>
+          <label class="champ"><span>Choisis un mot de passe (6 caractères au moins)</span><input id="cx-mdp2" type="password" maxlength="128" autocomplete="new-password"></label>
+          <label class="voir"><input class="case" id="cx-voir2" type="checkbox"> Afficher le mot de passe</label>
+          <label class="champ" id="cx-champ-reprise" hidden><span>Tu avais déjà un compte sur cet appareil ?</span><select id="cx-reprise"></select></label>
+        </div>
+        <button class="btn fort" id="cx-creer-ok" type="submit">Créer mon compte</button>
+      </form>
+      <p class="note erreur" id="cx-etat" role="status" hidden></p>
+      <p class="note" id="cx-info"></p>
+    </div>
+  </section>
 </main>
 
 <div class="appli" id="appli" hidden>
@@ -421,6 +549,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       <div class="txt"><b id="hud-matiere"></b><small id="hud-detail"></small><div class="jauge" id="hud-jauge"><div id="hud-barre"></div></div></div>
     </div>
     <div class="hud bd">
+      <button class="verre" id="cam-son" type="button" aria-pressed="false" aria-label="Sons d'ambiance" title="Sons d'ambiance"><i data-pix="son" data-t="18"></i></button>
       <button class="verre" id="cam-suivre" type="button" aria-pressed="false" aria-label="Me suivre" title="Me suivre"><i data-pix="suivre" data-t="18"></i></button>
       <button class="verre" id="cam-ensemble" type="button" aria-label="Vue d'ensemble" title="Vue d'ensemble"><i data-pix="ensemble" data-t="18"></i></button>
       <button class="verre" id="cam-plus" type="button" aria-label="Zoomer" title="Zoomer"><i data-pix="plus" data-t="18"></i></button>
@@ -701,6 +830,23 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div><select id="meteo-mode" aria-label="Météo affichée"><option value="soleil">Soleil</option><option value="nuages">Nuages</option><option value="pluie">Pluie</option><option value="direct">En direct, là où je suis</option></select></div>
       </div>
       <div class="reglage" style="margin-top:16px">
+        <div><h2>Drapeau de la cour</h2><p class="note">Le drapeau qui flotte au mât de ton école. Choisis celui de n'importe quel pays.</p></div>
+        <div>
+          <div class="drapeau-choisi"><canvas id="drapeau-vue" width="18" height="12" aria-hidden="true"></canvas><b id="drapeau-nom"></b></div>
+          <label class="champ"><span>Chercher un pays</span><input id="drapeau-cherche" type="text" maxlength="30" autocomplete="off" placeholder="Ex. : Côte d'Ivoire"></label>
+          <ul class="drapeaux" id="drapeaux" role="listbox" aria-label="Pays"></ul>
+          <p class="note" id="drapeaux-vide" hidden>Aucun pays ne correspond à cette recherche.</p>
+        </div>
+      </div>
+      <div class="reglage" style="margin-top:16px">
+        <div><h2>Qualité graphique</h2><p class="note" id="qualite-note"></p></div>
+        <div><div class="segments trois" role="group" aria-label="Qualité graphique"><button id="qualite-0" type="button" aria-pressed="false">Basse</button><button id="qualite-1" type="button" aria-pressed="false">Moyenne</button><button id="qualite-2" type="button" aria-pressed="false">Haute</button></div></div>
+      </div>
+      <div class="reglage" style="margin-top:16px">
+        <div><h2>Sons d'ambiance</h2><p class="note">Les oiseaux le matin, la rue, la pluie, la cour de récréation, les grillons la nuit. Le bouton haut-parleur, sur la ville, les coupe aussi.</p></div>
+        <div><label class="voir"><input class="case" id="ambiance-son" type="checkbox"> Jouer les sons de la ville</label></div>
+      </div>
+      <div class="reglage" style="margin-top:16px">
         <div><h2>Pomodoro</h2><p class="note">Des sessions de travail coupées par des pauses. Après 4 sessions, la pause est plus longue. Les durées sont en minutes.</p></div>
         <div>
           <div class="champs trois">
@@ -864,7 +1010,7 @@ let taches = [];                                           // tâches : {id, tex
 let pomo = {reglages: {travail: 25, pause: 5, longue: 15, son: true}, jours: {}, matieres: {}};   // Pomodoro : tes durées (en minutes), tes sessions par jour {n, s, m}, le temps travaillé par matière (en secondes)
 let boutique = {possede: [], essais: [], porte: {}, deco: []};   // la boutique : objets gratuits obtenus, achats d'essai, ce que tu portes (un objet par endroit), les décorations posées chez toi
 let presences = {};                                        // un cours suivi : {m, deb, arrive, finTs}
-let animalNom = '', animal = {}, look = {}, noms = {}, ecoleNom = '', assistantVu = false, choisi = null;
+let animalNom = '', animal = {}, look = {}, noms = {}, ecoleNom = '', drapeau = 'CI', assistantVu = false, choisi = null;   // drapeau : le code du pays dont le drapeau flotte dans la cour
 const PRIORITES = ['basse', 'normale', 'haute'];
 function delai(x){                                         // « demain », « aujourd'hui à 14h00 », « dans 25 min », « en retard »…
   const now = Date.now(), j = jourLocal(x.pour) - jourLocal(now), d = new Date(x.pour), h = x.heure ? ' à ' + hm(d.getHours() * 60 + d.getMinutes()) : '';
@@ -1057,7 +1203,8 @@ for (let i = 0; i < 48; i++){
     bas: pris(BAS, i, 4), chaussure: H1(i, 17) < .5 ? '#f4f1ea' : '#22222e', sac: pris(SACS, i, 18), acc: pris(HAUTS, i, 6),
     casque: !toi && !sab && H1(i, 19) < .14, lunettes: !toi && !sab && H1(i, 20) < .16, logo: i % 3 === 0,
     k: toi || sab ? 1 : .9 + H1(i, 7) * .1, ph: H1(i, 8) * 6.28, h1: H1(i, 9), h2: H1(i, 10), coucher: 1290 + H1(i, 11) * 100,
-    siege: toi ? 10 : sab ? 11 : SIEGES_LIBRES[i - 2], x: 0, y: 0, trajet: [], lieu: null, avant: null, geste: '', visible: true};
+    siege: toi ? 10 : sab ? 11 : SIEGES_LIBRES[i - 2], x: 0, y: 0, trajet: [], lieu: null, avant: null, geste: '', visible: true,
+    perso: toi || sab ? '' : (r => r < .3 ? 'ponctuel' : r < .47 ? 'retard' : r < .72 ? 'bavard' : 'studieux')(H1(i, 31))};   // son caractère : il change l'heure où il part, ses gestes, ses bavardages
   if (fille && e.style === 2) e.bas = pris(HAUTS, i, 21);            // jupe de couleur
   if (!toi){
     const [c, r] = TERRAINS[i - 1], hx = px(c), hy = py(r), porte = {x: hx + LM * .5, y: hy + PM + .12};
@@ -1148,17 +1295,19 @@ function foot(j, t){
 }
 // Qui fait quoi pendant une pause : quelques-uns au kiosque (à midi), six au foot, six sur les bancs, les autres discutent
 const _roles = {};
-function roles(fen, midi){
-  const cle = fen + (midi ? 'm' : ''); if (_roles[cle]) return _roles[cle];
+function roles(fen, midi, gouter){
+  const cle = fen + (midi ? 'm' : gouter ? 'g' : ''); if (_roles[cle]) return _roles[cle];
   const ordre = ELEVES.filter(e => e.i > 1).sort((a, b) => H1(a.i, fen) - H1(b.i, fen)), r = {}; let n = 0;
   if (midi) for (let j = 0; j < 9; j++) r[ordre[n++].i] = LIEUX.kiosque[j];
+  else if (gouter) for (let j = 0; j < 3; j++) r[ordre[n++].i] = LIEUX.kiosque[j];                 // hors de midi : trois gourmands vont quand même s'asseoir chez la vendeuse de garba
   for (let j = 0; j < 6; j++) r[ordre[n++].i] = j;
   for (let j = 0; j < 6; j++) r[ordre[n++].i] = LIEUX.bancs[j];
   return _roles[cle] = r;
 }
 function pause(e, t, T){
   if (e.toi || e.sab) return groupe(e, t, T);
-  const r = roles(Math.floor(T.min / 90) + T.jour * 20, T.min >= 720 && T.min < 810)[e.i];
+  if (cafeOuvert(T)){ const place = clientsCafe(Math.floor(T.min / 40) + T.jour * 37, envieDeCafe(T.min))[e.i]; if (place) return place; }   // pendant la pause, quelques-uns filent au café
+  const midi = T.min >= 720 && T.min < 810, r = roles(Math.floor(T.min / 90) + T.jour * 20, midi, !midi && T.min >= 600 && T.min < 1260)[e.i];
   return r === undefined ? groupe(e, t, T) : typeof r === 'number' ? foot(r, t) : r;
 }
 function balade(e, n, T){
@@ -1168,16 +1317,30 @@ function balade(e, n, T){
   return LIEUX.kiosque[4 + k % 5];
 }
 let bout = 0;                                                          // quand tu es « en route », tu fais des allers-retours sur le trottoir
+// À la fin d'un cours, la salle se vide rang par rang : ceux du fond, près de la porte, sortent d'abord ; les autres restent assis quelques secondes de plus.
+function resteAssis(e, T, l){
+  if (!e.lieu || !e.lieu.cle.startsWith('siege') || !e.arrive) return null;
+  let fini = null; for (const c of l) if (c.fin <= T.min && (!fini || c.fin > fini.fin)) fini = c;
+  if (!fini || e.lieu.cle !== 'siege' + salleDe(fini).i) return null;
+  return (T.min - fini.fin) * 60 < (5 - (e.siege >> 3)) * 1.6 + Math.abs(e.siege % 8 - 3.5) * .5 + e.h2 * 1.5 ? e.lieu : null;
+}
 function destination(e, T, S, ou, t){
-  const salle = S.actuel ? salleDe(S.actuel) : null;
+  const salle = S.actuel ? salleDe(S.actuel) : null, l = coursDuJour(T.jour);
   if (e.toi){
     const seance = lieuDeSeance(); if (seance) return seance;         // une séance Pomodoro est en cours : tu es à ton bureau, ou au café
     if (ou.lieu === 'maison') return T.min < 360 || T.min >= 1320 ? CHEZ.lit : T.min >= 1140 ? CHEZ.bureau : CHEZ.canape;
     if (ou.lieu === 'route') return {cle: 'route' + bout, pos: {x: TE, y: bout ? allee(7) : allee(0)}, noeuds: [bout ? 'A7' : 'A0']};
+    const reste = resteAssis(e, T, l); if (reste && !(salle && reste.cle === 'siege' + salle.i)) return reste;
     return salle ? siegeDe(salle, e) : pause(e, t, T);
   }
-  const l = coursDuJour(T.jour);
-  if (l.length && T.min >= l[0].deb - 20 - e.h1 * 40 && T.min < l[l.length - 1].fin + 5 + e.h2 * 45) return salle ? siegeDe(salle, e) : pause(e, t, T);
+  const avance = e.perso === 'ponctuel' ? 50 + e.h1 * 20 : e.perso === 'retard' ? -1 - e.h1 * 5 : 20 + e.h1 * 40;   // le ponctuel part tôt ; celui qui est toujours en retard part après la sonnerie (et il court)
+  if (l.length && T.min >= l[0].deb - avance && T.min < l[l.length - 1].fin + 5 + e.h2 * 45){
+    if (salle && e.perso === 'retard' && S.actuel !== l[0] && T.min < S.actuel.deb + .4 + e.h2 * 1.6) return pause(e, t, T);   // après une pause aussi, il traîne un peu dans la cour avant de rentrer
+    const tot = e.perso === 'studieux' ? 4 : e.perso === 'ponctuel' ? 2 : 0, pr = S.suivant;        // le studieux (4 min avant) et le ponctuel (2 min avant) sont assis avant la sonnerie
+    if (!salle && tot && pr && pr.jour === T.jour && pr.deb > T.min && pr.deb - T.min < tot) return siegeDe(salleDe(pr), e);
+    const reste = resteAssis(e, T, l); if (reste && !(salle && reste.cle === 'siege' + salle.i)) return reste;   // le cours vient de finir : on ne se lève pas tous en même temps
+    return salle ? siegeDe(salle, e) : pause(e, t, T);
+  }
   if (cafeOuvert(T)){ const place = clientsCafe(Math.floor(T.min / 40) + T.jour * 37, envieDeCafe(T.min))[e.i]; if (place) return place; }   // quelques-uns passent au café
   const n = Math.floor(T.min / 50) + T.jour * 31;
   if (T.min >= 480 && T.min < 1230 && H1(e.i, n) < .17) return balade(e, n, T);
@@ -1250,7 +1413,7 @@ function sprite(e, sx, sy, k, t, o){
   }
   if (e.style === 2 && !assis) R(-4.5, -7.2 + by, 9, 3.4, e.bas);                                   // jupe
   // bras gauche, torse et ses détails
-  const ba = s * 1.2, tape = g === 'tape', nt = Math.floor(t * 9), tg = tape && H1(nt, 3) < .5 ? .7 : 0, td = tape && H1(nt, 4) < .5 ? .7 : 0;   // quand on tape au clavier, chaque main monte et descend à son tour
+  const ba = s * 1.2, tape = g === 'tape', note = g === 'note', nt = Math.floor(t * 9), tg = tape && H1(nt, 3) < .5 ? .7 : 0, td = (tape || note) && H1(nt + (e.i || 0), 4) < .5 ? .7 : 0;   // quand on tape au clavier, chaque main monte et descend à son tour
   if (g === 'etire'){ const w = Math.sin(t * 2.4) * .5; R(-5.9, -13 + by, 2, 3, haut2); R(-6.3 - w, -18.4 + by, 2, 5.6, peau); }                // s'étirer : les deux bras en l'air
   else if (tape && dos){ R(-6.6, -10.6 + by, 2.7, 2.2, haut2); R(-7, -11.9 + by + tg, 2.2, 1.7, peau); }                                        // taper, vu de dos : les mains sont posées devant, sur le clavier
   else if (tape){ R(-5.9, -10.7 + by, 2, 3, haut2); R(-4.9, -7.9 + by + tg, 2.6, 1.8, peau); }
@@ -1279,8 +1442,8 @@ function sprite(e, sx, sy, k, t, o){
   else if (g === 'salut'){ const w = Math.sin(t * 10) * .8; R(4, -13 + by, 2, 3, haut); R(4.4 + w, -18 + by, 2, 5.2, peau); }
   else if (g === 'pointe'){ R(4, -10.6 + by, 4, 2, haut); R(8, -10.6 + by, 2.4, 2, peau); }
   else if (g === 'etire'){ const w = Math.sin(t * 2.4) * .5; R(4, -13 + by, 2, 3, haut); R(4.3 + w, -18.4 + by, 2, 5.6, peau); }
-  else if (tape && dos){ R(3.9, -10.6 + by, 2.7, 2.2, haut); R(4.8, -11.9 + by + td, 2.2, 1.7, peau); }
-  else if (tape){ R(3.9, -10.7 + by, 2, 3, haut); R(2.3, -7.9 + by + td, 2.6, 1.8, peau); }
+  else if ((tape || note) && dos){ R(3.9, -10.6 + by, 2.7, 2.2, haut); R(4.8, -11.9 + by + td, 2.2, 1.7, peau); }           // taper au clavier — ou prendre des notes : la main droite va et vient
+  else if (tape || note){ R(3.9, -10.7 + by, 2, 3, haut); R(2.3, -7.9 + by + td, 2.6, 1.8, peau); }
   else if (g === 'boit'){ R(3.9, -10.7 + by, 2, 2.6, haut); R(2.6, -12.8 + by, 3.3, 2, peau); R(.3, -15 + by, 3.2, 2.8, '#ffffff'); R(.3, -15 + by, 3.2, .7, '#d9d6e6'); }   // boire : la tasse devant la bouche
   else if (g === 'tasse'){ R(3.9, -10.7 + by, 2, 3, haut); R(2.4, -8.3 + by, 3.4, 1.9, peau); R(.2, -10.6 + by, 3.2, 2.8, '#ffffff'); R(.2, -10.6 + by, 3.2, .7, '#6b4a34'); }   // tenir sa tasse
   else if (g === 'plateau'){ R(4, -10.6 + by, 3.6, 2, haut); R(7.4, -10.6 + by, 2, 2, peau); R(5, -11.8 + by, 7.4, 1.1, '#cfd3dc'); R(7.6, -14.2 + by, 2.4, 2.4, '#ffffff'); R(10, -13.4 + by, 1.6, 1.6, '#e3b07a'); }   // porter un plateau
@@ -1386,6 +1549,7 @@ function lampadaire(x, y){
   ctx.fillStyle = ENV.nuit > .3 ? '#fff3c4' : '#dcd8ea'; ctx.fillRect(sx + 3.6, sy - 27, 4.6, 3);
 }
 function voiture(v){
+  if (v.type === 'moto') return motoQuiRoule(v);
   const x = v.x - .31, y = v.y, [sx, sy] = P(v.x, v.y + .58), av = v.dir > 0;
   ellipse(sx + 2, sy + 2, 15, 7.5, 'rgba(24,16,56,.2)');
   boite(x, y, .62, 1.16, 2.5, 6, v.c);
@@ -1394,6 +1558,7 @@ function voiture(v){
   surFaceY(x + .05, x + .2, y + 1.165, 0, 4, '#22222e'); surFaceY(x + .42, x + .57, y + 1.165, 0, 4, '#22222e');
   const feu = av ? (ENV.nuit > .3 ? '#fff9d0' : '#ffe9a6') : '#e0392b';                             // phares à l'avant, feux rouges à l'arrière
   surFaceY(x + .06, x + .2, y + 1.165, 4.6, 6.6, feu); surFaceY(x + .42, x + .56, y + 1.165, 4.6, 6.6, feu);
+  if (v.type === 'taxi'){ boite(x + .2, y + .5, .22, .16, 13.5, 1.8, '#ffd95a'); surFaceX(x + .625, y + .44, y + .72, 4.2, 6.4, '#15151c'); }   // un taxi : son lumineux sur le toit, bande noire sur la portière
 }
 // Une maison : murs, porte, fenêtres (allumées le soir si son habitant est là et ne dort pas), et l'un des trois toits
 function dessinerMaison(m){
@@ -1406,6 +1571,8 @@ function dessinerMaison(m){
   [[.07, .31], [.69, .93]].forEach(([a, b]) => { surFaceY(hx + w * a, hx + w * b, f, 5.5, 13, '#ffffff'); surFaceY(hx + w * (a + .025), hx + w * (b - .025), f, 6.5, 12, vitre); });
   surFaceX(hx + w, hy + d * .28, hy + d * .72, 5.5, 13, '#d9d6e6'); surFaceX(hx + w, hy + d * .31, hy + d * .69, 6.5, 12, teinte(vitre, allume ? -.08 : -.22));
   if (m.lampe && ENV.nuit > .3) surFaceY(hx + w * .47, hx + w * .53, f, 14, 15.6, '#fff3c4');
+  if (m.cheminee) boite(hx + w * .68, hy + d * .2, .2, .2, HM + 4, 10, '#b5532f');                    // la cheminée (derrière le faîte du toit) ; elle fume quand on cuisine, tôt le matin et le soir
+  m.fume = !!m.cheminee && e.chezSoi && ((ENV.min >= 330 && ENV.min < 470) || (ENV.min >= 1080 && ENV.min < 1260));
   const t = m.toit;
   if (m.modele === 0){                                                                             // deux pentes
     poly([P(hx + w, hy, HM), P(hx + w, f, HM), P(hx + w, hy + d / 2, HM + 10.4)], teinte(m.mur, -.32));
@@ -1596,7 +1763,7 @@ function chatSprite(sx, sy, k, t, o, r, col){
   if (r.ray) [-4.2, -1.8, .6].forEach(x => R(x, -8.4, 1, 3.2, c2));
   if (r.taches) [[-4.4, -7.4], [-2, -5.6], [.2, -7.2], [-3.6, -4.4], [1.6, -5]].forEach(([x, y]) => R(x, y, 1.3, 1.1, r.taches));
   if (bl){ R(1.8, -6.6, 2.4, 3.4, bl); R(-3.2, -4, 5.2, .8, bl); }
-  R(2.4, -8.6 + lev * .4, 1.2, 3.8, col); R(2.6, -5 + lev * .4, .9, .9, '#ffd95a');                 // collier et grelot
+  if (col){ R(2.4, -8.6 + lev * .4, 1.2, 3.8, col); R(2.6, -5 + lev * .4, .9, .9, '#ffd95a'); }                 // collier et grelot
   R(3, -12 + hy, 5.8, 5, c); R(3.6, -12.5 + hy, 4.6, .6, c);
   if (long){ R(2.4, -9.8 + hy, 1, 2.8, c); R(8.4, -9.4 + hy, .8, 2.2, c); }
   const eh = nu ? 3.8 : 2.6, ew = nu ? 2.3 : 1.8, ec = pt || c;                                     // oreilles pointues (très grandes chez le sphynx)
@@ -1731,7 +1898,9 @@ function mur(x, y, w, d, h, c, deco){                                 // un mur 
 }
 const couleurSalle = s => ENV.actif === s && ENV.cours && matiere(ENV.cours.m) ? matiere(ENV.cours.m).c : s.c;   // une salle prend la couleur du cours qui s'y déroule, sinon celle de sa matière habituelle
 const ombreRonde = (x, y, rx) => { const [sx, sy] = P(x + .3, y + .12); OMBRES.push({sx, sy, rx, ry: rx * .48, s: PROPRIO}); };
-const planter = (x, y, type, s = 1) => { const ph = H1(x, y) * 6; fixe(x, y, () => arbre(x, y, type, s, ph), 75 * s); ombreRonde(x, y, (type === 'buisson' ? 8 : type === 'flamboyant' ? 21 : 14) * s); };
+const ARBRES = [];                                                      // les arbres à feuilles (ni palmiers ni buissons) : c'est d'eux que tombent les feuilles
+const planter = (x, y, type, s = 1) => { const ph = H1(x, y) * 6; fixe(x, y, () => arbre(x, y, type, s, ph), 75 * s); ombreRonde(x, y, (type === 'buisson' ? 8 : type === 'flamboyant' ? 21 : 14) * s);
+  if (type === 'rond' || type === 'flamboyant') ARBRES.push({x, y, fleur: type === 'flamboyant', h: 25 * s, s: PROPRIO}); };
 const lampe = (x, y) => { fixe(x, y, () => lampadaire(x, y), 40); LAMPES.push({x, y}); };
 const banc = (bx, by) => fixe(bx + .1, by + .2, () => { boite(bx, by, 1.3, .08, 0, 10, '#a9743f'); boite(bx, by + .08, 1.3, .3, 0, 4.5, '#c98d5a'); }, 40);
 
@@ -1895,7 +2064,9 @@ fixe(16.95, 11.78, () => {                                           // la guér
 }, 40);
 fixe(16.2, 10.85, () => {                                            // le drapeau, qui flotte
   const [sx, sy] = P(16.2, 10.85); ctx.fillStyle = '#8f9bb3'; ctx.fillRect(sx - .8, sy - 42, 1.6, 42); ctx.fillStyle = '#d9d6e6'; ctx.fillRect(sx - 1.6, sy - 44, 3.2, 2.4);
-  ['#f77f00', '#ffffff', '#009e60'].forEach((c, b) => { for (let j = 0; j < 2; j++){ const u = b * 2 + j; ctx.fillStyle = c; ctx.fillRect(sx + .8 + u * 2.3, sy - 42 + Math.sin(ENV.t * 4 * ENV.vent - u * .9) * (.3 + u * .24), 2.5, 9.5); } });
+  const img = drapeauDe(drapeau), lisse = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;      // le drapeau choisi dans Réglages : 18 colonnes de pixels, chacune un peu décalée → il ondule
+  for (let u = 0; u < DW; u++) ctx.drawImage(img, u, 0, 1, DH, sx + .8 + u * .86, sy - 42.4 + Math.sin(ENV.t * 4 * ENV.vent - u * .42) * (.25 + u * .1), .92, 10.6);
+  ctx.imageSmoothingEnabled = lisse;
 }, 50);
 BANCS.forEach(b => banc(b[0], b[1]));
 planter(9.6, 11.3, 'flamboyant', 1); planter(14.45, 11.05, 'palmier', .9); planter(9.4, 14.4, 'rond', 1); planter(14.3, 14.55, 'rond', .9);
@@ -1913,7 +2084,7 @@ planter(9.6, 11.3, 'flamboyant', 1); planter(14.45, 11.05, 'palmier', .9); plant
 // ---------- les maisons ----------
 MAISONS.forEach(m => {
   fixe(m.hx + LM / 2, m.hy + PM / 2 + .25, () => dessinerMaison(m), 75);
-  OMBRES.push({p: [P(m.hx + LM, m.hy), P(m.hx + LM + .45, m.hy + .12), P(m.hx + LM + .45, m.hy + PM + .12), P(m.hx + LM, m.hy + PM)]});
+  OMBRES.push({m});                                                    // son ombre : dessinée à chaque image, du côté opposé au soleil
 });
 [[1, 0, 'palmier'], [4, 1, 'rond'], [2, 5, 'rond'], [3, 6, 'palmier'], [3, 2, 'rond'], [0, 6, 'rond']].forEach(([c, r, ty]) => planter(px(c) + LM + .27, py(r) + .35, ty, .78));
 planter(px(6) + .45, py(0) + .5, 'rond', .95); planter(px(6) + 1.1, py(0) + 1.05, 'palmier', .85); planter(px(6) + .3, py(0) + 1.2, 'buisson', 1);   // le bosquet
@@ -2172,8 +2343,12 @@ function dessinerSol(t){
     for (let j = Math.ceil((n - .6) / 2.3); j < 6; j++){ const y = 1.6 + j * 2.3; surFaceX(.604, y, y + 1, 15, 28, '#e4dcc8'); surFaceX(.606, y + .06, y + .94, 16, 27, '#8fc0e0'); }
     boite(.55, .36 + n, 17, .3, 34, 2, '#e9dcbc'); boite(.36, .36 + n, .3, 15.1 - n, 34, 2, '#e9dcbc'); }
   // les ombres portées
-  ctx.fillStyle = C.ombre;
-  for (const o of OMBRES){ if (o.s && !(o.s.k > 0)) continue; if (o.p) poly(o.p, C.ombre); else if (vu(o.sx, o.sy, 30)){ ctx.beginPath(); ctx.ellipse(o.sx, o.sy, o.rx, o.ry, 0, 0, 6.2832); ctx.fill(); } }
+  const ks = ombreSoleil(), L = ks * .95; ctx.fillStyle = C.ombre;                                  // les ombres tournent avec le soleil : à l'ouest le matin, à l'est le soir
+  for (const o of OMBRES){ if (o.s && !(o.s.k > 0)) continue;
+    if (o.m){ const m = o.m; if (L > .04) poly([P(m.hx + LM, m.hy), P(m.hx + LM + L, m.hy + .12), P(m.hx + LM + L, m.hy + PM + .12), P(m.hx + LM, m.hy + PM)], C.ombre);
+      else if (L < -.04) poly([P(m.hx, m.hy), P(m.hx + L, m.hy + .12), P(m.hx + L, m.hy + PM + .12), P(m.hx, m.hy + PM)], C.ombre); }
+    else if (o.p) poly(o.p, C.ombre);
+    else if (vu(o.sx, o.sy, 34)){ ctx.beginPath(); ctx.ellipse(o.sx + (ks - .3) * 15, o.sy + (ks - .3) * 2.5, o.rx * (1 + Math.abs(ks - .3) * .3), o.ry, 0, 0, 6.2832); ctx.fill(); } }
   // la salle du cours en cours (contour qui respire) et celles où quelque chose est à rendre bientôt (pointillés orange)
   const contour = s => { ctx.beginPath(); [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(([a, b], i) => { const p = P(s.x + a * s.w, s.y + b * s.h); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.stroke(); };
   const bientot = aRendreBientot();
@@ -2199,7 +2374,7 @@ function lumieres(){
 function ambiance(t, h){
   const c = MONDE.ctx, n = ENV.nuit, w = VUE.cw, hh = VUE.ch;
   c.globalCompositeOperation = 'source-atop';                          // on ne peint que sur la ville, jamais sur le ciel
-  if (n < .6){ c.globalAlpha = (ENV.temps === 'soleil' ? .1 : .16) * (1 - n); for (let i = 0; i < 3; i++){ const x = ((t * 5 + i * 430) % 1500) - 600, y = 110 + i * 135; c.drawImage(HALO_SOMBRE, x - 170, y - 75, 340, 150); } c.globalAlpha = 1; }   // ombres des nuages
+  if (n < .6 && NIVEAU > 0){ c.globalAlpha = (ENV.temps === 'soleil' ? .1 : .16) * (1 - n); for (let i = 0; i < 3; i++){ const x = ((t * 5 + i * 430) % 1500) - 600, y = 110 + i * 135; c.drawImage(HALO_SOMBRE, x - 170, y - 75, 340, 150); } c.globalAlpha = 1; }   // ombres des nuages
   c.setTransform(1, 0, 0, 1, 0, 0);
   if (ENV.temps !== 'soleil'){ c.fillStyle = ENV.pluie ? 'rgba(52,60,104,.26)' : 'rgba(80,86,120,.1)'; c.fillRect(0, 0, w, hh); }
   const cr = crepuscule(h); if (cr > .02){ c.fillStyle = 'rgba(255,128,60,' + Math.min(.22, cr * .2) + ')'; c.fillRect(0, 0, w, hh); }
@@ -2234,6 +2409,7 @@ function vivre(dt, t, T, S, ou){
   const saute = SAUT > 0; if (SAUT > 0) SAUT--;                                                     // l'heure vient de changer d'un coup : ceux qui ont loin à aller vont se dépêcher
   ENV.pietons = false; COMPTEUR.ecole = COMPTEUR.maison = COMPTEUR.dehors = 0;
   for (const e of ELEVES){
+    if (e.ox || e.oy){ e.x -= e.ox; e.y -= e.oy; }                                                  // on retire le petit écart de la dernière image (voir « ecarter ») : le trajet se calcule sur la vraie position
     const d = destination(e, T, S, ou, t);
     if (calme || !pret) placer(e, d);                                                               // au tout premier dessin (ou en « mouvement réduit »), chacun est posé à sa place
     else if (d.cle !== e.lieu.cle){ allerVers(e, d); e.hate = saute ? hate(e) : 0; }                // sinon il y va à pied, en repartant de là où il est — jamais de téléportation
@@ -2243,7 +2419,7 @@ function vivre(dt, t, T, S, ou){
     while (e.trajet.length && reste > 0){
       const p = e.trajet[0], dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy);
       if (dist <= reste){ e.x = p.x; e.y = p.y; reste -= dist; e.avant = p; e.trajet.shift(); }
-      else { e.x += dx / dist * reste; e.y += dy / dist * reste; reste = 0; e.dos = dx + dy < -.001; e.miroir = dx - dy < 0; }
+      else { e.x += dx / dist * reste; e.y += dy / dist * reste; reste = 0; e.dos = dx + dy < -.001; e.miroir = dx - dy < 0; e.vx = dx / dist; e.vy = dy / dist; }
       e.marche = true;
     }
     const arrive = e.arrive = !e.trajet.length;
@@ -2256,17 +2432,20 @@ function vivre(dt, t, T, S, ou){
     e.sacDos = tempsScolaire && !e.foot && !e.pose && !(e.toi && ou.lieu === 'maison');
     let g = '';
     if (arrive){
-      if (d.pose === 'assis') g = H1(e.i, Math.floor(t / 4)) < .05 ? 'main' : '';
-      else if (d.discute) g = H1(e.i, Math.floor(t / 2.8)) < .3 ? 'parle' : H1(e.i + 1, Math.floor(t / 6)) < .1 ? 'salut' : '';
+      if (d.pose === 'assis'){ const r = H1(e.i, Math.floor(t / 4)); g = r < (e.perso === 'studieux' ? .13 : .05) ? 'main' : r > (e.perso === 'retard' ? .9 : .965) ? 'etire'
+        : H1(e.i + 3, Math.floor(t / 7)) < (e.perso === 'studieux' ? .75 : e.perso === 'retard' ? .25 : .45) ? 'note' : ''; }   // en classe : le studieux lève souvent la main et note presque tout ; on s'étire, on bâille
+      else if (d.discute) g = H1(e.i, Math.floor(t / 2.8)) < (e.perso === 'bavard' ? .58 : .3) ? 'parle' : H1(e.i + 1, Math.floor(t / 6)) < .1 ? 'salut' : '';
       else if (d.pose === 'banc') g = H1(e.i, Math.floor(t / 9)) < .45 ? 'tel' : H1(e.i, Math.floor(t / 3)) < .2 ? 'parle' : '';
       else if (!e.foot && !d.dedans && d.pose !== 'dort') g = H1(e.i, Math.floor(t / 8)) < .4 ? 'tel' : '';
       if (e.dos && (g === 'tel' || g === 'parle')) g = '';
     }
+    if (!g && e.salu > t && !e.pose) g = 'salut';                                                   // on vient de croiser quelqu'un : un petit signe de la main
     e.geste = g;
     if (e.foot && e.x < SPORT.x + SPORT.w + .6 && e.y > SPORT.y - .5) joueurs.push(e);
     if (e.visible && e.x > RX - .15 && e.x < RX + RW + .15 && Math.abs(e.y - PASSAGE) < .6) ENV.pietons = true;
     COMPTEUR[e.chezSoi || (e.toi && d.zone === 'moi') ? 'maison' : e.x < 17.6 && e.y < 15.4 ? 'ecole' : 'dehors']++;
   }
+  ecarter(dt, t);
   // le ballon passe d'un joueur à l'autre
   if (joueurs.length > 1){
     const n = Math.floor(t / 1.1), a = joueurs[Math.floor(H1(n, 61) * joueurs.length)], b = joueurs[Math.floor(H1(n + 1, 61) * joueurs.length)], u = (t / 1.1) % 1;
@@ -2297,7 +2476,8 @@ function vivre(dt, t, T, S, ou){
   VENDEUSE.geste = H1(3, Math.floor(t / 4)) < .4 ? 'parle' : '';
   GARDIEN.geste = H1(5, Math.floor(t / 7)) < .2 ? 'salut' : '';
   // le café : le barista derrière son comptoir, et la serveuse qui fait sa tournée (la salle, la terrasse, ta table) avec son plateau
-  BARISTA.visible = SERVEUSE.visible = cafeOuvert(T) || (minuteur.etat !== 'arret' && minuteur.lieu === 'cafe');   // le café reste ouvert pour toi tant que ta séance dure BARISTA.geste = H1(7, Math.floor(t / 5)) < .4 ? 'tasse' : '';        // il prépare un café, une tasse à la main
+  BARISTA.visible = SERVEUSE.visible = cafeOuvert(T) || (minuteur.etat !== 'arret' && minuteur.lieu === 'cafe');   // le café reste ouvert pour toi tant que ta séance dure
+  BARISTA.geste = H1(7, Math.floor(t / 5)) < .4 ? 'tasse' : '';        // il prépare un café, une tasse à la main
   if (SERVEUSE.visible){ const W = SERVEUSE, but = TOURNEE[W.etape], ex = but[0] - W.x, ey = but[1] - W.y, el2 = Math.hypot(ex, ey), pas = 1.3 * dt;
     if (calme || !pret){ W.x = TOURNEE[0][0]; W.y = TOURNEE[0][1]; W.etape = 0; W.marche = false; W.dos = false; W.geste = ''; }
     else if (el2 <= pas){ W.x = but[0]; W.y = but[1]; W.marche = false; W.dos = false; W.geste = but[2] ? 'parle' : ''; W.attend -= dt;
@@ -2313,10 +2493,13 @@ function vivre(dt, t, T, S, ou){
   // les voitures : elles roulent, s'arrêtent au passage piéton s'il y a quelqu'un, et font demi-tour au bout
   for (const c of VOITURES){
     if (c.demi > 0){ c.demi -= dt; c.x = c.x0 + (c.x1 - c.x0) * (1 - Math.max(0, c.demi) / 1.2); if (c.demi <= 0) c.dir = -c.dir; continue; }
-    const avantP = c.dir > 0 ? PASSAGE - .5 - (c.y + 1.16) : c.y - (PASSAGE + .5), stop = ENV.pietons && avantP > -.2 && avantP < 2.4, cible = stop ? Math.max(0, (avantP - .25) * 1.6) : 2.7;
-    c.v += Math.max(-7 * dt, Math.min(3 * dt, Math.min(cible, 2.7) - c.v)); c.y += c.dir * c.v * dt;
-    if ((c.dir > 0 && c.y > RY1 - 1.7) || (c.dir < 0 && c.y < RY0 + NORD + .5)){ c.demi = 1.2; c.x0 = c.x; c.x1 = c.dir > 0 ? RX + 1.25 : RX + .45; c.v = 0; }
+    const avantP = c.dir > 0 ? PASSAGE - .5 - (c.y + 1.16) : c.y - (PASSAGE + .5), stop = ENV.pietons && avantP > -.2 && avantP < 2.4, vm = c.type === 'moto' ? 3.2 : 2.7, cible = Math.min(stop ? Math.max(0, (avantP - .25) * 1.6) : vm, vm, ecartDevant(c));   // on freine pour un piéton… ou pour celui qui roule devant
+    c.v += Math.max(-7 * dt, Math.min(3 * dt, cible - c.v)); c.y += c.dir * c.v * dt;
+    if ((c.dir > 0 && c.y > RY1 - 1.7) || (c.dir < 0 && c.y < RY0 + NORD + .5)){
+      if (demiTourLibre(c)){ c.demi = 1.2; c.x0 = c.x; c.x1 = c.dir > 0 ? RX + 1.25 : RX + .45; c.v = 0; }
+      else { c.v = 0; c.y = c.dir > 0 ? Math.min(c.y, RY1 - 1.69) : Math.max(c.y, RY0 + NORD + .49); } }                       // la voie d'en face n'est pas libre : on attend au bout de la rue
   }
+  vieDesChats(dt, T);
   // les oiseaux : ils picorent, puis s'envolent vers un autre coin
   for (const o of OISEAUX){
     if (o.u < 1){ o.u = Math.min(1, o.u + dt / o.dur); o.x = o.de[0] + (o.vers[0] - o.de[0]) * o.u; o.y = o.de[1] + (o.vers[1] - o.de[1]) * o.u; o.z = Math.sin(Math.PI * o.u) * 30; }
@@ -2350,7 +2533,8 @@ function objets(t){
   if (VENDEUSE.visible) dyn.push({k: VENDEUSE.x + VENDEUSE.y, f: () => dessinerPerso(VENDEUSE, t)});
   if (BARISTA.visible){ dyn.push({k: BARISTA.x + BARISTA.y, f: () => dessinerPerso(BARISTA, t)}); dyn.push({k: SERVEUSE.x + SERVEUSE.y, f: () => dessinerPerso(SERVEUSE, t)}); }
   dyn.push({k: ANIMAL.x + ANIMAL.y + .02, f: () => dessinerAnimal(t)});
-  for (const v of VOITURES) dyn.push({k: v.x + v.y + .9, f: () => voiture(v)});
+  for (const v of VOITURES){ const q = P(v.x, v.y + .6); if (vu(q[0], q[1], 46)) dyn.push({k: v.x + v.y + .9, f: () => voiture(v)}); }   // (comme le reste : seulement ce qui est à l'écran)
+  if (NIVEAU > 0) for (const c of CHATS) dyn.push({k: c.x + c.y, f: () => chatErrant(c, t)});
   if (BALLON.vu) dyn.push({k: BALLON.x + BALLON.y, f: ballon});
   if (ENV.nuit < .7) for (const o of OISEAUX) dyn.push({k: o.x + o.y + (o.z > 0 ? 3 : 0), f: () => oiseau(o, t)});
   dyn.sort((a, b) => a.k - b.k);
@@ -2360,7 +2544,8 @@ function objets(t){
 }
 // Les petites choses par-dessus : papillons le jour, fumée du kiosque, éclaboussures de pluie
 function petitsDetails(t, T){
-  if (ENV.nuit < .5 && !ENV.pluie) for (let i = 0; i < 7; i++){
+  detailsAmbiance(t);
+  if (NIVEAU > 0 && ENV.nuit < .5 && !ENV.pluie) for (let i = 0; i < 7; i++){
     const b = [[29.3, 7.9], [31, 8.9], [28.7, 9.3], [25.2, 13.5], [22.3, 2.7], [9.5, 16.6], [30.8, 15.6]][i], p = P(b[0] + Math.sin(t * (.5 + i * .07) + i) * .7, b[1] + Math.cos(t * (.4 + i * .05) + i * 2) * .45, 7 + Math.sin(t * 2.3 + i) * 3);
     const a = Math.abs(Math.sin(t * 14 + i)) * 2 + .6; ctx.fillStyle = ['#ffd95a', '#ff8fb3', '#ffffff', '#c9a4ff'][i % 4]; ctx.fillRect(p[0] - a, p[1], a, 2); ctx.fillRect(p[0] + .4, p[1], a, 2); }
   if (VENDEUSE.visible) for (let i = 0; i < 5; i++){ const u = (t * .35 + i * .2) % 1, p = P(KX + 1.36, KY + .87, 12 + u * 22); ellipse(p[0] + Math.sin(t + i * 2) * 2 * u, p[1], 1.6 + u * 3, 1.4 + u * 2.4, 'rgba(240,240,248,' + (.42 * (1 - u)) + ')'); }
@@ -2489,7 +2674,7 @@ function majBord(){
 majBord(); CAM.x = CAM.cx; CAM.y = CAM.cy;
 let QUAL = 1;
 function taille(){
-  const r = cv.getBoundingClientRect(), R = Math.max(1, Math.min(2, window.devicePixelRatio || 1) * QUAL), w = Math.max(1, Math.round(r.width * R)), h = Math.max(1, Math.round(r.height * R));
+  const r = cv.getBoundingClientRect(), R = Math.max(1, Math.min([1, 1.5, 2][NIVEAU], window.devicePixelRatio || 1) * QUAL), w = Math.max(1, Math.round(r.width * R)), h = Math.max(1, Math.round(r.height * R));
   if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; MONDE.canvas.width = LUM.canvas.width = w; MONDE.canvas.height = LUM.canvas.height = h; }
   VUE.R = R; VUE.cw = w; VUE.ch = h; VUE.cssW = Math.max(1, r.width); VUE.cssH = Math.max(1, r.height);
   VUE.fit = Math.min(VUE.cssW / (BORD.x1 - BORD.x0), VUE.cssH / (BORD.y1 - BORD.y0));
@@ -2589,7 +2774,7 @@ function dessiner(t, T){
     c2d.globalAlpha = 1; c2d.globalCompositeOperation = 'source-over'; c2d.setTransform(1, 0, 0, 1, 0, 0);
   }
   if (ENV.pluie){                                                                                 // la pluie qui tombe devant tout
-    const w = VUE.cw, hh = VUE.ch, R = VUE.R, n = Math.round(w * hh / (8000 * R * R));
+    const w = VUE.cw, hh = VUE.ch, R = VUE.R, n = Math.round(w * hh / ((NIVEAU ? 8000 : 16000) * R * R));
     c2d.strokeStyle = 'rgba(235,240,255,.5)'; c2d.lineWidth = R; c2d.beginPath();
     for (let i = 0; i < n; i++){ const x = (H1(i, 71) * w + t * 70 * R) % w, y = (H1(i, 72) * hh + t * (520 + H1(i, 73) * 260) * R) % hh; c2d.moveTo(x, y); c2d.lineTo(x - 3 * R, y + 11 * R); }
     c2d.stroke();
@@ -2600,13 +2785,13 @@ let avant = 0, enVue = true, lenteur = 0;
 if ('IntersectionObserver' in window) new IntersectionObserver(es => { enVue = es[0].isIntersecting; }).observe(cv);
 function image(ms){
   requestAnimationFrame(image);
-  if (!COMPTE.id){ dessinerAccueil(ms / 1000); return; }                                           // personne n'est connecté : seule la page de connexion s'anime
+  if (!COMPTE.id){ ambiSon(null); dessinerAccueil(ms / 1000); return; }                                           // personne n'est connecté : seule la page de connexion s'anime
   if (BOUTIQUE.verrou){ dessinerVerrou(ms / 1000); return; }                                       // l'écran d'un lieu à débloquer couvre tout : on ne dessine que lui
   if (MENU.ouvert && BOUTIQUE.objet && !$('o-boutique').hidden) dessinerApercuObjet(ms / 1000);    // l'aperçu animé d'un objet de la boutique
   if (CINE.etat !== 'ferme' && cineImage(ms)) return;                                             // la cinématique occupe tout l'écran : inutile de dessiner la ville derrière
   if (!$('o-perso').hidden && (!calme || ESSAI.sale)) dessinerEssai(ms / 1000);                     // l'aperçu de l'onglet « Perso » bouge même quand la ville n'est plus à l'écran
   if (!enVue || (MENU.ouvert && etroit() && CINE.etat === 'ferme')) return;                        // inutile de dessiner quand la ville n'est pas à l'écran (ou cachée par le menu, sur téléphone)
-  const t = ms / 1000; let dt = t - avant; if (calme && dt < .4 && pret) return; avant = t;
+  const t = ms / 1000; let dt = t - avant; if (calme && dt < .4 && pret) return; if (dt < [.028, .0125, 0][NIVEAU] && pret) return; avant = t;   // (qualité basse : 30 images par seconde · moyenne : 60 au plus, même sur un écran plus rapide)
   if (dt > .042 && dt < .5){ if (++lenteur > 90 && QUAL > .5){ QUAL -= .25; lenteur = 0; } } else if (lenteur > 0) lenteur--;   // si l'appareil peine, on dessine un peu moins fin
   dt = Math.min(.05, Math.max(0, dt));
   taille();
@@ -2614,9 +2799,291 @@ function image(ms){
   ENV.t = t; ENV.min = T.min; ENV.nuit = nuitDe(h); ENV.temps = tempsQuilFait(); ENV.pluie = ENV.temps === 'pluie'; ENV.vent = ENV.pluie ? 1.8 : 1;
   ENV.actif = S.actuel ? salleDe(S.actuel) : null; ENV.cours = S.actuel; ENV.ouvert = ecoleOuverte(T);
   ENV.humide += ((ENV.pluie ? 1 : 0) - ENV.humide) * Math.min(1, dt * .3);
-  vivre(dt, t, T, S, ou); cadrer(dt); dessiner(t, T);
+  vivre(dt, t, T, S, ou); ambiSon(T); cadrer(dt); dessiner(t, T);
   pret = true;
 }
+
+/* ============ 15 bis. L'AMBIANCE : qualité graphique, circulation, véhicules garés, mobilier de rue, chats errants, fumées, feuilles, ombres du soleil — et les sons de la ville ============ */
+// --- la qualité graphique (Réglages) : 0 basse · 1 moyenne · 2 haute. Elle règle la finesse de l'image, le nombre d'images par seconde et les petits détails. ---
+let NIVEAU = lire('campus-qualite', null);
+if (![0, 1, 2].includes(NIVEAU)) NIVEAU = matchMedia('(max-width:760px)').matches || matchMedia('(pointer:coarse)').matches ? 1 : 2;   // la première fois : moyenne sur téléphone et tablette (écran tactile), haute sur ordinateur
+const QUALITES = ['Basse : image moins fine, 30 images par seconde, sans les petits détails (chats, fumées, feuilles, papillons). Pour un téléphone qui chauffe ou qui saccade.',
+  'Moyenne : tous les détails, avec une image un peu moins fine. Le bon choix sur la plupart des téléphones.', 'Haute : l\'image la plus fine et tous les détails.'];
+function majQualite(){ [0, 1, 2].forEach(n => $('qualite-' + n).setAttribute('aria-pressed', String(n === NIVEAU))); $('qualite-note').textContent = QUALITES[NIVEAU]; }
+function choisirQualite(n){ NIVEAU = n; ecrire('campus-qualite', n); QUAL = 1; lenteur = 0; majQualite(); }
+[0, 1, 2].forEach(n => $('qualite-' + n).addEventListener('click', () => choisirQualite(n)));
+
+// --- la circulation : deux voitures, un taxi orange et une moto. Chacun garde ses distances, et attend que la voie soit libre pour faire demi-tour. ---
+VOITURES.push({x: RX + .45, y: 9.5, v: 0, dir: 1, c: '#f08a24', demi: 0, type: 'taxi'}, {x: RX + 1.25, y: 5.5, v: 0, dir: -1, c: '#d94f4f', demi: 0, type: 'moto'});
+const MOTARD = Object.assign({}, ELEVES[9], {casque: true});
+const longDe = v => v.type === 'moto' ? .7 : 1.16;
+function ecartDevant(c){                                               // la vitesse permise par celui qui roule devant, dans la même voie
+  let g = 9; for (const o of VOITURES) if (o !== c && o.dir === c.dir){ const e = c.dir > 0 ? o.y - c.y - longDe(c) : c.y - o.y - longDe(o); if (e > -1 && e < g) g = e; }
+  return Math.max(0, (g - .5) * 1.8);
+}
+const demiTourLibre = c => !VOITURES.some(o => o !== c && (o.demi > 0 || o.dir !== c.dir) && Math.abs(o.y - c.y) < 2.4);
+function moto(x, y, c, dir){                                            // une moto vue d'en haut : deux roues, le cadre, la selle, le guidon
+  const [sx, sy] = P(x, y + .35);
+  ellipse(sx + 1, sy + 1.5, 7, 3.4, 'rgba(24,16,56,.2)');
+  boite(x - .06, y, .12, .2, 0, 3.2, '#22222e'); boite(x - .06, y + .5, .12, .2, 0, 3.2, '#22222e');
+  boite(x - .09, y + .12, .18, .46, 2.4, 2.6, c); boite(x - .06, y + .2, .12, .26, 5, 1.2, '#22222e');
+  boite(x - .14, dir > 0 ? y + .6 : y + .04, .28, .05, 5.4, 1, '#8a8f9c');
+}
+function motoQuiRoule(v){ moto(v.x, v.y, v.c, v.dir); const [sx, sy] = P(v.x, v.y + .36, 4.6); sprite(MOTARD, sx, sy, .8, ENV.t, {pose: 'banc', dos: v.dir < 0, miroir: v.dir < 0}); }
+
+// --- garés là : trois motos (au maquis, au café) et une voiture ; des poubelles ; des panneaux près du passage piéton ---
+[[17.42, 16.98, '#d94f4f'], [17.1, 17.3, '#3d8bfd'], [8.75, 17.25, '#2fb37a']].forEach(([x, y, c]) => fixe(x, y + .35, () => moto(x, y, c, 1), 16));
+fixe(px(5) + LM + .38, py(0) + .8, () => voiture({x: px(5) + LM + .38, y: py(0) + .22, c: '#4f86c6', dir: 1, type: 'garee'}), 30);
+[[10.02, 13.28], [29.95, 7.42], [10.4, 18.2], [11.95, 17.4], [8.5, 18], [20.2, 13.62]].forEach(([x, y]) => fixe(x + .08, y + .08, () => { boite(x, y, .16, .16, 0, 5.4, '#2f8f6b'); boite(x - .02, y - .02, .2, .2, 5.4, 1, '#1f6f52'); }, 12));
+[['pietons', 19.86, 12], ['pietons', 18.04, 13.45], ['ecole', 19.86, 2.3]].forEach(([type, x, y]) => fixe(x, y, () => {
+  const [sx, sy] = P(x, y); ctx.fillStyle = '#8f9bb3'; ctx.fillRect(sx - .6, sy - 17, 1.2, 17);
+  if (type === 'pietons'){ ctx.fillStyle = '#1e4fd8'; ctx.fillRect(sx - 4, sy - 25, 8, 8); ctx.fillStyle = '#ffffff'; ctx.fillRect(sx - .9, sy - 23.6, 1.8, 1.8); ctx.fillRect(sx - 1.4, sy - 21.6, 2.8, 2.6); ctx.fillRect(sx - 1.4, sy - 19, 1, 1.4); ctx.fillRect(sx + .4, sy - 19, 1, 1.4); }
+  else { for (let i = 0; i < 5; i++){ ctx.fillStyle = '#d21f3c'; ctx.fillRect(sx - 1 - i * 1.1, sy - 26 + i * 1.8, 2 + i * 2.2, 1.9); if (i > 0 && i < 4){ ctx.fillStyle = '#ffffff'; ctx.fillRect(sx - i * 1.1 + .2, sy - 26 + i * 1.8, i * 2.2 - .4, 1.9); } }   // un triangle rouge : « attention, école »
+    ctx.fillStyle = '#15151c'; ctx.fillRect(sx - .6, sy - 23.4, 1.2, 2.6); ctx.fillRect(sx - .6, sy - 20.2, 1.2, 1); }
+}, 26));
+FIXES.sort((a, b) => a.k - b.k);
+MAISONS.forEach(m => { m.cheminee = m.modele !== 1 && H1(m.e.i, 26) < .65; });                     // les maisons à toit en pente ont souvent une cheminée
+
+// --- les chats errants : l'un rôde entre le maquis et la plage, l'autre vit dans le parc. Ils se promènent, s'assoient, font la sieste. ---
+const CHATS = [
+  {race: {c: '#e39a4f', c2: '#b9692c', ray: true}, coins: [[14.9, 17.55], [16.5, 17.6], [12.1, 17.6], [9.3, 17.95], [11.2, 18.6], [15.5, 18.5]]},
+  {race: {c: '#2a2a33', oeil: '#ffd95a'}, coins: [[28.6, 7.5], [30.6, 7.4], [31.3, 8.6], [31.2, 10.1], [30.2, 8.3]]},
+].map((c, i) => Object.assign(c, {x: c.coins[0][0], y: c.coins[0][1], vers: null, pause: 4 + i * 6, marche: false, miroir: false, dort: false}));
+function vieDesChats(dt, T){
+  for (const c of CHATS){
+    if (c.vers){ const dx = c.vers[0] - c.x, dy = c.vers[1] - c.y, d = Math.hypot(dx, dy), pas = 1.3 * dt;
+      if (d <= pas){ c.x = c.vers[0]; c.y = c.vers[1]; c.vers = null; c.marche = false; c.pause = 5 + Math.random() * 14; c.dort = Math.random() < (ENV.nuit > .6 || (T.min > 720 && T.min < 900) ? .7 : .2); }
+      else { c.x += dx / d * pas; c.y += dy / d * pas; c.miroir = dx - dy < 0; c.marche = true; } }
+    else { c.pause -= dt; if (c.pause <= 0 && !calme && !ENV.pluie){ const p = c.coins[Math.floor(Math.random() * c.coins.length)]; if (Math.hypot(p[0] - c.x, p[1] - c.y) > .3){ c.vers = p; c.dort = false; } else c.pause = 2; } }
+  }
+}
+function chatErrant(c, t){ const [sx, sy] = P(c.x, c.y); if (!vu(sx, sy, 14)) return; ellipse(sx + .5, sy + .3, 5, 2, 'rgba(24,16,56,.18)'); chatSprite(sx, sy, .78, t + c.x, {miroir: c.miroir, marche: c.marche, dort: c.dort}, c.race, null); }
+
+// --- où tombent les ombres : vers l'ouest le matin, presque rien à midi, vers l'est le soir (la nuit et en qualité basse : une ombre fixe) ---
+function ombreSoleil(){
+  const h = ENV.min / 60; if (NIVEAU === 0 || !(h > 6 && h < 18.6)) return .3;
+  const jour = Math.min(1, (h - 6) / .7) * Math.min(1, (18.6 - h) / .7);
+  return .3 + (((h - 6) / 12.6 - .5) * 2.2 - .3) * jour;
+}
+// --- par-dessus la ville : la fumée des cheminées (quand on cuisine, matin et soir) et les feuilles qui tombent des arbres ---
+function detailsAmbiance(t){
+  if (NIVEAU === 0) return;
+  for (const m of MAISONS){ if (!m.fume) continue; const x = m.hx + LM * .68 + .1, y = m.hy + PM * .2 + .1, q = P(x, y, HM + 16); if (!vu(q[0], q[1], 40)) continue;
+    for (let i = 0; i < 3; i++){ const u = (t * .22 + i / 3 + m.e.h1) % 1, g = 2.4 + u * 3.6; ctx.fillStyle = 'rgba(240,240,248,' + (.7 * (1 - u)) + ')'; ctx.fillRect(q[0] - g / 2 + u * 7 * ENV.vent + Math.sin(t + i * 2) * u * 2, q[1] - u * 20 - g / 2, g, g); } }
+  if (ENV.nuit < .8) ARBRES.forEach((a, n) => {                          // les feuilles (et les fleurs rouges des flamboyants) : elles se détachent, tournoient, se posent
+    if (a.s && !(a.s.k > 0)) return; const q = P(a.x, a.y, 14); if (!vu(q[0], q[1], 60)) return;
+    for (let i = 0; i < (a.fleur ? 2 : 1); i++){ const u = (t * .11 * ENV.vent + H1(n, i + 3)) % 1, p = P(a.x + (H1(n, i + 7) - .5) * .8 + u * 1.2 * ENV.vent + Math.sin(t * 2 + n + i) * .15, a.y + u * .35, a.h * (1 - u));
+      ctx.fillStyle = a.fleur && i ? '#f0522d' : n % 2 ? '#58c27a' : '#3fb873'; ctx.fillRect(p[0], p[1], 1.8, 1.4); } });
+}
+
+// --- les sons d'ambiance : tout est fabriqué par le navigateur, sans aucun fichier son. Ils sont coupés au départ ; un bouton les allume. ---
+const AMBI = {actif: lire('campus-ambiance', false) === true, ctx: null, n: {}, proch: {oiseau: 0, voix: 0, grillon: 0}, vu: 0};
+function ambiPret(){                                                    // le navigateur n'autorise le son qu'après un geste : on prépare tout au premier toucher
+  if (AMBI.ctx){ if (AMBI.ctx.state === 'suspended') AMBI.ctx.resume(); return true; }
+  try {
+    const A = AMBI.ctx = new (window.AudioContext || window.webkitAudioContext)(), n = AMBI.n;
+    const buf = A.createBuffer(1, A.sampleRate * 2, A.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;   // deux secondes de souffle, rejouées en boucle
+    n.maitre = A.createGain(); n.maitre.gain.value = 0; n.maitre.connect(A.destination);
+    const couche = (type, f, q) => { const s = A.createBufferSource(), fi = A.createBiquadFilter(), g = A.createGain(); s.buffer = buf; s.loop = true; fi.type = type; fi.frequency.value = f; if (q) fi.Q.value = q;
+      g.gain.value = 0; s.connect(fi); fi.connect(g); g.connect(n.maitre); s.start(); return g; };
+    n.pluie = couche('highpass', 1500); n.route = couche('lowpass', 170); n.cour = couche('bandpass', 950, .7);        // le même souffle, filtré trois fois : la pluie (aigu), la route (grave), le brouhaha de la cour (médium)
+    return true;
+  } catch (e) { AMBI.ctx = null; return false; }
+}
+function bip(f0, f1, duree, vol, type, quand){                          // une note courte qui glisse de f0 à f1 : un pépiement, une voix au loin, un grillon
+  const A = AMBI.ctx, o = A.createOscillator(), g = A.createGain(), t = quand || A.currentTime;
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + duree);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + duree * .25); g.gain.linearRampToValueAtTime(0, t + duree);
+  o.connect(g); g.connect(AMBI.n.maitre); o.start(t); o.stop(t + duree + .02);
+}
+function ambiSon(T){                                                    // appelée à chaque image de la ville ; elle ne règle les sons que cinq fois par seconde
+  const A = AMBI.ctx, n = AMBI.n; if (!A || !n.maitre) return;
+  const t = A.currentTime, vers = (g, v) => g.gain.setTargetAtTime(v, t, .4);
+  const joue = AMBI.actif && !document.hidden && !!T;                 // (T absent : personne n'est connecté, la ville n'est pas là → silence)
+  n.maitre.gain.setTargetAtTime(joue ? .55 : 0, t, joue ? .4 : .08);    // on allume en douceur, on coupe tout de suite
+  if (!joue || t < AMBI.vu) return; AMBI.vu = t + .2;
+  const h = T.min / 60, cx = CAM.x / TW + CAM.y / TH, cy = CAM.y / TH - CAM.x / TW;       // la case qui est au centre de l'écran
+  vers(n.pluie, ENV.pluie ? .2 : 0);
+  let pres = 9; for (const v of VOITURES) pres = Math.min(pres, Math.hypot(v.x - cx, v.y - cy));
+  vers(n.route, .04 + .15 * Math.max(0, 1 - pres / 7));                // la route : un fond grave, plus fort quand un véhicule passe près du centre de l'écran
+  const cour = ELEVES.filter(e => e.visible && e.x < 17.4 && e.y > 10.4 && e.y < 15.3).length;
+  vers(n.cour, Math.min(.09, cour * .004));                             // la cour : plus il y a d'élèves dehors, plus on entend le brouhaha… et quelques voix
+  if (cour > 3 && t >= AMBI.proch.voix){ const f = 280 + Math.random() * 420; bip(f, f * (.8 + Math.random() * .5), .08 + Math.random() * .1, .03, 'triangle'); AMBI.proch.voix = t + (.12 + Math.random() * 1.1) * 14 / Math.min(40, cour + 2); }
+  if (h > 5.6 && h < 18.6 && !ENV.pluie && t >= AMBI.proch.oiseau){     // les oiseaux : surtout le matin
+    const f = 2600 + Math.random() * 2200, nb = 2 + Math.floor(Math.random() * 3); for (let i = 0; i < nb; i++) bip(f, f * (1.15 + Math.random() * .25), .07, .05, 'sine', t + i * .11);
+    AMBI.proch.oiseau = t + (h < 9.5 ? .6 + Math.random() * 2 : 2.5 + Math.random() * 6); }
+  if (ENV.nuit > .6 && !ENV.pluie && t >= AMBI.proch.grillon){ for (let i = 0; i < 3; i++) bip(4300, 4250, .05, .018, 'sine', t + i * .075); AMBI.proch.grillon = t + .9 + Math.random() * 1.4; }   // les grillons, la nuit
+}
+function majAmbiance(){ $('cam-son').setAttribute('aria-pressed', String(AMBI.actif)); $('cam-son').title = AMBI.actif ? 'Couper les sons d\'ambiance' : 'Sons d\'ambiance'; $('cam-son').setAttribute('aria-label', $('cam-son').title); $('ambiance-son').checked = AMBI.actif; }
+function basculerAmbiance(oui){ AMBI.actif = oui; ecrire('campus-ambiance', oui); if (oui){ if (ambiPret()){ AMBI.vu = 0; ambiSon(maintenant()); } }   // (on règle les sons tout de suite : on les entend même si le menu cache la ville)
+  else if (AMBI.n.maitre) AMBI.n.maitre.gain.setTargetAtTime(0, AMBI.ctx.currentTime, .1); majAmbiance(); }
+$('cam-son').addEventListener('click', () => basculerAmbiance(!AMBI.actif));
+$('ambiance-son').addEventListener('change', e => basculerAmbiance(e.target.checked));
+addEventListener('pointerdown', () => { if (AMBI.actif) ambiPret(); });                              // les sons étaient allumés la dernière fois : ils reprennent au premier toucher
+document.addEventListener('visibilitychange', () => { if (AMBI.n.maitre) AMBI.n.maitre.gain.setTargetAtTime(AMBI.actif && !document.hidden ? .55 : 0, AMBI.ctx.currentTime, .2); });
+
+// --- personne ne se traverse : ceux qui marchent se poussent un peu les uns les autres, contournent ceux qui sont arrêtés, et une file serrée se met sur deux rangs ---
+// L'écart (ox, oy) n'est ajouté à la position que pour l'affichage : il est retiré au début de l'image suivante, avant de calculer le trajet. Le vrai chemin (et l'heure d'arrivée) ne changent donc jamais.
+const ECART = {rayon: .34, max: .24};                                  // en dessous de « rayon » (en cases) deux personnages se gênent · « max » : le plus grand écart permis
+function ecarter(dt, t){
+  if (calme || !pret){ for (const e of ELEVES) e.ox = e.oy = 0; return; }
+  const W = [], F = [];                                                 // W : ceux qui marchent · F : ceux qui sont debout, arrêtés
+  for (const e of ELEVES){ e.pres = false; if (!e.visible || e.foot) continue;
+    if (e.marche){ W.push(e); e.qx = (e.ox || 0) * .9; e.qy = (e.oy || 0) * .9; } else if (e.pose !== 'assis' && e.pose !== 'dort') F.push(e); }
+  for (let tour = 0; tour < 3; tour++) for (let i = 0; i < W.length; i++){ const a = W[i];
+    for (let j = i + 1; j < W.length; j++){ const b = W[j]; let ux = a.x + a.qx - b.x - b.qx, uy = a.y + a.qy - b.y - b.qy; const d = Math.hypot(ux, uy);
+      if (d >= ECART.rayon) continue; a.pres = b.pres = true;
+      if (d < .02){ const g = a.i * 2.4 + b.i; ux = Math.cos(g); uy = Math.sin(g); } else { ux /= d; uy /= d; }      // pile l'un sur l'autre : on choisit un côté
+      const f = (ECART.rayon - d) * .3; a.qx += ux * f; a.qy += uy * f; b.qx -= ux * f; b.qy -= uy * f; }
+    for (const b of F){ const ux = a.x + a.qx - b.x, uy = a.y + a.qy - b.y, d = Math.hypot(ux, uy); if (d >= ECART.rayon || d < .02) continue; const f = (ECART.rayon - d) * .5 / d; a.qx += ux * f; a.qy += uy * f; }
+    if (!tour && a.pres && a.vx !== undefined){ const c = (a.i % 2 ? 1 : -1) * .014; a.qx -= a.vy * c; a.qy += a.vx * c; }   // dans une file serrée : un sur deux se décale à gauche, l'autre à droite
+    const m = Math.hypot(a.qx, a.qy); if (m > ECART.max){ a.qx *= ECART.max / m; a.qy *= ECART.max / m; } }
+  for (let i = 0; i < W.length; i++) for (let j = i + 1; j < W.length; j++){ const a = W[i], b = W[j];           // deux élèves qui se croisent de face : un petit salut (les bavards saluent tout le monde)
+    if (a.vx * b.vx + a.vy * b.vy < -.4 && Math.hypot(a.x - b.x, a.y - b.y) < .7 && !(a.salu > t - 5) && !(b.salu > t - 5) && (a.perso === 'bavard' || b.perso === 'bavard' || H1(a.i + b.i * 7, Math.floor(t / 4)) < .45)) a.salu = b.salu = t + .9; }
+  const k = Math.min(1, dt * 9);
+  for (const e of ELEVES){ const va = e.marche && e.visible && !e.foot, cx = va ? e.qx : 0, cy = va ? e.qy : 0;
+    e.ox = (e.ox || 0) + (cx - (e.ox || 0)) * k; e.oy = (e.oy || 0) + (cy - (e.oy || 0)) * k;
+    if (Math.abs(e.ox) < .003 && Math.abs(e.oy) < .003) e.ox = e.oy = 0;
+    e.x += e.ox; e.y += e.oy; }
+}
+const caractereDe = e => e.perso ? ' Caractère : ' + ({ponctuel: 'toujours à l\'heure', retard: 'souvent en retard', bavard: e.fille ? 'bavarde' : 'bavard', studieux: e.fille ? 'studieuse' : 'studieux'})[e.perso] + '.' : '';
+
+/* ============ 15 ter. LES DRAPEAUX : 195 pays, dessinés en pixels à partir d'une courte « recette » ============ */
+// Chaque drapeau fait 18 pixels sur 12. Sa recette est une suite d'opérations séparées par des espaces, appliquées l'une après l'autre :
+//   F fond · H bandes horizontales · V bandes verticales (c*2 = bande deux fois plus large) · B rectangle · C carré du coin · D disque · M croissant · S étoile
+//   T triangle au mât · P polygone · X croix · Z croix en diagonale · Q bande en diagonale · Y fourche · N rangée de points · J dents · U petit Union Jack
+// Les étoiles et les croissants sont de petits dessins tout faits (voir ETOILES, CROISSANTS) : à cette taille, une forme calculée devient une tache.
+// Les couleurs sont des lettres (voir TEINTES). Les emblèmes compliqués sont simplifiés : à cette taille, on garde les formes et les couleurs.
+const TEINTES = {r: '#d21f3c', o: '#f77f00', y: '#ffd23f', g: '#1f9d55', G: '#0a6b3b', b: '#1e4fd8', n: '#10286b', c: '#59b7f0', a: '#18a999', w: '#ffffff', k: '#15151c', m: '#7b1530', s: '#c9ccd6', t: '#8a5a2b'};
+const DRAPEAUX = {
+  // --- Afrique ---
+  DZ: 'V:g,w M:9,6,3,r B:9,5,2,2,r', AO: 'H:r,k M:9,6,3,y,l B:6,5,2,2,y', BJ: 'H:y,r B:0,0,7,12,g', BW: 'F:c B:0,4,18,4,w B:0,5,18,2,k', BF: 'H:r,g S:9,6,2,y',
+  BI: 'F:r P:0,0,9,6,0,12,g P:18,0,9,6,18,12,g Z:w,2 D:9,6,2.8,w B:8,4,2,1,r B:7,6,1,1,r B:10,6,1,1,r', CV: 'F:b B:0,6.4,18,3,w B:0,7.4,18,1,r N:5,5.6,1.6,0,3,y N:5,9.9,1.6,0,3,y S:3.8,7.8,.5,y S:9.4,7.8,.5,y',
+  CM: 'V:g,r,y S:9,6,1.8,y', CF: 'H:b,w,g,y B:7.5,0,3,12,r S:2.6,1.5,1.2,y', TD: 'V:n,y,r', KM: 'H:y,w,r,b T:g,8 B:2,4,2,1,w B:1,5,1,2,w B:2,7,2,1,w B:5,5,1,2,w', CG: 'F:g P:0,12,18,0,18,12,r Q:y,3.4,a',
+  CD: 'F:c Q:y,4.6,a Q:r,3,a S:3,3,1.8,y', CI: 'V:o,w,g', DJ: 'H:c,g T:w,7.5 S:3,6,1.8,r', EG: 'H:r,w,k B:8,5,2,2,y', GQ: 'H:g,w,r T:b,5 B:8.4,5,1.6,2,s', ER: 'H:g,c P:0,0,18,6,0,12,r D:4,6,1.7,y D:4,6,.9,r',
+  SZ: 'H:b*2,y,r*6,y,b*2 P:5,6,9,3.8,13,6,9,8.2,k P:9,3.8,13,6,9,8.2,w', ET: 'H:g,y,r D:9,6,3,b S:9,6,1.6,y', GA: 'H:g,y,b', GM: 'H:r*6,w,n*4,w,g*6', GH: 'H:r,y,g S:9,6,1.8,k', GN: 'V:r,y,g',
+  GW: 'H:y,g B:0,0,6,12,r S:3,6,1.6,k', KE: 'H:k*3,w,r*4,w,G*3 B:7,4,4,4,k B:8,2,2,8,r B:8,5,2,2,w', LS: 'H:b,w,g B:8,5,2,1,k B:7,6,4,1,k',
+  LR: 'H:r,w,r,w,r,w,r,w,r,w,r C:5,5.5,n S:2.5,2.5,1.3,w', LY: 'H:r,k*2,g M:8,6,2,w B:10,5,2,2,w', MG: 'H:r,g B:0,0,6,12,w', MW: 'H:k,r,g D:9,4.2,2,r', ML: 'V:g,y,r',
+  MR: 'H:r*2,g*8,r*2 M:9,5,3,y,u S:9,4.2,1,y', MU: 'H:r,b,y,g', MA: 'F:r S:9,6,2.6,G', MZ: 'H:G*3,w,k*4,w,y*3 T:r,7 S:3,6,1.8,y', NA: 'F:b P:0,12,18,0,18,12,g Q:w,4.4,a Q:r,3,a D:3.2,3,1.6,y',
+  NE: 'H:o,w,g D:9,6,1.6,o', NG: 'V:G,w,G', RW: 'H:c*2,y,g D:14,3,1.6,y', ST: 'H:g*2,y*3,g*2 T:r,5 S:9,6,1.8,k S:14,6,1.8,k', SN: 'V:g,y,r S:9,6,1.6,g',
+  SC: 'F:w P:0,12,0,0,6,0,b P:0,12,6,0,12,0,y P:0,12,12,0,18,0,18,4,r P:0,12,18,8,18,12,g', SL: 'H:g,w,c', SO: 'F:c S:9,6,2.4,w', ZA: 'H:r,b Y:w,5 Y:G,3 P:0,1.6,5.4,6,0,10.4,y P:0,2.8,4.2,6,0,9.2,k',
+  SS: 'H:k*3,w,r*4,w,g*3 T:b,7 S:3,6,1.8,y', SD: 'H:r,w,k T:g,6', TZ: 'F:g P:0,12,18,0,18,12,c Q:y,4.6,a Q:k,3,a', TG: 'H:g,y,g,y,g C:7.2,7.2,r S:3.5,3.5,2.3,w', TN: 'F:r D:9,6,4.2,w M:9,6,3,r B:9,5,2,2,r',
+  UG: 'H:k,y,r,k,y,r D:9,6,2.2,w B:8.5,5.2,1,1.6,s', ZM: 'F:g B:12,5,2,7,r B:14,5,2,7,k B:16,5,2,7,o B:13,2.4,4,1.4,o', ZW: 'H:g,y,r,k,r,y,g T:w,6.5 S:3,6,1.8,r',
+  // --- Amériques ---
+  AG: 'F:r P:0,0,18,0,9,12,k P:3.75,5,14.25,5,12,8,6,8,c P:6,8,12,8,9,12,w D:9,5,1.9,y,t', AR: 'H:c,w,c D:9,6,1.4,y', BS: 'H:a,y,a T:k,7', BB: 'V:n*5,y*8,n*5 B:8,3,2,6,k B:6,6,6,1,k B:6,4,1,2,k B:11,4,1,2,k',
+  BZ: 'H:r,n*8,r D:9,6,3.2,w D:9,6,2,g', BO: 'H:r,y,g', BR: 'F:g P:9,1.2,16.4,6,9,10.8,1.6,6,y D:9,6,2.7,n', CA: 'V:r*5,w*8,r*5 B:8,3,2,6,r B:7,4,4,3,r B:6,5,6,1,r', CL: 'H:w,r C:6,6,b S:3,3,1.7,w', CO: 'H:y*2,b,r', CR: 'H:b,w,r*2,w,b',
+  CU: 'H:b,w,b,w,b T:r,7 S:3,6,1.8,w', DM: 'F:G X:y,3.6,9 X:k,2.4,9 X:w,1.2,9 D:9,6,2.7,r', DO: 'F:w B:0,0,7.5,4.5,n B:10.5,0,7.5,4.5,r B:0,7.5,7.5,4.5,r B:10.5,7.5,7.5,4.5,n', EC: 'H:y*2,b,r B:8.3,4.6,1.4,2.4,t',
+  SV: 'H:b,w,b D:9,6,1.2,y', GD: 'F:y P:0,0,9,6,0,12,g P:18,0,9,6,18,12,g B:0,0,18,1.5,r B:0,10.5,18,1.5,r B:0,0,1.5,12,r B:16.5,0,1.5,12,r D:9,6,1.9,r S:9,6,1,y', GT: 'V:c,w,c D:9,6,1.4,g',
+  GY: 'F:g P:0,0,18,6,0,12,w P:0,1,16,6,0,11,y P:0,0,9,6,0,12,k P:0,1,7.6,6,0,11,r', HT: 'H:b,r B:7,4,4,4,w B:8.4,5.4,1.2,1.2,g', HN: 'H:c,w,c S:9,6,.9,c N:6.6,5,5,0,2,c N:6.6,7,5,0,2,c',
+  JM: 'F:g P:0,0,9,6,0,12,k P:18,0,9,6,18,12,k Z:y,2.2', MX: 'V:G,w,r D:9,6,1.6,t', NI: 'H:b,w,b D:9,6,1.3,y', PA: 'F:w B:9,0,9,6,r B:0,6,9,6,b S:4.5,3.5,1.5,b S:13.5,8.5,1.5,r', PY: 'H:r,w,b D:9,6,1.3,y', PE: 'V:r,w,r',
+  KN: 'F:g P:0,12,18,0,18,12,r Q:y,5,a Q:k,3.6,a S:6.4,7.8,.9,w S:11.6,4.2,.9,w', LC: 'F:c P:9,1.5,13.2,10.5,4.8,10.5,w P:9,3.2,12.4,10.5,5.6,10.5,k P:9,6.4,13.2,10.5,4.8,10.5,y', VC: 'V:b*5,y*8,g*5 S:7,4,1,g S:11,4,1,g S:9,8,1,g',
+  SR: 'H:g*2,w,r*4,w,g*2 S:9,6,1.7,y', TT: 'F:r Q:w,5,d Q:k,3.4,d', US: 'H:r,w,r,w,r,w,r,w,r,w,r,w,r C:7.5,6.5,n N:1.2,1,2.4,0,3,w N:2.4,2.6,2.4,0,2,w N:1.2,4.2,2.4,0,3,w',
+  UY: 'H:w,b,w,b,w,b,w,b,w C:6,6.7,w D:3,3.3,1.9,y', VE: 'H:y,b,r S:5.4,6.8,.5,w S:7.2,6,.5,w S:9,5.6,.5,w S:10.8,6,.5,w S:12.6,6.8,.5,w',
+  // --- Asie ---
+  AF: 'V:k,r,G D:9,6,1.7,w', AM: 'H:r,b,o', AZ: 'H:c,r,g M:8,6,2,w B:10,5,2,2,w', BH: 'F:r B:0,0,4.5,12,w J:4.5,2,5,w', BD: 'F:G D:8,6,3,r', BT: 'F:y P:0,12,18,0,18,12,o Q:w,1.6,a',
+  BN: 'F:y Q:w,2.4,d,1.2 Q:k,2.4,d,-1.2 D:9,6,1.9,r', KH: 'H:b,r*2,b B:6.4,5.6,5.2,2.2,w B:7,4.6,1,1,w B:8.5,3.6,1,2,w B:10,4.6,1,1,w', CN: 'F:r S:3.6,3.6,2.1,y S:6.6,1.4,.5,y S:7.8,2.8,.5,y S:7.8,4.6,.5,y S:6.6,6,.5,y',
+  CY: 'F:w D:7.6,5,1.8,o D:10,4.6,1.5,o B:10,4,3.4,.9,o N:7,8,1.3,0,4,g', GE: 'F:w X:r,2,9 S:4.5,2.5,1,r S:13.5,2.5,1,r S:4.5,9.5,1,r S:13.5,9.5,1,r', IN: 'H:o,w,g D:9,6,1.6,n D:9,6,.7,w', ID: 'H:r,w',
+  IR: 'H:g,w,r D:9,6,1.3,r', IQ: 'H:r,w,k B:6.6,5.4,4.8,1.2,g', IL: 'F:w B:0,1.4,18,1.6,b B:0,9,18,1.6,b D:9,6,1.8,b D:9,6,.9,w', JP: 'F:w D:9,6,3.5,r', JO: 'H:k,w,g T:r,8 S:2.8,6,1,w',
+  KZ: 'F:c D:9.5,5.2,2.2,y B:7,8.2,5,.9,y N:1.2,1.2,0,1.9,6,y', KW: 'H:g,w,r P:0,0,4.6,4,4.6,8,0,12,k', KG: 'F:r D:9,6,2.9,y D:9,6,1.3,r', LA: 'H:r,n*2,r D:9,6,2.2,w', LB: 'H:r,w*2,r P:9,3.2,12.2,8,5.8,8,g B:8.6,8,.8,1,t',
+  MY: 'H:r,w,r,w,r,w,r,w,r,w,r,w,r,w C:9,6.9,n M:3.5,3.5,2.5,y S:6.5,3.5,1,y', MV: 'F:r B:3.4,3,11.2,6,g M:9.2,6,2,w', MN: 'V:r,b,r B:2.4,4,1.2,5,y D:3,2.6,.9,y', MM: 'H:y,g,r S:9,6,3,w',
+  NP: 'F:_ P:0,0,11.6,6,4.8,6,11.6,12,0,12,n P:1,1.8,8,5,3.2,5,8.6,11,1,11,m S:3.5,4.5,1,w S:3.5,8.5,1.2,w', KP: 'H:b*2,w*.6,r*6.8,w*.6,b*2 D:6,6,2.9,w S:6,6,1.5,r', OM: 'H:w,r,g B:0,0,5,12,r B:1.6,1.2,1.8,1.8,w',
+  PK: 'F:G B:0,0,4.5,12,w M:11,6,3,w B:12,5,2,2,w', PH: 'H:b,r T:w,8 D:2.8,6,1.3,y', QA: 'F:m B:0,0,5,12,w J:5,2,6,w', SA: 'F:G B:5,4,8,2,w B:5.6,7.8,6.8,.9,w',
+  SG: 'H:r,w M:3,3,2,w S:6.5,1.5,.5,w S:5.5,2.5,.5,w S:7.5,2.5,.5,w S:5.5,4.5,.5,w S:7.5,4.5,.5,w', KR: 'F:w D:9,6,3,r D:9,6,3,b,b B:2,2,2.4,.8,k B:13.6,2,2.4,.8,k B:2,9.2,2.4,.8,k B:13.6,9.2,2.4,.8,k',
+  LK: 'F:y B:1,1,2.6,10,g B:3.6,1,2.6,10,o B:7.2,1,9.8,10,m B:10.4,4,3.4,4,y', SY: 'H:g,w,k S:4,6,1.8,r S:9,6,1.8,r S:14,6,1.8,r', TJ: 'H:r*2,w*3,g*2 D:9,6,1.3,y', TH: 'H:r,w,n*2,w,r',
+  TL: 'F:r P:0,0,9,6,0,12,y P:0,0,6,6,0,12,k S:2.2,6,1.1,w', TR: 'F:r M:7,6,3,w S:12,6,1.8,w', TM: 'F:g B:2.6,0,3,12,r N:4.1,1.4,0,2.3,5,y M:9.5,3.5,1.5,w S:12.5,2.5,.5,w S:13.5,3.5,.5,w S:12.5,4.5,.5,w',
+  AE: 'H:g,w,k B:0,0,4.5,12,r', UZ: 'H:c*3,r,w*4,r,g*3 M:2.5,1.5,1.5,w S:5.5,.5,.5,w S:7.5,.5,.5,w S:6.5,1.5,.5,w S:5.5,2.5,.5,w S:7.5,2.5,.5,w', VN: 'F:r S:9,6,3,y', YE: 'H:r,w,k', PS: 'H:k,w,g T:r,6',
+  // --- Europe ---
+  AL: 'F:r P:9,3,12.4,6,9,9.4,5.6,6,k B:8.4,2.4,1.2,7.4,k', AD: 'V:b,y,r B:8,4.8,2,2.6,t', AT: 'H:r,w,r', BY: 'H:r*2,g B:0,0,2.4,12,w N:1.2,1,0,2,6,r', BE: 'V:k,y,r', BA: 'F:n P:5,0,14.6,0,14.6,12,y N:3.6,.8,1.6,2.1,6,w',
+  BG: 'H:w,g,r', HR: 'H:r,w,b B:7.4,3.6,3.2,4.2,r B:8.2,4.4,.8,.9,w B:9.8,4.4,.8,.9,w B:9,5.3,.8,.9,w B:8.2,6.2,.8,.9,w B:9.8,6.2,.8,.9,w', CZ: 'H:w,r T:n,8', DK: 'F:r X:w,2,6.5', EE: 'H:b,k,w', FI: 'F:w X:b,2.6,6.5',
+  FR: 'V:b,w,r', DE: 'H:k,r,y', GR: 'H:b,w,b,w,b,w,b,w,b C:6.7,6.7,b B:2.7,0,1.3,6.7,w B:0,2.7,6.7,1.3,w', HU: 'H:r,w,g', IS: 'F:b X:w,3.4,6.5 X:r,1.6,6.5', IE: 'V:g,w,o', IT: 'V:g,w,r', LV: 'H:m*2,w,m*2',
+  LI: 'H:n,r B:2,2,3.2,1.6,y', LT: 'H:y,g,r', LU: 'H:r,w,c', MT: 'V:w,r B:1.2,1.2,1.8,1.8,s', MD: 'V:b,y,r B:8,4.6,2,2.8,t', MC: 'H:r,w', ME: 'F:y B:1,1,16,10,r D:9,6,2.2,y', NL: 'H:r,w,b',
+  MK: 'F:r X:y,2,9 Z:y,1.8 D:9,6,2.8,r D:9,6,2,y', NO: 'F:r X:w,3.4,6.5 X:n,1.6,6.5', PL: 'H:w,r', PT: 'V:G*2,r*3 D:7.2,6,2.1,y D:7.2,6,1.1,r', RO: 'V:b,y,r', RU: 'H:w,b,r', SM: 'H:w,c D:9,6,1.8,y',
+  RS: 'H:r,n,w B:5,3.4,2.6,4.6,r B:5.7,4.2,1.2,2.6,w', SK: 'H:w,b,r B:4,3.2,3.4,5.2,r B:5.3,4,.8,3.6,w B:4.6,5.2,2.2,.8,w', SI: 'H:w,b,r B:3,2,2.6,3.4,n B:3.8,3.4,1,1.2,w', ES: 'H:r,y*2,r B:4.6,4.6,1.8,2.6,r',
+  SE: 'F:b X:y,2.4,6.5', CH: 'F:r B:7.6,2.6,2.8,6.8,w B:5.6,4.6,6.8,2.8,w', UA: 'H:b,y', GB: 'F:n Z:w,2.6 Z:r,1 X:w,3.6,9 X:r,2,9', VA: 'V:y,w B:12.6,4.6,1.8,2.8,s',
+  // --- Océanie ---
+  AU: 'F:n U:9,6 S:4.5,8.5,1.5,w S:13.5,2.5,1,w S:15.5,5.5,1,w S:13.5,9.5,1,w S:11.5,6.5,1,w', FJ: 'F:c U:9,6 B:12,4.6,3.4,4.4,w B:12,4.6,3.4,1.4,r',
+  KI: 'F:r D:9,6.4,2.6,y B:0,6.4,18,5.6,b B:0,7.4,18,.9,w B:0,9.2,18,.9,w B:0,11,18,.9,w B:7.6,2,2.8,.9,y', MH: 'F:n P:0,11,18,0,18,2.2,o P:0,12,18,2.2,18,4.6,w S:3.6,3.6,2,w', FM: 'F:c S:9,3,1.8,w S:9,9,1.8,w S:4,6,1.8,w S:14,6,1.8,w',
+  NR: 'F:n B:0,5,18,1,y S:4.5,8.5,1.5,w', NZ: 'F:n U:9,6 S:13.5,2.5,1,r S:15.5,5.5,1,r S:11.5,5.5,1,r S:13.5,9.5,1,r', PW: 'F:c D:8,6,3,y', PG: 'F:r P:0,0,18,12,0,12,k S:4.5,6.5,.5,w S:2.5,8.5,.5,w S:6.5,8.5,.5,w S:4.5,10.5,.5,w S:5.5,9.5,.5,w D:12.6,4,1.7,y',
+  WS: 'F:r C:9,6,n S:4.5,1.4,.5,w S:2.6,2.8,.5,w S:6.4,2.8,.5,w S:4.5,4.6,.9,w', SB: 'F:b P:0,12,18,0,18,12,G Q:y,1.6,a N:1.4,1.4,2,0,2,w N:1.4,3.4,2,0,2,w S:2.4,2.4,.5,w', TO: 'F:r C:7.5,6,w B:3.2,1,1.2,4,r B:1.8,2.4,4,1.2,r',
+  TV: 'F:c U:9,6 S:13,9.4,.5,y S:15,6.6,.5,y S:16.2,3,.5,y S:12,6,.5,y S:14,3.6,.5,y S:11,10.4,.5,y', VU: 'H:r,g Y:k,3.6 Y:y,1.6 P:0,0,6.6,6,0,12,k D:2.2,6,1,y',
+};
+const ETOILES = {1: ['#'], 2: ['##', '##'], 3: ['.#.', '###', '.#.'], 4: ['.##.', '####', '.##.', '#..#'], 5: ['..#..', '..#..', '#####', '.###.', '.#.#.'],
+  6: ['..##..', '..##..', '######', '.####.', '.####.', '.#..#.'], 7: ['...#...', '...#...', '#######', '.#####.', '..###..', '.##.##.', '.#...#.']};
+const CROISSANTS = {1: ['#'], 2: ['##', '##'], 3: ['.##', '#..', '.##'], 4: ['.##.', '#...', '#...', '.##.'], 5: ['.###.', '##...', '#....', '##...', '.###.'],     // ouverts vers la droite
+  6: ['..###.', '.##...', '##....', '##....', '.##...', '..###.'], 7: ['..####.', '.###...', '###....', '##.....', '###....', '.###...', '..####.']};
+const DW = 18, DH = 12, _drapeaux = {};
+// Fabrique (une seule fois) le petit dessin d'un drapeau : un canvas de 18 × 12 pixels
+function drapeauDe(code){
+  if (_drapeaux[code]) return _drapeaux[code];
+  const px = new Array(DW * DH).fill(null);
+  const peindre = (c, dans) => { for (let y = 0; y < DH; y++) for (let x = 0; x < DW; x++) if (dans(x + .5, y + .5)) px[y * DW + x] = c; };   // on teste le centre de chaque pixel
+  const point = (x, y, c) => { x = Math.floor(x); y = Math.floor(y); if (x >= 0 && x < DW && y >= 0 && y < DH) px[y * DW + x] = c; };
+  const bandes = (args, vertical) => { const l = args.map(a => a.split('*')), tot = l.reduce((s, a) => s + (+a[1] || 1), 0); let u = 0;
+    l.forEach(([c, p]) => { const a = u / tot, b = (u += +p || 1) / tot; peindre(c, (x, y) => { const v = vertical ? x / DW : y / DH; return v >= a && v < b; }); }); };
+  const dansPoly = (pts, x, y) => { let d = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++){ const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d; } return d; };
+  const poly = (nums, c) => { const pts = []; for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]); peindre(c, (x, y) => dansPoly(pts, x, y)); };
+  const segment = (x, y, x1, y1, x2, y2) => { const dx = x2 - x1, dy = y2 - y1, u = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy))); return Math.hypot(x - x1 - u * dx, y - y1 - u * dy); };
+  // la largeur d'un motif : paire s'il est centré sur le bord d'un pixel (9 → colonnes 8 et 9), impaire s'il est centré au milieu d'un pixel (9,5 → colonne 9) : ainsi il tombe pile au centre
+  const largeur = (v, cx) => { const f = cx - Math.floor(cx); return Math.max(1, Math.min(7, f < .26 || f > .74 ? Math.max(2, 2 * Math.round(v / 2)) : Math.abs(f - .5) < .26 ? 2 * Math.round((v - 1) / 2) + 1 : Math.round(v))); };
+  const motif = (rangs, cx, cy, c, sens) => {                          // pose un petit dessin (# = pixel plein), centré ; sens « l » : retourné vers la gauche · « u » : tourné vers le haut
+    const m = sens === 'l' ? rangs.map(r => [...r].reverse().join('')) : sens === 'u' ? rangs.map((_, r) => rangs.map((_, k) => rangs[k][rangs.length - 1 - r]).join('')) : rangs;
+    const x0 = Math.round(cx - m[0].length / 2), y0 = Math.round(cy - m.length / 2); m.forEach((l, j) => [...l].forEach((ch, i) => { if (ch === '#') point(x0 + i, y0 + j, c); }));
+  };
+  const etoile = (cx, cy, r, c) => r < .8 ? point(cx, cy, c) : motif(ETOILES[largeur(r * 2.2, cx)], cx, cy, c);
+  (DRAPEAUX[code] || 'F:s').split(' ').forEach(op => {
+    const k = op[0], a = op.slice(2).split(','), n = a.map(Number), c = a[a.length - 1];
+    if (k === 'F') peindre(c, () => true);
+    else if (k === 'H' || k === 'V') bandes(a, k === 'V');
+    else if (k === 'B') peindre(c, (x, y) => x >= n[0] && x < n[0] + n[2] && y >= n[1] && y < n[1] + n[3]);
+    else if (k === 'C') peindre(c, (x, y) => x < n[0] && y < n[1]);
+    else if (k === 'D') peindre(a[3], (x, y) => Math.hypot(x - n[0], y - n[1]) <= n[2] && (a[4] === 'b' ? y > n[1] : a[4] === 't' ? y < n[1] : true));
+    else if (k === 'M') motif(CROISSANTS[largeur(n[2] * 2, n[0])], n[0], n[1], a[3], a[4]);                 // un croissant, ouvert vers la droite (ou « l » la gauche, « u » le haut)
+    else if (k === 'S') etoile(n[0], n[1], n[2], c);
+    else if (k === 'T') poly([0, 0, n[1], DH / 2, 0, DH], a[0]);
+    else if (k === 'P') poly(n.slice(0, -1), c);
+    else if (k === 'X') peindre(a[0], (x, y) => Math.abs(x - n[2]) <= n[1] / 2 || Math.abs(y - DH / 2) <= n[1] / 2);
+    else if (k === 'Z') peindre(a[0], (x, y) => Math.min(segment(x, y, 0, 0, DW, DH), segment(x, y, 0, DH, DW, 0)) <= n[1] / 2);
+    else if (k === 'Q'){ const anti = a[2] === 'a', dec = n[3] || 0, l = Math.hypot(DW, DH);                 // « a » : du bas du mât vers le haut du battant · « d » : du haut du mât vers le bas du battant
+      peindre(a[0], (x, y) => Math.abs((anti ? x * DH + (y - DH) * DW : x * DH - y * DW) / l - dec) <= n[1] / 2); }
+    else if (k === 'Y') peindre(a[0], (x, y) => (x >= 7 && Math.abs(y - 6) <= n[1] / 2) || segment(x, y, 0, 0, 7.5, 6) <= n[1] / 2 || segment(x, y, 0, 12, 7.5, 6) <= n[1] / 2);
+    else if (k === 'N') for (let i = 0; i < n[4]; i++) point(n[0] + i * n[2], n[1] + i * n[3], c);
+    else if (k === 'J') for (let i = 0; i < n[2]; i++) poly([n[0], i * DH / n[2], n[0] + n[1], (i + .5) * DH / n[2], n[0], (i + 1) * DH / n[2]], c);
+    else if (k === 'U'){ const w = n[0], h = n[1], dia = (x, y) => Math.min(segment(x, y, 0, 0, w, h), segment(x, y, 0, h, w, 0)), dans = (x, y) => x < w && y < h;
+      peindre('n', dans); peindre('w', (x, y) => dans(x, y) && dia(x, y) <= 1.1); peindre('r', (x, y) => dans(x, y) && dia(x, y) <= .45);
+      peindre('w', (x, y) => dans(x, y) && (Math.abs(x - w / 2) <= 1.5 || Math.abs(y - h / 2) <= 1.5)); peindre('r', (x, y) => dans(x, y) && (Math.abs(x - w / 2) <= .8 || Math.abs(y - h / 2) <= .8)); }
+  });
+  const cv2 = document.createElement('canvas'); cv2.width = DW; cv2.height = DH;
+  const g = cv2.getContext('2d'), im = g.createImageData(DW, DH);
+  px.forEach((c, i) => { const h = TEINTES[c]; if (!h) return; im.data[i * 4] = parseInt(h.slice(1, 3), 16); im.data[i * 4 + 1] = parseInt(h.slice(3, 5), 16); im.data[i * 4 + 2] = parseInt(h.slice(5, 7), 16); im.data[i * 4 + 3] = 255; });
+  g.putImageData(im, 0, 0);
+  return _drapeaux[code] = cv2;
+}
+// Le nom d'un pays, dans la langue du site : c'est le navigateur qui le connaît (Intl.DisplayNames). À défaut, on montre son code.
+let _nomsPays = null;
+function nomPays(code){
+  if (_nomsPays === null){ try { _nomsPays = new Intl.DisplayNames(['fr'], {type: 'region'}); } catch (e) { _nomsPays = false; } }
+  try { return (_nomsPays && _nomsPays.of(code)) || code; } catch (e) { return code; }
+}
+const sansAccent = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' ').toLowerCase();
+const drapeauValide = c => typeof c === 'string' && Object.prototype.hasOwnProperty.call(DRAPEAUX, c) ? c : 'CI';
+
+// --- dans Réglages : le drapeau choisi, la recherche, la liste des pays ---
+let _listePays = null;
+function listePays(){ return _listePays || (_listePays = Object.keys(DRAPEAUX).map(code => ({code, nom: nomPays(code)})).map(p => Object.assign(p, {cle: sansAccent(p.nom) + ' ' + p.code.toLowerCase()})).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))); }
+function copierDrapeau(c, code){ const g = c.getContext('2d'); g.clearRect(0, 0, DW, DH); g.drawImage(drapeauDe(code), 0, 0); }
+function majDrapeau(){                                                  // le drapeau choisi, en haut du réglage (et la ligne cochée dans la liste)
+  copierDrapeau($('drapeau-vue'), drapeau); $('drapeau-nom').textContent = nomPays(drapeau);
+  document.querySelectorAll('#drapeaux button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.code === drapeau)));
+}
+function afficherDrapeaux(){                                            // la liste, filtrée par ce qui est écrit dans la recherche (on la fabrique la première fois qu'on en a besoin)
+  const ul = $('drapeaux'), q = sansAccent($('drapeau-cherche').value.trim());
+  if (!ul.childElementCount) listePays().forEach(p => { const li = el('li'), b = el('button'), c = el('canvas'); b.type = 'button'; b.setAttribute('role', 'option'); b.dataset.code = p.code; b.dataset.cle = p.cle; c.width = DW; c.height = DH; copierDrapeau(c, p.code); b.append(c, el('span', '', p.nom)); li.append(b); ul.append(li); });
+  let n = 0; ul.querySelectorAll('button').forEach(b => { const vu = !q || b.dataset.cle.includes(q); b.parentNode.hidden = !vu; if (vu) n++; });
+  $('drapeaux-vide').hidden = n > 0; majDrapeau();
+}
+function choisirDrapeau(code){ drapeau = drapeauValide(code); majDrapeau(); enregistrer('ecole'); }
+$('drapeau-cherche').addEventListener('input', afficherDrapeaux);
+$('drapeaux').addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) choisirDrapeau(b.dataset.code); });
 
 /* ============ 16. L'INTERFACE : ce qui est posé sur la ville, les onglets, la fiche d'un personnage, les textes mis à jour chaque seconde ============ */
 // Les icônes sont dessinées en pixels : chaque caractère est un pixel. « . » = rien, « # » = la couleur du texte, r = rouge, v = vert, w = blanc, o = or.
@@ -2642,6 +3109,9 @@ const PIX = {
   arret:      ['........', '.######.', '.######.', '.######.', '.######.', '.######.', '.######.', '........'],
   sortir:     ['#####....', '#........', '#....#...', '#....##..', '#.######.', '#....##..', '#....#...', '#........', '#####....'],
   menu:       ['.##.', '.##.', '....', '.##.', '.##.', '....', '.##.', '.##.'],
+  ecole:      ['....###..', '....###..', '....#....', '..#####..', '.#######.', '#########', '#.##.##.#', '#.##.##.#', '#########'],
+  bas:        ['##....##', '###..###', '.######.', '..####..', '...##...'],
+  son:        ['...#.....', '..##..#..', '####...#.', '####.#.#.', '####.#.#.', '####...#.', '..##..#..', '...#.....'],
   boutique:   ['...###...', '..#...#..', '#########', '#########', '##.###.##', '#########', '#########', '#########', '.#######.'],
   cadenas:    ['..####..', '.##..##.', '.##..##.', '########', '########', '###..###', '###..###', '########'],
   coche:      ['.......##', '......###', '.....###.', '##..###..', '######...', '.####....', '..##.....'],
@@ -2670,6 +3140,7 @@ function onglet(nom){
   document.querySelectorAll('.onglets button').forEach(b => b.setAttribute('aria-selected', b.dataset.o === nom));
   ONGLETS.forEach(o => { $('o-' + o).hidden = o !== nom; });
   ecrire('campus-onglet', nom);
+  if (nom === 'reglages') afficherDrapeaux();                          // la liste des pays n'est fabriquée que si on ouvre les réglages
   if (nom === 'perso') ESSAI.sale = true;                              // on redessine l'aperçu dès qu'on ouvre la cabine d'essayage
 }
 document.querySelectorAll('.onglets button').forEach(b => b.addEventListener('click', () => onglet(b.dataset.o)));
@@ -2749,7 +3220,7 @@ function majFiche(redessine){
     detail = e.m.nom + (pro ? '. Prochain cours : ' + JOURS[pro.c.jour] + ' à ' + hm(pro.c.deb) + '.' : '.'); } }
   else if (e.pnj) detail = {vendeuse: 'Ouvert de 10h00 à 21h00. Les étudiants y passent à la pause de midi.', gardien: 'Il surveille le portail pendant les heures de cours.',
     barista: 'Le café est ouvert de 6h30 à 22h00. Sa machine à expresso fume toute la journée.', serveuse: 'Elle fait le tour de la salle et de la terrasse avec son plateau, et passe à ta table.'}[e.pnj];
-  else detail = 'Place ' + (e.siege + 1) + ' sur 48, rangée ' + ((e.siege >> 3) + 1) + '. En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.arrive && e.lieu && e.lieu.zone === 'garba' ? 'au maquis' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.';
+  else detail = 'Place ' + (e.siege + 1) + ' sur 48, rangée ' + ((e.siege >> 3) + 1) + '. En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.arrive && e.lieu && e.lieu.zone === 'garba' ? 'au maquis' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.' + caractereDe(e);
   $('fiche-detail').textContent = detail;
   $('fiche-renommer').hidden = !!e.toi || !!e.pnj; $('fiche-perso').hidden = !e.toi;
   $('fiche-input').placeholder = e.prof ? 'Le nom de ce prof' : 'Son vrai prénom';
@@ -3503,7 +3974,7 @@ const NUAGE = {db: null, user: null, perms: null, base: '', abonnements: []};
 const DANS_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
 const nuage = () => COMPTE.mode === 'ligne' || COMPTE.mode === 'firebase';   // vrai quand les données du compte sont enregistrées en ligne
 const DOCS = {                                                         // les quatre « fiches » d'un compte, et ce que chacune contient
-  ecole:    () => ({matieres: MATIERES, creneaux: CRENEAUX, ecole: ecoleNom, assistant: assistantVu}),
+  ecole:    () => ({matieres: MATIERES, creneaux: CRENEAUX, ecole: ecoleNom, assistant: assistantVu, drapeau}),
   afaire:   () => ({rappels, taches}),
   presence: () => ({presences, pomo}),
   perso:    () => ({look, animal, animalNom, noms, boutique}),
@@ -3571,7 +4042,7 @@ function appliquer(doc, d){
     MATIERES = liste(d.matieres).map(m => ({id: idDe(m), nom: texteSur(m.nom, 40), c: typeof m.c === 'string' && COULEUR.test(m.c) ? m.c.toLowerCase() : PALETTE_MATIERES[0][0], prof: texteSur(m.prof, 24), salle: texteSur(m.salle, 20)})).filter(m => m.nom).slice(0, 40);
     CRENEAUX = liste(d.creneaux).map(c => ({id: idDe(c), jour: c.jour, deb: c.deb, fin: c.fin, m: c.m, salle: texteSur(c.salle, 20)}))
       .filter(c => Number.isInteger(c.jour) && c.jour >= 0 && c.jour <= 6 && Number.isInteger(c.deb) && Number.isInteger(c.fin) && c.deb >= 0 && c.fin <= 1440 && c.fin > c.deb && matiere(c.m)).slice(0, 120);
-    ecoleNom = texteSur(d.ecole, 10); assistantVu = d.assistant === true;
+    ecoleNom = texteSur(d.ecole, 10); assistantVu = d.assistant === true; drapeau = drapeauValide(d.drapeau);
     if (coursEdite) coursEdite = CRENEAUX.find(c => c.id === coursEdite.id) || null;                  // si un formulaire est ouvert, il doit continuer à modifier le bon cours
     if (matiereEditee) matiereEditee = MATIERES.find(m => m.id === matiereEditee.id) || null;
   } else if (doc === 'afaire'){
@@ -3597,7 +4068,7 @@ function appliquer(doc, d){
 function toutAfficher(){
   Object.assign(ELEVES[0], look); habiller(); animalPermis(); DERNIERE_RACE[animal.espece] = animal.race;
   $('moi-nom').value = look.nom; $('animal-nom').value = animalNom; $('ecole-nom').value = ecoleNom;
-  majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo(); majBoutique();
+  majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo(); majBoutique(); majDrapeau(); majQualite(); majAmbiance();
   if (choisi === ELEVES[0]) majFiche(true);
 }
 // La toute première fois, sur un appareil où l'ancienne version de la page a servi : on reprend ce qu'elle avait gardé (rappels, présence, prénoms, personnage, animal)
@@ -3698,7 +4169,7 @@ async function deconnexion(){
   fermerMenu(); $('invite-plein').hidden = true; document.documentElement.classList.remove('ville');
   $('deconnexion').disabled = false; $('appli').hidden = true; $('connexion').hidden = false;
   ['cx-prenom', 'cx-email', 'cx-mdp', 'cx-email2', 'cx-mdp2'].forEach(i => { $(i).value = ''; });
-  cxVolet('entrer'); afficherConnexion(); window.scrollTo(0, 0);
+  cxVolet('entrer'); afficherConnexion(); window.scrollTo(0, 0); cxAccueil();
 }
 function majCompte(){                                                    // la ligne « Ton compte » des Réglages
   if (!COMPTE.id) return;
@@ -3788,7 +4259,7 @@ function messageFirebase(e){
     'auth/missing-password': 'Écris ton mot de passe.',
     'auth/weak-password': 'Mot de passe trop court : il en faut un de 6 caractères au moins.',
     'auth/password-does-not-meet-requirements': 'Ce mot de passe ne respecte pas les règles demandées (longueur, chiffres, majuscules…).',
-    'auth/email-already-in-use': 'Un compte existe déjà avec cet email : passe par « Se connecter ».',
+    'auth/email-already-in-use': 'Un compte existe déjà avec cet email : passe par « Connexion », en haut de la page.',
     'auth/invalid-credential': 'Email ou mot de passe incorrect.',
     'auth/wrong-password': 'Email ou mot de passe incorrect.',
     'auth/user-not-found': 'Email ou mot de passe incorrect.',
@@ -3848,10 +4319,11 @@ function cxMessage(texte, bon){                                          // « b
   const n = $('cx-etat'), bouton = !$('cx-creer').hidden ? $('cx-creer-ok') : cxMode === 'firebase' ? $('cx-entrer-ok') : cxMode === 'ligne' ? $('cx-claude') : $('cx-comptes');
   if (n.previousElementSibling !== bouton) bouton.after(n);              // le message se range juste sous le bouton qu'on vient de toucher : sur un téléphone, on le voit sans descendre
   montrer('cx-etat', texte); n.classList.toggle('erreur', !bon); n.classList.toggle('bon', !!bon);
+  n.classList.remove('secoue'); if (texte && !bon){ void n.offsetWidth; n.classList.add('secoue'); }   // une erreur : le message se secoue un instant, pour qu'on le remarque
   if (texte && !$('connexion').hidden) n.scrollIntoView({block: 'nearest'});
 }
 function cxVolet(nom){
-  ['entrer', 'creer'].forEach(v => { $('cx-seg-' + v).setAttribute('aria-selected', v === nom); $('cx-' + v).hidden = v !== nom; }); cxMessage('');
+  ['entrer', 'creer'].forEach(v => { $('cx-seg-' + v).setAttribute('aria-selected', v === nom); $('cx-' + v).hidden = v !== nom; }); cxMessage(''); cxHabiller(nom);
   const de = $(nom === 'creer' ? 'cx-email' : 'cx-email2'), vers = $(nom === 'creer' ? 'cx-email2' : 'cx-email'); if (!vers.value) vers.value = de.value;   // l'email déjà écrit te suit d'un volet à l'autre
 }
 function occupe(oui){                                                    // pendant qu'on se connecte, les boutons attendent
@@ -3903,7 +4375,7 @@ async function connexionEnLigne(creer, nom){
     else cxMessage('Le service en ligne ne répond pas pour le moment. Réessaie dans un instant.');
   } finally { occupe(false); if (!COMPTE.id && !$('cx-creer').hidden) $('cx-prenom').focus({preventScroll: true}); }
 }
-document.querySelectorAll('#connexion .segments button').forEach(b => b.addEventListener('click', () => cxVolet(b.dataset.c)));
+document.querySelectorAll('#connexion .segments button').forEach(b => b.addEventListener('click', () => cxMontrer(b.dataset.c)));   // on change de volet, et la page glisse jusqu'au formulaire
 $('cx-claude').addEventListener('click', () => connexionEnLigne(false, ''));
 // « Se connecter » avec un email et un mot de passe
 $('cx-email-form').addEventListener('submit', ev => {
@@ -3941,26 +4413,9 @@ $('cx-creer').addEventListener('submit', ev => {
   demarrerLocal(id, nom, true);
 });
 
-// La petite promenade qui anime la page de connexion : six habitants et trois animaux traversent l'image
-function dessinerAccueil(t){
-  if ($('connexion').hidden) return;
-  const c = $('accueil-vue'), b = c.getBoundingClientRect(); if (b.width < 2) return;
-  const R = Math.min(2, window.devicePixelRatio || 1), W = Math.round(b.width * R), H = Math.round(b.height * R);
-  if (c.width !== W || c.height !== H){ c.width = W; c.height = H; }
-  const g = c.getContext('2d'), garde = ctx, w = b.width, h = b.height, sol = h - 20, k = 2.7, tour = w + 90, u = calme ? 0 : t * 24;
-  g.setTransform(R, 0, 0, R, 0, 0); g.clearRect(0, 0, w, h); ctx = g;
-  ellipse(w * .82, h * .3, 15, 15, '#ffd95a');                                                      // le soleil
-  [[.2, .28, 26], [.52, .2, 20]].forEach(([x, y, r]) => { ellipse(w * x, h * y, r, r * .42, 'rgba(255,255,255,.75)'); ellipse(w * x + r * .5, h * y + 3, r * .7, r * .34, 'rgba(255,255,255,.75)'); });
-  g.fillStyle = '#78d06c'; g.fillRect(0, sol - 12, w, h); g.fillStyle = '#efe2c4'; g.fillRect(0, sol - 4, w, 12);
-  [2, 5, 9, 14, 23, 31].forEach((n, i) => { const e = ELEVES[n], x = ((u + i * tour / 6 + e.h1 * 24) % tour) - 45;
-    ellipse(x + 2, sol + 2, 5.6 * k, 2 * k, 'rgba(24,16,56,.2)'); sprite(e, x, sol + 1, k, t, {pose: 'debout', marche: !calme, sac: i % 2 === 0}); });
-  [['chien', 'husky'], ['chat', 'roux'], ['perroquet', 'ararouge']].forEach(([espece, race], i) => { const x = ((u + (i + .5) * tour / 3) % tour) - 45, vol = espece === 'perroquet';
-    animalSprite(x, sol + 2 - (vol ? 34 + Math.sin(t * 3) * 4 : 0), k, t, {marche: !calme || vol}, {espece, race, collier: '#e4572e'}); });
-  ctx = garde;
-}
-
 // Au démarrage : la page regarde où elle est ouverte (dans Claude, sur ton site avec Firebase, ou ailleurs), puis rouvre toute seule le compte de la dernière fois (si tu ne t'es pas déconnecté)
 async function demarrer(){
+  { const avant = lire('campus-session', null); if (avant && typeof avant === 'object' && avant.mode) cxRouvrir(true); }   // un compte était resté ouvert : « Un instant… » remplace la page de connexion
   afficherConnexion();
   let enLigne = false;
   if (DANS_CLAUDE){
@@ -3970,13 +4425,15 @@ async function demarrer(){
   if (cxMode === 'firebase') NUAGE.db = dbFirebase;
   afficherConnexion();
   const lu = lire('campus-session', null), s = lu && typeof lu === 'object' ? lu : {};
-  if (s.mode === 'local' && cxMode !== 'ligne'){ const c = comptesLocaux().find(x => x.id === s.id); if (c) demarrerLocal(c.id, c.nom, false); }
+  try {
+  if (s.mode === 'local' && cxMode !== 'ligne'){ const c = comptesLocaux().find(x => x.id === s.id); if (c) await demarrerLocal(c.id, c.nom, false); }
   else if (s.mode === 'ligne' && cxMode === 'ligne'){                   // seulement si la page a déjà ton accord : sinon elle attend que tu touches le bouton
     let ok = true; if (NUAGE.perms){ try { const st = await NUAGE.perms.state(); ok = st.user === 'granted' && st.db === 'granted'; } catch (e) { ok = false; } }
-    if (ok) connexionEnLigne(false, '');
+    if (ok) await connexionEnLigne(false, '');
   }
-  else if (s.mode === 'firebase' && cxMode === 'firebase' && typeof s.id === 'string') rouvrirFirebase(s.id);
+  else if (s.mode === 'firebase' && cxMode === 'firebase' && typeof s.id === 'string') await rouvrirFirebase(s.id);
   else if (cxMode === 'firebase') chargerFirebase().catch(() => {});     // on prend de l'avance : la bibliothèque se charge pendant que tu écris ton email
+  } finally { cxRouvrir(false); }
 }
 
 /* ============ 19. LE POMODORO : des sessions de travail coupées par des pauses ============ */
@@ -4760,6 +5217,207 @@ document.addEventListener('keydown', ev => {                             // Éch
   if (ev.key !== 'Escape') return;
   if (!$('paiement').hidden){ ev.preventDefault(); fermerPaiement(); } else if (BOUTIQUE.verrou){ ev.preventDefault(); fermerVerrou(); }
 }, true);
+
+/* ============ 21. LA PAGE DE CONNEXION : le campus au coucher du soleil (une scène en pixel art), le défilement vers le formulaire, les animations ============ */
+// La page a deux « écrans » posés l'un sous l'autre : le grand titre, puis le formulaire. Quand on fait défiler, la scène bouge par plans :
+// le ciel presque pas, la colline davantage, le premier plan le plus vite. C'est cette différence de vitesse qui donne la profondeur (on appelle ça la « parallaxe »).
+const CX = {t0: null, anim: 0, mx: 0, my: 0, sx: 0, sy: 0, qui: 0, depuis: -9, volet: 'entrer', w: 0, h: 0, n: 0, pos: 0, haut: 0, droite: 0, bas: 0, cta: 0, duo: null};
+const CX_TEXTES = {entrer: ['Bon retour au campus', 'Connexion'], creer: ['Bienvenue au campus', 'Créer un compte']};
+
+// Le titre est découpé lettre par lettre : à l'ouverture, elles tombent en place l'une après l'autre (voir « cx-lettre » dans le style)
+(() => { const h = $('cx-h1'), texte = h.textContent.trim(); let i = 0; h.setAttribute('aria-label', texte); h.replaceChildren();
+  texte.split(' ').forEach((mot, n) => { if (n) h.append(' '); const m = el('span'); m.setAttribute('aria-hidden', 'true');
+    [...mot].forEach(l => { const s = el('span', '', l); s.style.setProperty('--i', i++); m.append(s); }); h.append(m); }); })();
+
+function cxAller(vue, direct){                                            // 0 : le grand titre · 1 : le formulaire (on y glisse en douceur)
+  const c = $('connexion'), but = vue ? $('cx-zone').offsetTop : 0, de = c.scrollTop;
+  cancelAnimationFrame(CX.anim); CX.anim = 0;
+  if (direct || calme || Math.abs(but - de) < 2){ c.scrollTop = but; return; }
+  const t0 = performance.now();
+  const pas = m => { const k = Math.min(1, (m - t0) / 900), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; c.scrollTop = Math.round(de + (but - de) * e);
+    CX.anim = k < 1 ? requestAnimationFrame(pas) : 0; };
+  CX.anim = requestAnimationFrame(pas);
+}
+function cxMontrer(nom){ cxVolet(nom); cxAller(1); }                      // on choisit un volet (Connexion ou Créer un compte) et on descend jusqu'au formulaire
+function cxHabiller(nom){                                                 // le titre du formulaire, et l'animation de passage d'un volet à l'autre
+  $('cx-sur').textContent = CX_TEXTES[nom][0]; $('cx-tete').textContent = CX_TEXTES[nom][1];
+  if (CX.volet === nom) return;
+  CX.volet = nom; CX.qui = nom === 'creer' ? 1 : 0; CX.depuis = performance.now() / 1000;                 // (dans la scène, les deux habitants se relaient)
+  const f = $('cx-form'); f.classList.remove('vers-d', 'vers-g'); void f.offsetWidth; f.classList.add(nom === 'creer' ? 'vers-d' : 'vers-g');
+}
+function cxAccueil(){                                                     // retour tout en haut, et l'entrée se rejoue (après une déconnexion)
+  const c = $('connexion'); cxAller(0, true); CX.t0 = null; c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree');
+}
+function cxRouvrir(oui){                                                  // un compte se rouvre tout seul : on cache le titre et le formulaire le temps que ça dure
+  const c = $('connexion'); c.classList.toggle('rouvre', oui);
+  if (!oui && !c.hidden && !$('cx-etat').hidden) cxAller(1, true);       // ça n'a pas marché : on montre le formulaire, avec le message qui explique pourquoi
+}
+function cxMesurer(page, w, h){                                           // où sont le texte et les boutons : la scène se range autour d'eux (surtout sur téléphone)
+  const titre = page.querySelector('.cx-titre'), acc = page.querySelector('.cx-accroche'), act = page.querySelector('.cx-actions'), f = $('cx-form');
+  CX.w = w; CX.h = h; CX.haut = f.offsetTop; CX.droite = f.offsetLeft + f.offsetWidth;
+  CX.bas = titre.offsetTop + acc.offsetTop + acc.offsetHeight; CX.cta = titre.offsetTop + act.offsetTop;
+}
+$('cx-go-entrer').addEventListener('click', () => cxMontrer('entrer'));
+$('cx-go-creer').addEventListener('click', () => cxMontrer('creer'));
+$('cx-descendre').addEventListener('click', () => cxAller(1));
+$('cx-logo').addEventListener('click', () => cxAller(0));
+['wheel', 'touchstart'].forEach(n => $('connexion').addEventListener(n, () => { if (CX.anim){ cancelAnimationFrame(CX.anim); CX.anim = 0; } }, {passive: true}));   // tu reprends la main : le glissement s'arrête
+$('connexion').addEventListener('pointermove', ev => { if (ev.pointerType === 'mouse' && !calme){ CX.mx = ev.clientX / innerWidth * 2 - 1; CX.my = ev.clientY / innerHeight * 2 - 1; } });   // la souris décale un peu les plans
+// L'« aimant » : si on s'arrête entre les deux écrans, la page finit le chemin toute seule — vers le bas si on descendait, vers le haut si on montait.
+// (Une fois dans le formulaire, on défile librement : sur un petit écran il est plus haut que l'écran.)
+{ const c = $('connexion'); let dernier = 0, sens = 1, minuterie = 0, doigt = false;
+  const aimant = () => { const z = $('cx-zone').offsetTop, y = c.scrollTop; if (CX.anim || doigt || c.hidden || y <= 1 || y >= z - 1) return; cxAller(sens > 0 ? (y > z * .12 ? 1 : 0) : (y < z * .88 ? 0 : 1)); };
+  const bientot = () => { clearTimeout(minuterie); if (!CX.anim) minuterie = setTimeout(aimant, 140); };
+  c.addEventListener('scroll', () => { const y = c.scrollTop; if (Math.abs(y - dernier) > .5) sens = y > dernier ? 1 : -1; dernier = y; bientot(); }, {passive: true});
+  c.addEventListener('touchstart', () => { doigt = true; }, {passive: true});
+  ['touchend', 'touchcancel'].forEach(n => c.addEventListener(n, () => { doigt = false; bientot(); }, {passive: true}));
+  $('cx-zone').addEventListener('focusin', () => { if (c.scrollTop < $('cx-zone').offsetTop - 1 && !CX.anim) cxAller(1); }); }   // au clavier : dès qu'on entre dans un champ, le formulaire vient à l'écran
+
+// La scène. Tout est dessiné en gros « pixels » (des carrés de u points d'écran) : le ciel, le soleil, la rive au loin, la lagune, la colline de l'école, puis le premier plan.
+function dessinerAccueil(t){
+  const page = $('connexion'); if (page.hidden) return;
+  const c = $('accueil-vue'), w = page.clientWidth, h = page.clientHeight; if (w < 2 || h < 2) return;
+  const R = Math.min([1, 1.5, 2][NIVEAU], window.devicePixelRatio || 1), W = Math.round(w * R), H = Math.round(h * R);
+  if (c.width !== W || c.height !== H){ c.width = W; c.height = H; }
+  if (CX.h && (CX.w !== w || CX.h !== h) && !CX.anim) page.scrollTop = CX.pos >= CX.h * .5 ? $('cx-zone').offsetTop + Math.max(0, CX.pos - CX.h) : 0;   // l'écran a changé de taille (téléphone tourné) : on reste sur le même écran
+  if (CX.w !== w || CX.h !== h || ++CX.n % 40 === 0) cxMesurer(page, w, h);
+  CX.pos = page.scrollTop;
+  if (CX.t0 === null) CX.t0 = t;
+  if (page.scrollTop && page.classList.contains('rouvre')) page.scrollTop = 0;                     // pendant « Un instant… », on reste sur la scène du haut
+  if (!CX.duo) CX.duo = [ELEVES.find(e => e.i > 1 && !e.fille) || ELEVES[2], ELEVES.find(e => e.i > 1 && e.fille) || ELEVES[3]];
+  const p = Math.max(0, Math.min(1, page.scrollTop / h)), plus = Math.max(0, page.scrollTop - h);   // p : 0 = le grand titre, 1 = le formulaire · plus : ce qu'on a fait défiler au-delà (petit écran)
+  page.style.setProperty('--p', p.toFixed(3)); page.classList.toggle('bas', p > .7);
+  const g = c.getContext('2d'), garde = ctx, large = w > h * 1.05, u = Math.max(2, Math.round(w / (large ? 300 : 140))), U = u * R, wu = w / u, hu = h / u, tt = calme ? 0 : t;
+  const ent = calme ? 1 : Math.min(1, (t - CX.t0) / 1.6), doux = x => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);   // l'entrée : chaque plan monte à sa place, l'un après l'autre
+  CX.sx += (CX.mx - CX.sx) * .06; CX.sy += (CX.my - CX.sy) * .06;
+  let ox = 0, oy = 0;
+  // « plan » choisit le plan qu'on dessine : f = sa vitesse quand on défile (0 = immobile, 1 = aussi vite que la page) · retard, chute : son arrivée à l'ouverture
+  const plan = (f, retard, chute) => { ox = Math.round(-CX.sx * f * 3 * U); oy = Math.round((-p * hu * f + (1 - doux((ent - retard) / (1 - retard))) * chute - CX.sy * f * 1.5) * U); };
+  const B = (x, y, bw, bh, col) => { const x0 = Math.round(x * U), y0 = Math.round(y * U); g.fillStyle = col; g.fillRect(x0 + ox, y0 + oy, Math.max(1, Math.round((x + bw) * U) - x0), Math.max(1, Math.round((y + bh) * U) - y0)); };   // un rectangle, en « gros pixels »
+  const disque = (cx, cy, r, col) => { for (let dy = -r; dy < r; dy++){ const d = Math.round(Math.sqrt(r * r - (dy + .5) * (dy + .5))); if (d) B(cx - d, cy + dy, d * 2, 1, col); } };
+  const halo = (cx, cy, r, a) => { g.globalCompositeOperation = 'lighter'; [[1, .55], [.74, .75], [.5, 1], [.27, 1.2]].forEach(([k, f]) => { g.globalAlpha = a * f; disque(cx, cy, Math.max(1, Math.round(r * k)), '#ffc27a'); }); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; };   // une lumière chaude : elle éclaircit ce qui est derrière
+  const palmier = (x, y, ht, col, clair, penche, s) => {                 // un palmier en silhouette : un tronc un peu penché, des palmes qui bougent avec le vent
+    for (let i = 0; i < ht; i += s) B(x + Math.round(penche * i / ht * 3) * s, y - i - s, (i < ht * .3 ? 2 : 1) * s, s, col);
+    const tx = x + Math.round(penche * 3) * s, ty = y - ht, v = Math.round(Math.sin(tt * 1.3 + x) * .7) * s, P2 = (dx, dy, l, cc) => B(tx + dx * s, ty + dy * s, l * s, s, cc);
+    P2(-1, -1, 3, col); P2(-1, 0, 3, col); P2(-1, -3, 3, clair); P2(0, -4, 1, clair);
+    P2(-5, -2, 5, col); B(tx - 7 * s + v, ty - s, 3 * s, s, col); B(tx - 8 * s + v, ty, 2 * s, s, col); P2(-4, 0, 3, col); B(tx - 6 * s + v, ty + s, 3 * s, s, col);
+    P2(1, -2, 5, clair); B(tx + 5 * s - v, ty - s, 3 * s, s, clair); B(tx + 7 * s - v, ty, 2 * s, s, clair); P2(2, 0, 3, col); B(tx + 4 * s - v, ty + s, 3 * s, s, col);
+  };
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = false; g.fillStyle = '#1b1238'; g.fillRect(0, 0, W, H); ctx = g;
+  // La mise en place. Écran large : l'école à gauche, le titre à droite. Téléphone debout : le titre en haut, l'école au milieu, la promenade juste au-dessus des boutons.
+  const hc = large ? 30 : 26, yR = large ? Math.round(hu * .81) : Math.round((CX.cta - 10) / u);                 // yR : la crête du premier plan, là où l'on se promène
+  const hz = large ? Math.round(hu * .6) : Math.round(Math.max((CX.bas + 8) / u + 35, yR - 54) + hc - 15);       // hz : la ligne d'horizon
+
+  if (p < .86){                                                          // (au-delà, le premier plan a tout recouvert : inutile de dessiner ce qui est derrière)
+    // --- le ciel : des bandes de couleur, du violet de la nuit qui vient jusqu'à l'orange de l'horizon ---
+    plan(.1, 0, 0);
+    const CIEL = ['#2a1d5e', '#352268', '#472b7c', '#5d3390', '#783c9b', '#96479f', '#b5549f', '#d0629c', '#e67799', '#f48e92', '#fda58e', '#ffbe93', '#ffd4a3'], hb = (hz + 2) / CIEL.length, yb = i => Math.round(i * hb) - 4;
+    CIEL.forEach((col, i) => { B(-8, yb(i), wu + 16, yb(i + 1) - yb(i) + 1, col);
+      if (NIVEAU && i) for (let x = -8 + (i % 2); x < wu + 8; x += 2){ B(x, yb(i) - 1, 1, 1, col); if ((x + 8 >> 1) % 2 === 0) B(x + 1, yb(i) - 2, 1, 1, col); } });   // (entre deux bandes : des pixels en damier, pour fondre les couleurs)
+    for (let i = 0; i < 22; i++){ g.globalAlpha = .25 + .6 * Math.abs(Math.sin(tt * 1.1 + i * 2.3)); B(Math.round(H1(i, 71) * wu), Math.round(H1(i, 72) * hz * .2), 1, 1, '#ffffff'); }   // les premières étoiles, tout en haut
+    g.globalAlpha = 1;
+    // --- le soleil qui se couche ---
+    plan(.2, 0, 24);
+    const sxu = Math.round(large ? wu * .44 : wu * .74), syu = hz - (large ? 9 : 11), rs = large ? 15 : 11;
+    halo(sxu, syu, rs + 13, .1);
+    for (let dy = -rs; dy < rs; dy++){ const d = Math.round(Math.sqrt(rs * rs - (dy + .5) * (dy + .5))); if (d) B(sxu - d, syu + dy, d * 2, 1, dy < -rs * .25 ? '#fff6cf' : dy < rs * .3 ? '#ffe497' : '#ffc77f'); }
+    // --- les nuages (ils dérivent) et trois oiseaux ---
+    plan(.26, 0, 10);
+    [[.08, .2, 1.3, .7], [.46, .11, 1, 1.1], [.78, .27, 1.5, .5], [.3, .35, .9, .9], [.93, .08, .8, 1.3]].forEach(([fx, fy, s, v], i) => { if (!large && i > 2) return;
+      const x = Math.round(((fx * (wu + 60) + tt * v) % (wu + 60)) - 30), y = Math.round(fy * hz), a = Math.round(22 * s);
+      B(x + Math.round(a * .2), y, Math.round(a * .5), 2, '#ffe0d6'); B(x + Math.round(a * .05), y + 2, Math.round(a * .9), 2, '#f9b4c6'); B(x, y + 4, a, 2, '#e293bd'); B(x + Math.round(a * .12), y + 6, Math.round(a * .7), 1, '#b976b8'); });
+    for (let i = 0; i < 3; i++){ const tour = wu + 40, x = Math.round(((wu * .9 - tt * 3 - i * 7) % tour + tour) % tour) - 20, y = Math.round(hz * .3) + i * 3 - (i === 1 ? 2 : 0), a = Math.floor(tt * 4 + i) % 2;
+      B(x - 2, y - a, 2, 1, '#3b2670'); B(x, y + 1 - a, 1, 1, '#3b2670'); B(x + 1, y - a, 2, 1, '#3b2670'); }
+    // --- la rive d'en face : des collines, une petite ville dont les fenêtres s'allument, des palmiers ---
+    plan(.4, .05, 16);
+    for (let x = -8; x < wu + 8; x += 2){ const b = Math.floor((x + 400) / 6), ville = H1(b, 90) < .3 ? 2 + Math.floor(H1(b, 91) * 5) : 0, ht = 4 + Math.round(2.5 * Math.sin(x * .06) + 1.5 * Math.sin(x * .17 + 2)) + ville;
+      B(x, hz - ht, 2, ht + 2, '#8a52a6'); if (ville && H1(x + 400, 92) < .5) B(x, hz - ht + 1 + Math.floor(H1(x + 400, 93) * 2), 1, 1, '#ffd98a'); }
+    for (let i = 0; i < wu / 26; i++){ const x = Math.round(i * 26 + H1(i, 94) * 14), y = hz - 6 - Math.floor(H1(i, 95) * 3); B(x, y - 5, 1, 6, '#7a4698'); B(x - 2, y - 6, 5, 1, '#7a4698'); B(x - 3, y - 5, 2, 1, '#7a4698'); B(x + 2, y - 5, 2, 1, '#7a4698'); }
+    // --- la lagune : le reflet du soleil, de petites vagues, une pirogue ---
+    plan(.55, .05, 16);
+    ['#a36cbd', '#8f60b8', '#7b55b0', '#6a4ca8', '#5b439d', '#4d3a92', '#423287', '#3a2c7c', '#332672'].forEach((col, i) => B(-8, hz + i * 4, wu + 16, i === 8 ? hu : 5, col));
+    for (let r = 0; r < 20; r += 2){ const l = Math.max(2, Math.round(13 - Math.abs(r - 5) * .7 + Math.sin(tt * 2 + r) * 2)); g.globalAlpha = .9 - r * .03; B(Math.round(sxu - l / 2 + Math.sin(tt * 1.4 + r * 1.7) * 1.5), hz + 1 + r, l, 1, r < 7 ? '#ffeec2' : '#ffc3ae'); }
+    g.globalAlpha = .55; for (let i = 0; i < 26; i++){ const tour = wu + 20, x = ((H1(i, 96) * tour + tt * (i % 2 ? 1.6 : -1.2)) % tour + tour) % tour - 10; B(Math.round(x), hz + 2 + Math.floor(H1(i, 97) * 26), 2 + Math.floor(H1(i, 98) * 4), 1, '#d3a6dc'); }
+    g.globalAlpha = 1;
+    { const x = Math.round((large ? wu * .58 : wu * .14) + Math.sin(tt * .25) * 5), y = hz + 8 + Math.round(Math.sin(tt * 1.3) * .6);
+      B(x, y, 15, 1, '#35205f'); B(x + 1, y + 1, 13, 1, '#2a1850'); B(x - 1, y - 1, 2, 1, '#35205f'); B(x + 14, y - 1, 2, 1, '#35205f'); B(x + 6, y - 4, 1, 4, '#35205f'); B(x + 6, y - 5, 1, 1, '#2a1850'); B(x + 7, y - 3, 3, 1, '#35205f'); }
+    // --- la colline de l'école ---
+    plan(.78, .15, 44);
+    const lx = Math.round(large ? wu * .25 : wu * .5), demi = large ? 60 : 52, base = hz + 15, yc = base - hc;                         // yc : la hauteur du plateau, là où l'école est posée
+    const pente = x => { const a = Math.abs(x) / demi; return a >= 1 ? 0 : Math.round(hc * (a < .5 ? 1 : Math.pow(Math.cos((a - .5) / .5 * Math.PI / 2), 1.15))); };
+    for (let x = -demi; x <= demi; x += 2){ const ht = pente(x), y = base - ht;
+      B(lx + x, y, 2, ht + hu, '#3b2568'); B(lx + x, y, 2, 1, x > -demi * .2 ? '#b266a8' : '#5e3b90'); B(lx + x, y + 1, 2, 1, '#4b2e7e'); if (H1(x + 99, 99) < .22) B(lx + x, y + 3 + Math.floor(H1(x + 99, 100) * 8), 1, 1, '#5a3889'); }
+    for (let i = 0; i < 4; i++){ const y = yc + 2 + i * 7, x0 = lx - 2 + (i % 2 ? 14 : 0) + i * 3; B(x0, y, 16, 2, '#6d4a9e'); B(i % 2 ? x0 : x0 + 14, y + 2, 2, 5, '#6d4a9e'); }   // le chemin qui descend de l'école, en lacets
+    [[-34, 0], [-8, 9], [30, 4], [-22, 17], [12, 22]].forEach(([dx, dy]) => { const y = base - pente(dx) + 2 + dy; B(lx + dx, y, 5, 2, '#2b1a55'); B(lx + dx + 1, y - 1, 3, 1, '#2b1a55'); B(lx + dx + 2, y - 1, 2, 1, '#5e3b90'); });   // quelques buissons
+    palmier(lx - Math.round(demi * .62), base - pente(-demi * .62), 15, '#2b1a55', '#8a52a6', -1, 1); palmier(lx + Math.round(demi * .5), base - pente(demi * .5), 13, '#2b1a55', '#b266a8', 1, 1);
+    const ex = lx - 21;                                                   // l'école : un bâtiment à étage, ses fenêtres allumées, sa porte, son mât
+    B(ex, yc - 16, 38, 16, '#f2c4b6'); B(ex, yc - 16, 5, 16, '#a676b2'); B(ex - 2, yc - 18, 42, 2, '#6c3078'); B(ex - 2, yc - 19, 42, 1, '#9b4f97');
+    B(ex + 8, yc - 27, 22, 9, '#ecb9ae'); B(ex + 8, yc - 27, 3, 9, '#a676b2'); B(ex + 6, yc - 29, 26, 2, '#6c3078'); B(ex + 6, yc - 30, 26, 1, '#9b4f97');
+    for (let i = 0; i < 5; i++){ if (i === 2) continue; const allume = H1(i, 101) < .75 && Math.floor(tt / 3 + i * 2) % 9 !== 0; B(ex + 7 + i * 6, yc - 12, 3, 4, allume ? '#ffe27a' : '#7b4f9e'); if (allume) B(ex + 7 + i * 6, yc - 12, 3, 1, '#fff6cf'); }
+    for (let i = 0; i < 3; i++) B(ex + 12 + i * 6, yc - 24, 3, 4, i === 1 ? '#7b4f9e' : '#ffe27a');
+    B(ex + 15, yc - 12, 9, 2, '#6c3078'); B(ex + 17, yc - 9, 5, 9, '#5a2a6c'); B(ex + 18, yc - 8, 3, 3, '#ffd98a'); B(ex + 13, yc, 13, 1, '#d79bbd');
+    const mat = ex + 41; B(mat, yc - 32, 1, 32, '#efe0fa'); B(mat - 1, yc - 33, 3, 1, '#ffd98a');
+    { const img = drapeauDe(drapeau); for (let i = 0; i < 9; i++){ const dy = Math.round(Math.sin(tt * 4 - i * .7) * (i / 8) * 1.3), x0 = Math.round((mat + 1 + i) * U), y0 = Math.round((yc - 32 + dy) * U);
+        g.drawImage(img, i * 2, 0, 2, DH, x0 + ox, y0 + oy, Math.round((mat + 2 + i) * U) - x0, Math.round((yc - 26 + dy) * U) - y0); } }   // le drapeau de la cour, qui flotte
+    { const x = ex + 29; halo(x, yc - 9, 7, .16); B(x, yc - 9, 1, 9, '#2b1a55'); B(x - 1, yc - 10, 3, 1, '#fff3c4'); }   // un lampadaire devant l'entrée
+    { const kx = lx + Math.round(demi * .74), ys = base - pente(demi * .74) + 1;                               // le maquis au flanc de la colline : son auvent rayé, sa lanterne, sa fumée
+      B(kx - 7, ys, 16, 2, '#4b2e7e'); B(kx - 5, ys - 9, 1, 9, '#2b1a55'); B(kx + 6, ys - 9, 1, 9, '#2b1a55');
+      for (let i = 0; i < 7; i++) B(kx - 6 + i * 2, ys - 11, 2, 2, i % 2 ? '#ffe9dc' : '#ff9a6b'); B(kx - 6, ys - 9, 14, 1, '#b85a55'); B(kx - 3, ys - 4, 8, 1, '#8a62b8'); B(kx - 2, ys - 3, 1, 3, '#2b1a55'); B(kx + 3, ys - 3, 1, 3, '#2b1a55');
+      halo(kx + 1, ys - 7, 6, .14); B(kx + 1, ys - 8, 1, 1, '#fff3c4');
+      for (let i = 0; i < 3; i++){ const k = (tt * .25 + i / 3) % 1; g.globalAlpha = .5 * (1 - k); B(kx + 4 + Math.round(k * 4 + Math.sin(tt + i * 2) * k * 2), ys - 12 - Math.round(k * 14), 1 + (k > .4 ? 1 : 0), 1 + (k > .4 ? 1 : 0), '#f3e3f3'); } g.globalAlpha = 1; }
+  }
+
+  // --- le premier plan : une crête sombre, de grands palmiers qui encadrent l'image, deux lampadaires, et les habitants qui se promènent avec leurs animaux ---
+  plan(1, .3, 64);
+  const yf = x => Math.round(yR + 2.6 * Math.sin(x * .045 + 1) + 1.6 * Math.sin(x * .12)), fond = hu * 1.7 + 40;
+  for (let x = -8; x < wu + 8; x += 2){ const y = yf(x); B(x, y, 2, fond, '#1b1238'); B(x, y, 2, 1, '#6a45a3'); B(x, y + 1, 2, 1, '#2d1d57'); if (H1(x + 99, 103) < .3) B(x + (H1(x + 99, 104) < .5 ? 0 : 1), y - 1 - Math.floor(H1(x + 99, 105) * 2), 1, 2, '#2d1d57'); }
+  if (p < .95){
+    if (large){ palmier(9, yf(9) + 3, Math.round(hu * .44), '#150d30', '#3b2670', 1, 2); palmier(Math.round(wu - 13), yf(wu - 13) + 3, Math.round(hu * .36), '#150d30', '#4a2f80', -1, 2); }
+    else { palmier(5, yf(5) + 2, 30, '#150d30', '#3b2670', 1, 1); palmier(Math.round(wu - 7), yf(wu - 7) + 2, 25, '#150d30', '#4a2f80', -1, 1); }
+    (large ? [.37, .84] : [.2, .82]).forEach(fx => { const x = Math.round(wu * fx), y = yf(x); halo(x, y - 16, 9, .13); B(x, y - 16, 1, 16, '#0f0926'); B(x - 1, y - 17, 3, 1, '#0f0926'); B(x - 1, y - 16, 3, 1, '#fff3c4'); });
+    g.setTransform(R, 0, 0, R, ox, oy);                                   // (les personnages sont dessinés par la même fonction que dans la ville : « sprite »)
+    const k = .68 * u, tour = wu + 36, pas = tt * 5;
+    [2, 5, 9, 14, 23, 31].forEach((n, i) => { const e = ELEVES[n], x = ((pas + i * tour / 6 + e.h1 * 9) % tour) - 18; sprite(e, x * u, (yf(Math.round(x)) + 1) * u, k, tt, {pose: 'debout', marche: !calme, sac: i % 2 === 0}); });
+    [['chien', 'husky'], ['chat', 'roux'], ['perroquet', 'ararouge']].forEach(([espece, race], i) => { const x = ((pas + (i + .5) * tour / 3) % tour) - 18, vol = espece === 'perroquet';
+      animalSprite(x * u, (yf(Math.round(x)) + 1) * u - (vol ? (12 + Math.sin(tt * 3) * 1.4) * u : 0), k, tt, {marche: !calme || vol}, {espece, race, collier: '#e4572e'}); });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  // --- derrière le formulaire : la nuit est tombée. Des étoiles, la lune, et sous un lampadaire un habitant et son animal ---
+  const yz = hu - plus / u;                                               // le haut du second écran, dans les mesures de la scène
+  if (p > .12){
+    const libre = wu - (CX.droite + 24) / u;                              // la place qu'il reste à droite du formulaire (écran large)
+    const sv = large ? Math.max(1, Math.min(2, hu / 100, libre / 84)) : 1, vx = Math.round(large ? (CX.droite + 24) / u + libre / 2 : wu * .5), gy = Math.round(large ? yz + hu * .78 : yz + (CX.haut - 22) / u);
+    const V = (x, y, bw, bh, col) => B(vx + x * sv, gy + y * sv, bw * sv, bh * sv, col), hl = large ? 38 : 26;   // (V dessine la petite scène : elle grandit avec l'écran)
+    for (let i = 0; i < 34; i++){ const x = large ? (CX.droite + 24) / u + H1(i, 109) * libre : H1(i, 109) * wu, y = yz + 4 + H1(i, 110) * (large ? hu * .9 : Math.max(8, CX.haut / u - 46));
+      g.globalAlpha = .2 + .6 * Math.abs(Math.sin(tt * .9 + i * 1.9)); B(Math.round(x), Math.round(y), 1, 1, i % 5 ? '#ffffff' : '#ffd98a'); }
+    g.globalAlpha = 1;
+    { const r = Math.round(6 * sv), x = Math.round(large ? vx + 29 * sv : wu * .86), y = Math.round(large ? gy - 56 * sv : gy - hl - 4); disque(x, y, r, '#fff3c4'); disque(x + Math.round(r * .5), y - Math.round(r * .3), Math.round(r * .85), '#1b1238'); }   // un croissant de lune
+    V(-38, 0, 76, 1, '#6a45a3'); V(-38, 1, 76, 2, '#2d1d57'); V(-34, 3, 68, 1, '#231546');
+    halo(Math.round(vx - 23 * sv), Math.round(gy - (hl - 1) * sv), Math.round(19 * sv), .1);
+    V(-23, -hl, 1, hl, '#5d4a9c'); V(-25, -hl - 1, 5, 1, '#5d4a9c'); V(-24, -hl, 3, 2, '#fff3c4');
+    V(13, -4, 13, 1, '#8a62b8'); V(13, -7, 13, 1, '#8a62b8'); V(14, -3, 1, 3, '#5d4a9c'); V(24, -3, 1, 3, '#5d4a9c');
+    palmier(Math.round(vx + 30 * sv), gy, Math.round((large ? 26 : 17) * sv), '#2d1d57', '#4a3285', 1, sv);
+    for (let i = 0; i < 9; i++){ g.globalAlpha = .3 + .7 * Math.abs(Math.sin(tt * 2 + i * 1.3)); B(Math.round(vx + (-32 + H1(i, 111) * 64) * sv + Math.sin(tt * .7 + i) * 3), Math.round(gy - (5 + H1(i, 112) * (hl - 6)) * sv + Math.cos(tt * .9 + i * 2) * 2), 1, 1, '#ffe27a'); }
+    g.globalAlpha = 1;
+    // les deux habitants : celui qui revient (Connexion) et la nouvelle (Créer un compte). Quand on change de volet, l'un s'en va et l'autre arrive.
+    g.setTransform(R, 0, 0, R, ox, oy);
+    const kv = (large ? 1.12 : .82) * u * sv, av = calme ? 1 : Math.min(1, (t - CX.depuis) / .9), sol = (gy + 1) * u;
+    CX.duo.forEach((e, n) => { const ici = n === CX.qui; if (!ici && av >= 1) return;
+      const dx = (ici ? -(1 - av) : av) * 44 * sv, marche = av < 1, x = (vx - 6 * sv + dx) * u; g.globalAlpha = ici ? Math.min(1, av * 1.8) : 1 - av;
+      sprite(e, x, sol, kv, tt, {pose: 'debout', marche, sac: n === 0, geste: marche ? '' : (tt + n * 2.5) % 6 < 1.4 ? 'salut' : n === 0 && tt % 14 > 10 ? 'tel' : ''});
+      animalSprite(x + (large ? 12 : 10) * sv * u, sol + u * .5, kv * .9, tt, {marche}, n ? {espece: 'chat', race: 'roux', collier: '#3d8bfd'} : {espece: 'chien', race: 'husky', collier: '#e4572e'}); });
+    g.globalAlpha = 1; g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  // --- les pétales de flamboyant que le vent emporte (tout devant) ---
+  plan(1.12, .3, 30);
+  for (let i = 0; i < (NIVEAU ? 30 : 14); i++){ const v = 3 + H1(i, 106) * 4, tx = wu + 30, ty = hu * 2.1, x = ((H1(i, 107) * tx + tt * v) % tx) - 15, y = ((H1(i, 108) * ty + tt * v * .45 + Math.sin(tt * 1.7 + i) * 1.5) % ty + ty) % ty - 4;
+    B(Math.round(x), Math.round(y), i % 3 ? 1 : 2, 1, i % 2 ? '#ff9f7c' : '#ffc6d4'); }
+  // --- à l'ouverture : l'image sort du noir ---
+  if (ent < 1){ g.globalAlpha = (1 - doux(ent * 1.5)) * .9; g.fillStyle = '#0d0820'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  ctx = garde;
+}
 
 /* ============ 18. LES DERNIERS BRANCHEMENTS, PUIS LE DÉMARRAGE ============ */
 ORDRE_JOURS.forEach(j => $('sim-jour').append(new Option(JOURS[j], j)));
