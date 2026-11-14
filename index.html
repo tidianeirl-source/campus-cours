@@ -245,6 +245,8 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .cx-btn.creux{background:rgba(27,18,56,.45);color:#ffffff;border-color:#ffffff;box-shadow:0 5px 0 rgba(27,18,56,.75)}
 .cx-btn:active:not([disabled]){transform:translateY(5px);box-shadow:none}
 .cx-btn[disabled]{opacity:.6;cursor:default}
+.cx-apk{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;color:#ffffff;font:400 20px/1.1 var(--f-texte);text-decoration:underline;text-underline-offset:4px;text-shadow:var(--cx-contour)}
+.cx-apk i{display:inline-flex}
 .cx-bas{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:44px;height:44px;margin-left:-22px;padding:0;display:grid;place-items:center;background:none;border:0;color:#ffffff;cursor:pointer;opacity:calc(1 - var(--p) * 3)}
 .cx-bas svg{animation:cx-rebond 1.4s steps(4) infinite;filter:drop-shadow(2px 2px 0 #2a1d5e)}
 /* second écran : le formulaire */
@@ -337,6 +339,8 @@ input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--acce
 .horaire{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--panneau);border:2px solid var(--trait);box-shadow:4px 4px 0 var(--filet)}
 .horaire.faux{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
 .horaire-tete{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.horaires .rang .btn{white-space:normal;padding-block:6px;line-height:1.05;text-align:left;text-wrap:balance}   /* le bouton « Ajouter un jour et une heure de cours » peut passer sur deux lignes, sur un petit écran */
+.ecole-champs{max-width:660px;align-items:end}
 .horaire-tete b{font:400 9px/1.6 var(--f-titre);text-transform:uppercase;color:var(--sourdine)}
 .horaire-champs{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px 10px;align-items:end}   /* deux champs par ligne ; un seul sur un très petit écran, pour que les heures ne soient jamais coupées */
 .editeur .horaire input[type=text],.editeur .horaire input[type=time],.editeur .horaire select{background-color:var(--creux)}
@@ -496,6 +500,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <button class="cx-btn plein" id="cx-go-entrer" type="button">Connexion</button>
         <button class="cx-btn creux" id="cx-go-creer" type="button">Créer un compte</button>
       </div>
+      <a class="cx-apk" id="cx-apk" href="#" download="campus-des-cours.apk" hidden><i data-pix="bas" data-t="14"></i>Installer l'appli Android</a>
     </div>
     <button class="cx-bas" id="cx-descendre" type="button" aria-label="Descendre vers la connexion"><i data-pix="bas" data-t="24"></i></button>
   </section>
@@ -593,7 +598,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
   <section class="assistant" id="assistant" hidden aria-live="polite">
     <div class="titre-ligne"><span class="etape" id="as-etape">Étape 1 sur 2</span><button class="btn mini" id="as-plus-tard" type="button">Plus tard</button></div>
     <h2 id="as-titre">Ajoute ta première matière</h2>
-    <p class="doux" id="as-texte">La ville attend ton emploi du temps pour se mettre en route. Commence par une matière : tu pourras en ajouter d'autres ensuite.</p>
+    <p class="doux" id="as-texte">La ville attend ton emploi du temps pour se mettre en route, et ton école n'a pas encore de salle. Commence par une matière : sa salle se bâtira aussitôt. Tu pourras en ajouter d'autres ensuite.</p>
     <form class="bloc" id="as-form1">
       <div class="champs">
         <label class="champ large"><span>Nom de la matière</span><input id="as-nom" type="text" maxlength="40" autocomplete="off" placeholder="Ex. : Mathématiques"></label>
@@ -711,16 +716,20 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
         <div class="choix"><span class="choix-nom">Couleur</span><div class="pastilles" id="matiere-couleurs" role="group" aria-label="Couleur de la matière"></div></div>
         <div class="horaires" role="group" aria-labelledby="horaires-titre">
           <span class="choix-nom" id="horaires-titre">Horaires</span>
-          <p class="note" id="horaires-vide">Pas encore d'horaire. Ajoute un créneau pour dire quand tu as cette matière : le jour, l'heure de début et l'heure de fin.</p>
+          <p class="note" id="horaires-vide">Pas encore d'horaire. Dis quand tu as cette matière : le jour, l'heure de début et l'heure de fin.</p>
           <div class="horaires-liste" id="horaires-liste"></div>
-          <div class="rang"><button class="btn" id="horaire-ajouter" type="button"><i data-pix="plus" data-t="10"></i>Ajouter un créneau</button><span class="note" id="horaires-max" hidden>12 créneaux au maximum par matière.</span></div>
+          <div class="rang"><button class="btn" id="horaire-ajouter" type="button"><i data-pix="plus" data-t="10"></i>Ajouter un jour et une heure de cours</button><span class="note" id="horaires-max" hidden>12 horaires au maximum par matière.</span></div>
         </div>
         <p class="note erreur" id="matiere-erreur" role="alert" hidden></p>
         <div class="rang"><button class="btn fort" type="submit">Enregistrer</button><button class="btn" id="matiere-annuler" type="button">Annuler</button><button class="btn" id="matiere-supprimer" type="button" hidden>Supprimer cette matière</button></div>
       </form>
-      <label class="champ etroit"><span>Nom de ton école (écrit sur le portail)</span><input id="ecole-nom" type="text" maxlength="10" autocomplete="off" placeholder="École"></label>
+      <div class="champs ecole-champs">
+        <label class="champ"><span>Nom de ton école (écrit sur le portail)</span><input id="ecole-nom" type="text" maxlength="10" autocomplete="off" placeholder="École"></label>
+        <label class="champ"><span>Nombre d'élèves dans ta classe (toi compris)</span><input id="ecole-eleves" type="number" min="2" max="48" step="1" inputmode="numeric" aria-describedby="ecole-eleves-note"></label>
+      </div>
+      <p class="note" id="ecole-eleves-note"></p>
       <datalist id="salles-connues"></datalist>
-      <p class="note">L'école de la ville grandit avec toi : chaque salle que tu saisis (ou chaque matière sans salle) a sa classe. Au-delà de 8, une nouvelle rangée de classes se construit au nord de l'école ; si tu supprimes des matières, les classes en trop disparaissent.</p>
+      <p class="note">Au départ, ton école n'a aucune salle : elle grandit avec toi. Chaque matière que tu ajoutes fait bâtir sa classe (deux matières dans la même salle partagent la même). Après 8 classes, une nouvelle rangée se construit au nord de l'école ; si tu supprimes une matière, sa classe disparaît.</p>
     </div>
     <div class="grille2">
       <div class="bloc">
@@ -860,6 +869,10 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       <div class="reglage" style="margin-top:16px">
         <div><h2>Notifications</h2><p class="note" id="notif-note"></p></div>
         <div><div><button class="btn" id="notif" type="button">Activer les notifications</button></div></div>
+      </div>
+      <div class="reglage" id="reglage-apk" style="margin-top:16px" hidden>
+        <div><h2>Appli Android</h2><p class="note" id="apk-note"></p></div>
+        <div><div><a class="btn" id="apk-lien" href="#" download="campus-des-cours.apk" hidden><i data-pix="bas" data-t="14"></i>Télécharger l'appli</a></div></div>
       </div>
       <div class="reglage" id="reglage-plein" style="margin-top:16px" hidden>
         <div><h2>Plein écran</h2><p class="note">La ville prend tout l'écran, sans la barre du navigateur. Pour en sortir : le geste « retour », ou la touche Échap.</p></div>
@@ -1073,22 +1086,23 @@ function melange(a, b, t){
   return '#' + hex2(f(16)) + hex2(f(8)) + hex2(f(0));
 }
 
-// L'école : 8 salles au départ, le couloir, la cour. Les salles prennent le nom et la couleur de ce que tu as saisi (voir attribuerSalles).
-// Et s'il t'en faut plus de 8, l'école s'agrandit : une nouvelle rangée de classes se construit au nord (voir agrandirEcole, dans le décor).
+// L'école : aucune salle au départ, seulement le couloir et la cour. Chaque matière que tu ajoutes fait bâtir sa salle (voir attribuerSalles) : les 8 premières
+// prennent place dans l'école ; au-delà, une nouvelle rangée de classes se construit au nord (voir agrandirEcole, dans le décor). Une salle porte le nom et la couleur que tu as saisis.
 const SALLE_VIDE = '#cfc9dc', RANG = 4.6;                              // RANG : la distance entre deux rangées de salles
 const posSalle = i => ({x: 1 + (i % 4) * 4, y: i < 4 ? 1 : i < 8 ? 5.6 : 1 - RANG * ((i >> 2) - 1)});   // 4 salles par rangée ; à partir de la 9e, on monte vers le nord
-const nouvelleSalle = i => Object.assign({i, w: 3.8, h: 4.2, nom: '', c: SALLE_VIDE, matieres: [], k: 1, ne: null, fin: null}, posSalle(i));   // k : de 0 (pas encore bâtie) à 1 (finie)
+const nouvelleSalle = i => Object.assign({i, w: 3.8, h: 4.2, nom: '', c: SALLE_VIDE, matieres: [], k: 0, ne: null, fin: null}, posSalle(i));   // k : de 0 (pas encore bâtie) à 1 (finie)
 const SALLES = [0, 1, 2, 3, 4, 5, 6, 7].map(nouvelleSalle);
-let NB_SALLES = 8, NORD = 0;                                            // combien de salles sont ouvertes · jusqu'où l'île monte au nord (0 au départ, −4,6 par rangée en plus)
+let NB_SALLES = 0, NORD = 0;                                            // combien de salles sont ouvertes (aucune tant qu'il n'y a pas de matière) · jusqu'où l'île monte au nord (0 au départ, −4,6 par rangée en plus)
 let SALLE_INDEX = {};                                                  // « b12 » → numéro de la salle dans la ville
 const cleSalle = (c, m) => { const n = ((c && c.salle) || (m && m.salle) || '').trim().toLowerCase(); return n || (m ? '#' + m.id : ''); };   // une matière sans salle a quand même la sienne
 // On distribue les salles : d'abord la salle habituelle de chaque matière, puis les salles particulières de certains cours.
-// Chaque salle différente a sa classe : au-delà de 8, l'école en construit de nouvelles ; quand il y en a trop, elles disparaissent.
-function attribuerSalles(){
+// Chaque salle différente a sa classe : l'école en bâtit autant qu'il en faut ; quand il y en a trop, elles disparaissent.
+// « expres » : c'est toi qui viens d'ajouter ou de retirer quelque chose (et non un compte qui s'ouvre) → la nouvelle salle aura son chantier.
+function attribuerSalles(expres){
   const cles = [], etiq = {}, voir = (k, nom) => { if (k && !cles.includes(k)){ cles.push(k); etiq[k] = nom; } };
   MATIERES.forEach(m => voir(cleSalle(null, m), m.salle.trim()));
   CRENEAUX.forEach(c => { const m = matiere(c.m); if (m) voir(cleSalle(c, m), (c.salle || m.salle).trim()); });
-  agrandirEcole(Math.max(8, cles.length));
+  agrandirEcole(cles.length, expres);
   SALLE_INDEX = {}; SALLES.forEach(s => { s.nom = ''; s.c = SALLE_VIDE; s.matieres = []; });
   cles.forEach((k, n) => { const s = SALLES[n]; SALLE_INDEX[k] = s.i; if (k[0] !== '#') s.nom = etiq[k]; });
   MATIERES.forEach(m => { const s = SALLES[SALLE_INDEX[cleSalle(null, m)]]; s.matieres.push(m); if (s.matieres.length === 1) s.c = m.c; });
@@ -1097,7 +1111,10 @@ const salleDe = c => { const k = cleSalle(c, matiere(c.m)); return SALLES[k in S
 const ECOLE = {x: .6, y: .6, x1: 17.5, y1: 15.4};
 const COUR = {x: .6, y: 10.4, x1: 17.5, y1: 15.26};
 const SPORT = {x: 1.5, y: 11.05, w: 5.4, h: 3.5};
-const TABLES = [.2, 1.05, 2, 2.85], LT = .8;                          // 4 tables doubles par rangée, 6 rangées : 48 places
+const TABLES = [.2, 1.05, 2, 2.85], LT = .8, LB = .36;                // 4 tables par rangée, 6 rangées, 2 bureaux (larges de LB) par table : 48 places au plus
+let NB_ELEVES = 48;                                                    // combien d'élèves dans ta classe, toi compris (de 2 à 48, choisi dans l'onglet « Semaine ») : chaque salle a ce nombre de bureaux
+const elevesValide = v => Number.isInteger(v) && v >= 2 && v <= 48 ? v : 48;
+const enClasse = e => e.i < NB_ELEVES;                                 // les autres sont de simples habitants du quartier : ils ne vont pas en cours
 const BANCS = [[8.55, 13.2], [11.65, 13.2], [14.35, 13.2]];
 const GROUPES = [[8.4, 11.5], [10.8, 11.2], [13.4, 11.6], [15.5, 11.25], [8.2, 14.25], [10.6, 14.2], [13, 14.3], [15.6, 14.3], [7.6, 12.72]];
 // La ville : trottoirs, route, maisons, ta maison, le parc, la plage, le kiosque
@@ -1182,7 +1199,7 @@ function trajet(dep, arr){
   return pts;
 }
 
-/* ============ 6. LES HABITANTS : 48 étudiants (toi compris), 8 profs, et quelques autres ============ */
+/* ============ 6. LES HABITANTS : 48 jeunes du quartier (toi compris ; ceux de ta classe vont en cours), 8 profs, et quelques autres ============ */
 const PEAUX = ['#8d5a3b', '#7a4a2e', '#6a3f27', '#5a3421', '#9c6b47', '#4d2c1c'];
 const CHEVEUX = ['#17131c', '#231a17', '#2e1f17'];
 const HAUTS = ['#3d8bfd', '#2fb37a', '#8e6cf2', '#f26b3a', '#1fb5b0', '#d94f4f', '#5bbf5a', '#f2b632', '#e86a92', '#f4f1ea', '#4a5aa8', '#c0396b', '#22a0c9', '#f08a24'];
@@ -1192,7 +1209,6 @@ const MURS = ['#fbefd2', '#f6dccb', '#e9e4f6', '#dcf0f1', '#fde9b0', '#f4d9e4', 
 const TOITS = ['#d9623a', '#c94f3d', '#4f86c6', '#3f9b74', '#8a6fd1', '#e0a23a', '#2aa7a0'];
 const PORTES = ['#7a4a2b', '#2a6f8f', '#b0392b', '#3f7a4a', '#5a4a8a'];
 const pris = (liste, i, n) => liste[Math.floor(H1(i, n) * liste.length)];
-const SIEGES_LIBRES = [...Array(48).keys()].filter(n => n !== 10 && n !== 11);   // les places 11 et 12 : toi et ta voisine, à la même table
 const ELEVES = [], MAISONS = [];
 for (let i = 0; i < 48; i++){
   const toi = i === 0, sab = i === 1, fille = sab || (!toi && H1(i, 1) < .5);
@@ -1203,7 +1219,7 @@ for (let i = 0; i < 48; i++){
     bas: pris(BAS, i, 4), chaussure: H1(i, 17) < .5 ? '#f4f1ea' : '#22222e', sac: pris(SACS, i, 18), acc: pris(HAUTS, i, 6),
     casque: !toi && !sab && H1(i, 19) < .14, lunettes: !toi && !sab && H1(i, 20) < .16, logo: i % 3 === 0,
     k: toi || sab ? 1 : .9 + H1(i, 7) * .1, ph: H1(i, 8) * 6.28, h1: H1(i, 9), h2: H1(i, 10), coucher: 1290 + H1(i, 11) * 100,
-    siege: toi ? 10 : sab ? 11 : SIEGES_LIBRES[i - 2], x: 0, y: 0, trajet: [], lieu: null, avant: null, geste: '', visible: true,
+    siege: 0, x: 0, y: 0, trajet: [], lieu: null, avant: null, geste: '', visible: true,
     perso: toi || sab ? '' : (r => r < .3 ? 'ponctuel' : r < .47 ? 'retard' : r < .72 ? 'bavard' : 'studieux')(H1(i, 31))};   // son caractère : il change l'heure où il part, ses gestes, ses bavardages
   if (fille && e.style === 2) e.bas = pris(HAUTS, i, 21);            // jupe de couleur
   if (!toi){
@@ -1214,6 +1230,7 @@ for (let i = 0; i < 48; i++){
   }
   ELEVES.push(e);
 }
+ELEVES.forEach(e => { e.siege = placeDe(e); });                       // la place de chacun en classe (voir placeDe, plus bas)
 // Ton personnage : son apparence de départ, puis ce que tu as choisi dans l'onglet « Perso » (gardé dans ton navigateur)
 const MOI_DEFAUT = {nom: '', lunettes: 0, barbe: false, boucles: false, joues: false};
 ['peau', 'cheveux', 'coiffe', 'style', 'logo', 'haut', 'acc', 'bas', 'chaussure', 'sac', 'casque'].forEach(k => { MOI_DEFAUT[k] = ELEVES[0][k]; });
@@ -1279,6 +1296,18 @@ const CHEZ = {
   bureau: lieuZone('moi-bureau', CHEZ_MOI.x + .95, CHEZ_MOI.y + .95, 'moi', {pose: 'banc', dos: true}),
   canape: lieuZone('moi-canape', CHEZ_MOI.x + .74, CHEZ_MOI.y + 2.8, 'moi', {pose: 'banc'}),
 };
+// La place de chacun en classe. Les places sont numérotées de 0 à 47, rangée par rangée en partant du tableau ; avec N élèves, ce sont les N premières qui servent
+// (et seules celles-là ont un bureau). Toi et ta voisine partagez une table : les places 11 et 12 quand la classe est assez grande, sinon la dernière table complète.
+function placeDe(e){
+  const a = NB_ELEVES >= 12 ? 10 : 2 * Math.floor((NB_ELEVES - 2) / 2);
+  if (e.toi) return a; if (e.sab) return a + 1;
+  const r = e.i - 2; return r < a ? r : r + 2;
+}
+function changerEleves(n){                                             // la classe change de taille : chacun reçoit sa nouvelle place
+  NB_ELEVES = elevesValide(n);
+  for (const e of ELEVES){ const avant = e.siege; e.siege = placeDe(e);
+    if (e.siege !== avant && e.lieu && e.lieu.cle.startsWith('siege')) e.lieu = Object.assign({}, e.lieu, {cle: 'siege-avant'}); }   // celui qui était assis ailleurs ira s'asseoir à sa nouvelle place, à pied
+}
 function siegeDe(s, e){
   const col = e.siege % 8, rang = e.siege >> 3;
   return {cle: 'siege' + s.i, pos: {x: s.x + TABLES[col >> 1] + (col % 2 ? .6 : .2), y: s.y + 1.3 + rang * .47}, zone: 'salle' + s.i, pose: 'assis', dos: true};
@@ -1293,15 +1322,16 @@ function foot(j, t){
   const n = Math.floor(t / 2.6 + j * .37);
   return {cle: 'foot' + n, pos: {x: SPORT.x + .5 + H1(j, n) * (SPORT.w - 1), y: SPORT.y + .4 + H1(j + 9, n) * (SPORT.h - .8)}, zone: 'cour', foot: true};
 }
-// Qui fait quoi pendant une pause : quelques-uns au kiosque (à midi), six au foot, six sur les bancs, les autres discutent
+// Qui fait quoi pendant une pause : quelques-uns au kiosque (à midi), six au foot, six sur les bancs, les autres discutent.
+// (Ces nombres valent pour une classe de 48 : dans une classe plus petite, ils diminuent en proportion ; et le foot ne se joue pas tout seul.)
 const _roles = {};
 function roles(fen, midi, gouter){
-  const cle = fen + (midi ? 'm' : gouter ? 'g' : ''); if (_roles[cle]) return _roles[cle];
-  const ordre = ELEVES.filter(e => e.i > 1).sort((a, b) => H1(a.i, fen) - H1(b.i, fen)), r = {}; let n = 0;
-  if (midi) for (let j = 0; j < 9; j++) r[ordre[n++].i] = LIEUX.kiosque[j];
-  else if (gouter) for (let j = 0; j < 3; j++) r[ordre[n++].i] = LIEUX.kiosque[j];                 // hors de midi : trois gourmands vont quand même s'asseoir chez la vendeuse de garba
-  for (let j = 0; j < 6; j++) r[ordre[n++].i] = j;
-  for (let j = 0; j < 6; j++) r[ordre[n++].i] = LIEUX.bancs[j];
+  const cle = fen + (midi ? 'm' : gouter ? 'g' : '') + '|' + NB_ELEVES; if (_roles[cle]) return _roles[cle];
+  const ordre = ELEVES.filter(e => e.i > 1 && enClasse(e)).sort((a, b) => H1(a.i, fen) - H1(b.i, fen)), r = {}, part = k => Math.round(k * ordre.length / 46); let n = 0;
+  const donner = (nb, f) => { for (let j = 0; j < nb && n < ordre.length; j++) r[ordre[n++].i] = f(j); };
+  donner(part(midi ? 9 : gouter ? 3 : 0), j => LIEUX.kiosque[j]);                                   // hors de midi : trois gourmands vont quand même s'asseoir chez la vendeuse de garba
+  donner(part(6) > 1 ? part(6) : 0, j => j);
+  donner(part(6), j => LIEUX.bancs[j]);
   return _roles[cle] = r;
 }
 function pause(e, t, T){
@@ -1334,7 +1364,7 @@ function destination(e, T, S, ou, t){
     return salle ? siegeDe(salle, e) : pause(e, t, T);
   }
   const avance = e.perso === 'ponctuel' ? 50 + e.h1 * 20 : e.perso === 'retard' ? -1 - e.h1 * 5 : 20 + e.h1 * 40;   // le ponctuel part tôt ; celui qui est toujours en retard part après la sonnerie (et il court)
-  if (l.length && T.min >= l[0].deb - avance && T.min < l[l.length - 1].fin + 5 + e.h2 * 45){
+  if (enClasse(e) && l.length && T.min >= l[0].deb - avance && T.min < l[l.length - 1].fin + 5 + e.h2 * 45){
     if (salle && e.perso === 'retard' && S.actuel !== l[0] && T.min < S.actuel.deb + .4 + e.h2 * 1.6) return pause(e, t, T);   // après une pause aussi, il traîne un peu dans la cour avant de rentrer
     const tot = e.perso === 'studieux' ? 4 : e.perso === 'ponctuel' ? 2 : 0, pr = S.suivant;        // le studieux (4 min avant) et le ponctuel (2 min avant) sont assis avant la sonnerie
     if (!salle && tot && pr && pr.jour === T.jour && pr.deb > T.min && pr.deb - T.min < tot) return siegeDe(salleDe(pr), e);
@@ -1887,7 +1917,7 @@ function vignetteAnimal(c, a, o = {}, marge = 6){
 /* ============ 10. LE DÉCOR, CONSTRUIT UNE SEULE FOIS AU DÉMARRAGE ============ */
 const PLAQUES = [], SOLS = [], TRAITS = [], DECOR = [], OMBRES = [], FIXES = [], LAMPES = [], FLAQUES = [];
 let PROPRIO = null;                                                    // pendant qu'on bâtit une salle en plus : tout ce qui est posé lui appartient (et disparaîtra avec elle)
-const solFixe = (x, y, w, h, c) => SOLS.push({p: [P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], c});
+const solFixe = (x, y, w, h, c) => SOLS.push({p: [P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], c, s: PROPRIO});
 const trait = (x0, y0, x1, y1, c, w = 1, tirets) => TRAITS.push({a: P(x0, y0), b: P(x1, y1), c, w, tirets, s: PROPRIO});
 // Un objet « debout » : il sera dessiné dans l'ordre de sa profondeur (x + y), pour passer devant ou derrière les personnages
 const fixe = (x, y, f, r = 60) => { const [sx, sy] = P(x, y); FIXES.push({k: x + y, sx, sy, r, f, s: PROPRIO}); };
@@ -1910,7 +1940,7 @@ solFixe(0, SABLE, GX, GY - SABLE, C.sable);
 solFixe(.6, .6, 16.9, 14.8, C.pave);                                  // dalle de l'école
 solFixe(.6, 10.4, 16.9, 4.86, C.lat);                                 // cour en terre rouge (latérite)
 solFixe(7.2, 12.35, 10.3, .7, C.pave);                                // allée pavée qui part du portail
-SALLES.filter(s => s.i > 3).forEach(s => solFixe(s.x + s.w / 2 - .3, 10.4, .6, 1.95, C.pave));
+SALLES.filter(s => s.i > 3).forEach(s => { PROPRIO = s; solFixe(s.x + s.w / 2 - .3, 10.4, .6, 1.95, C.pave); }); PROPRIO = null;   // le petit chemin pavé devant la porte d'une salle : il arrive avec elle
 solFixe(SPORT.x, SPORT.y, SPORT.w, SPORT.h, '#8fb0c9');               // terrain de sport
 solFixe(11.7, 15.65, 5.8, 2.1, C.lat);                                // terre battue du maquis : autour de l'étal et de ta table
 solFixe(17.64, RY0, .46, RY1 - RY0, C.trottoir); solFixe(19.8, RY0, .55, RY1 - RY0, C.trottoir);
@@ -1935,7 +1965,7 @@ PARASOLS.forEach((p, j) => { solFixe(p[0] - .68, p[1] + .28, .55, .95, ['#e4572e
   trait(s.x + s.w / 2, s.y + .12, s.x + s.w / 2, s.y + s.h - .12, b, .9);
   [[s.x + .12, 1], [s.x + s.w - .12, -1]].forEach(([x, d]) => { trait(x, s.y + 1, x + d * .8, s.y + 1, b, .9); trait(x + d * .8, s.y + 1, x + d * .8, s.y + 2.5, b, .9); trait(x, s.y + 2.5, x + d * .8, s.y + 2.5, b, .9); }); }
 const quadriller = s => { for (let i = 1; i < 4; i++) trait(s.x + i * .95, s.y + .14, s.x + i * .95, s.y + s.h - .14, 'rgba(255,255,255,.4)', .6); for (let j = 1; j < 5; j++) trait(s.x + .14, s.y + j * .84, s.x + s.w - .14, s.y + j * .84, 'rgba(255,255,255,.4)', .6); };   // le carrelage d'une salle
-SALLES.forEach(quadriller);
+SALLES.forEach(s => { PROPRIO = s; quadriller(s); }); PROPRIO = null;
 trait(RX + RW / 2, RY0 + .5, RX + RW / 2, PASSAGE - .6, C.ligne, 1.3, [7, 7]); trait(RX + RW / 2, PASSAGE + .6, RX + RW / 2, RY1 - .5, C.ligne, 1.3, [7, 7]);
 trait(RX + .05, RY0, RX + .05, RY1, 'rgba(255,255,255,.3)', .7); trait(RX + RW - .05, RY0, RX + RW - .05, RY1, 'rgba(255,255,255,.3)', .7);
 for (let y = 1; y < RY1; y++){ trait(17.64, y, 18.1, y, 'rgba(60,50,40,.14)', .6); trait(19.8, y, 20.35, y, 'rgba(60,50,40,.14)', .6); }
@@ -1982,7 +2012,7 @@ for (let gx = 0; gx < GX; gx++) for (let gy = 0; gy < GY; gy++){
   .forEach(([x, y, rx]) => { const [sx, sy] = P(x, y); FLAQUES.push({sx, sy, rx, ry: rx * .45}); });
 
 // ---------- l'école : salles, clôture, portail, guérite, drapeau, cour ----------
-// Une salle : ses murs, son tableau, le bureau du prof, ses 24 tables. Pendant son chantier (s.k va de 0 à 1), les murs montent par paliers, puis les tables se posent une à une.
+// Une salle : ses murs, son tableau, le bureau du prof, et un bureau par élève (deux côte à côte par table). Pendant son chantier (s.k va de 0 à 1), les murs montent par paliers, puis les tables se posent une à une.
 const palier = s => s.k >= .7 ? 1 : Math.floor(s.k / .7 * 8) / 8;
 function batirSalle(s){
   const c = () => couleurSalle(s), fonce = () => teinte(couleurSalle(s), -.28), yb = s.y + .146, grand = () => 19 * palier(s), petit = () => 6 * palier(s);
@@ -1996,10 +2026,14 @@ function batirSalle(s){
   mur(s.x, s.y, .14, s.h, grand, c);
   mur(s.x, s.y + s.h - .14, s.w * .36, .14, petit, fonce); mur(s.x + s.w * .64, s.y + s.h - .14, s.w * .36, .14, petit, fonce); mur(s.x + s.w - .14, s.y, .14, s.h, petit, fonce);
   fixe(s.x + 3.1, s.y + .66, () => { if (s.k >= .8) boite(s.x + 2.7, s.y + .52, .8, .28, 0, 7, '#9a6b45'); }, 30);                  // bureau du prof
-  for (let r = 0; r < 6; r++) TABLES.forEach((tx, n) => { const x = s.x + tx, y = s.y + 1.07 + r * .47, seuil = .7 + .3 * (r * 4 + n + 1) / 24 - 1e-6; fixe(x + LT / 2, y + .08, () => { if (s.k >= seuil) boite(x, y, LT, .15, 0, 5, '#f1e6cf'); }, 24); });
+  for (let r = 0; r < 6; r++) TABLES.forEach((tx, n) => { const x = s.x + tx, y = s.y + 1.07 + r * .47, g = (r * 4 + n) * 2;   // g : le numéro de la place de gauche de cette table (celle de droite : g + 1)
+    fixe(x + LT / 2, y + .08, () => {                                  // autant de bureaux que d'élèves : on ne dessine que ceux des places occupées
+      const nb = NB_ELEVES - g; if (nb < 1 || s.k < .7 + .3 * (g / 2 + 1) / Math.ceil(NB_ELEVES / 2) - 1e-6) return;
+      if (nb > 1 && !NIVEAU) boite(x, y, LT, .15, 0, 5, '#f1e6cf');     // (qualité basse : les deux bureaux d'une table sont dessinés d'un seul bloc)
+      else { boite(x, y, LB, .15, 0, 5, '#f1e6cf'); if (nb > 1) boite(x + LT - LB, y, LB, .15, 0, 5, '#f1e6cf'); } }, 24); });
 }
-SALLES.forEach(batirSalle);
-// Une salle de plus (la 9e, la 10e…) : on lui donne sa porte et son bout de couloir dans le réseau des chemins, puis on la bâtit. La première d'une rangée apporte aussi
+SALLES.forEach(s => { PROPRIO = s; batirSalle(s); }); PROPRIO = null;   // (chaque morceau appartient à sa salle : tant qu'elle n'est pas bâtie, rien n'est dessiné)
+// Une salle au-delà de la 8e (la 9e, la 10e…) : on lui donne sa porte et son bout de couloir dans le réseau des chemins, puis on la bâtit. La première d'une rangée apporte aussi
 // la clôture de ce côté-là et, de l'autre côté de la route, un petit bois (pour que le nord de l'île ne reste pas vide).
 function ajouterSalle(){
   const i = SALLES.length, s = nouvelleSalle(i), rg = i >> 2, yc = s.y + 4.4, dx = s.x + s.w / 2; s.k = 0; SALLES.push(s);
@@ -2017,20 +2051,20 @@ function ajouterSalle(){
   quadriller(s); batirSalle(s);
   PROPRIO = null; FIXES.sort((a, b) => a.k - b.k);
 }
-// Il faut « n » salles : on bâtit celles qui manquent. Si la ville est déjà à l'écran, chaque nouvelle salle aura son chantier (il démarre quand on la regarde) ;
-// au chargement d'un compte, elles sont simplement là. Les salles en trop se démontent (voir animerSalles).
-function agrandirEcole(n){
-  const anime = pret && !calme;
+// Il faut « n » salles : on bâtit celles qui manquent. Quand c'est toi qui viens d'ajouter une matière (« expres »), ou que la ville est déjà à l'écran, chaque nouvelle
+// salle a son chantier (il démarre quand on la regarde) ; à l'ouverture d'un compte, elles sont simplement là. Les salles en trop se démontent (voir animerSalles).
+function agrandirEcole(n, expres){
+  const anime = !calme && (pret || expres === true);
   while (SALLES.length < n) ajouterSalle();
-  for (let i = 8; i < SALLES.length; i++){ const s = SALLES[i];
+  for (let i = 0; i < SALLES.length; i++){ const s = SALLES[i];
     if (i < n && (i >= NB_SALLES || s.k < 1)){ if (anime) s.ne = 'attente'; else { s.ne = null; s.k = 1; } s.fin = null; }
     if (i >= n && !anime){ s.k = 0; s.ne = s.fin = null; } }
   NB_SALLES = n;
 }
 const CHANTIER = {cam: null, fin: 0, n: 0, vise: null};
 function animerSalles(t){                                              // appelée à chaque image de la ville
-  let n = 8;
-  for (let i = 8; i < SALLES.length; i++){ const s = SALLES[i];
+  let n = 0;
+  for (let i = 0; i < SALLES.length; i++){ const s = SALLES[i];
     if (i < NB_SALLES){                                                // une salle ouverte : elle se construit en un peu plus de deux secondes
       if (s.ne === 'attente'){ s.ne = t - s.k * 2.4; montrerChantier(s, t); }
       if (s.ne !== null){ s.k = Math.min(1, (t - s.ne) / 2.4); if (s.k >= 1) s.ne = null; }
@@ -2320,11 +2354,13 @@ function dessinerSol(t){
   animerSalles(t); flancs(t);
   poly([P(0, NORD), P(GX, NORD), P(GX, GY), P(0, GY)], C.herbe);
   for (const s of PLAQUES) if (vu(s.sx, s.sy, 30)) poly(s.p, s.c);
-  for (const s of SOLS) poly(s.p, s.c);
+  for (const s of SOLS) if (!s.s || s.s.k > 0) poly(s.p, s.c);
   if (NORD < 0){ sol(.6, .6 + NORD, 16.9, -NORD, C.pave);                                         // l'école agrandie : sa dalle, les trottoirs et la route montent avec elle
     sol(17.64, RY0 + NORD, .46, -NORD, C.trottoir); sol(19.8, RY0 + NORD, .55, -NORD, C.trottoir); sol(RX, RY0 + NORD, RW, -NORD, C.route);
     ctx.strokeStyle = C.ligne; ctx.lineWidth = 1.3; ctx.setLineDash([7, 7]); ctx.beginPath(); ctx.moveTo(...P(RX + RW / 2, RY0 + NORD + .5)); ctx.lineTo(...P(RX + RW / 2, RY0 + .5)); ctx.stroke(); ctx.setLineDash([]); }
   for (const s of SALLES) if (s.k > 0) sol(s.x, s.y, s.w, s.h, s.k < 1 ? C.pave2 : teinte(couleurSalle(s), s === ENV.actif ? .28 : .6));
+  if (ecoleVide()){ const s = SALLES[0], q = [P(s.x, s.y), P(s.x + s.w, s.y), P(s.x + s.w, s.y + s.h), P(s.x, s.y + s.h)];   // pas encore de salle : le terrain de la première est tracé en pointillés
+    poly(q, 'rgba(255,255,255,.22)'); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.6; ctx.setLineDash([6, 5]); ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]); }
   mer(t);
   for (const l of TRAITS){ if (l.s && l.s.k < 1) continue; ctx.strokeStyle = l.c; ctx.lineWidth = l.w; if (l.tirets) ctx.setLineDash(l.tirets); ctx.beginPath(); ctx.moveTo(l.a[0], l.a[1]); ctx.lineTo(l.b[0], l.b[1]); ctx.stroke(); if (l.tirets) ctx.setLineDash([]); }
   { const c = P(SPORT.x + SPORT.w / 2, SPORT.y + SPORT.h / 2); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = .9; ctx.beginPath(); ctx.ellipse(c[0], c[1], 11, 5.5, 0, 0, 6.2832); ctx.stroke(); }
@@ -2429,7 +2465,7 @@ function vivre(dt, t, T, S, ou){
     if (e.toi && arrive && d.cle.startsWith('route')) bout = 1 - bout;
     e.dehors = !(e.x < 16.8 && e.y < 9.9) && !(e.x > CHEZ_MOI.x && e.x < CHEZ_MOI.x + CHEZ_MOI.w && e.y > CHEZ_MOI.y && e.y < CHEZ_MOI.y + CHEZ_MOI.h)
       && !(e.x > CAFE.x && e.x < CAFE.x + CAFE.w && e.y > CAFE.y && e.y < CAFE.y + CAFE.h);
-    e.sacDos = tempsScolaire && !e.foot && !e.pose && !(e.toi && ou.lieu === 'maison');
+    e.sacDos = tempsScolaire && enClasse(e) && !e.foot && !e.pose && !(e.toi && ou.lieu === 'maison');
     let g = '';
     if (arrive){
       if (d.pose === 'assis'){ const r = H1(e.i, Math.floor(t / 4)); g = r < (e.perso === 'studieux' ? .13 : .05) ? 'main' : r > (e.perso === 'retard' ? .9 : .965) ? 'etire'
@@ -2573,7 +2609,8 @@ function pilule(txt, p, fond, encre, taille = 11){
 }
 const cleDe = e => (e.prof ? 'p' : 'e') + e.i;
 const nomDe = e => e.prof ? (e.m && e.m.prof) || (e.m ? 'Prof de ' + court(e.m) : 'Prof')        // le nom d'un prof est celui que tu as donné avec sa matière
-  : noms[cleDe(e)] || (e.toi ? look.nom || 'Toi' : e.sab ? 'Ta voisine' : e.pnj === 'vendeuse' ? 'La vendeuse' : e.pnj === 'gardien' ? 'Le gardien' : e.pnj === 'barista' ? 'Le barista' : e.pnj === 'serveuse' ? 'La serveuse' : (e.fille ? 'Étudiante n° ' : 'Étudiant n° ') + (e.i + 1));
+  : noms[cleDe(e)] || (e.toi ? look.nom || 'Toi' : e.sab ? 'Ta voisine' : e.pnj === 'vendeuse' ? 'La vendeuse' : e.pnj === 'gardien' ? 'Le gardien' : e.pnj === 'barista' ? 'Le barista' : e.pnj === 'serveuse' ? 'La serveuse' : (enClasse(e) ? (e.fille ? 'Étudiante n° ' : 'Étudiant n° ') : (e.fille ? 'Habitante n° ' : 'Habitant n° ')) + (e.i + 1));
+const ecoleVide = () => !NB_SALLES && !SALLES.some(s => s.k > 0);       // aucune salle (et plus aucune en train de se démonter)
 function etiquettes(){
   const large = VUE.css >= .62, pres = VUE.css >= 1.5, actif = ENV.actif, bientot = aRendreBientot();
   const poses = [], garder = r => { if (r) poses.push([r[0], r[1], r[2] + 32 * VUE.R]); };          // les étiquettes déjà posées : un prénom ne doit recouvrir ni un autre prénom, ni le nom d'une salle
@@ -2582,6 +2619,7 @@ function etiquettes(){
     const du = bientot.some(r => s.matieres.some(m => m.id === r.m)), base = s.nom || (s.matieres[0] ? court(s.matieres[0]) : ''), ou = P(s.x + s.w / 2, s.y, 32);
     if (s === actif && ENV.cours && matiere(ENV.cours.m)) garder(pilule((s.nom ? s.nom + ' · ' : '') + court(matiere(ENV.cours.m)) + ' · en cours', ou, '#1c1830', '#ffffff'));
     else if (base && (large || du)) garder(pilule(base + (du ? ' · à rendre' : ''), ou, s.c === SALLE_VIDE ? '#ffffff' : s.c, '#1c1830')); }
+  if (ecoleVide()){ const s = SALLES[0]; garder(pilule(VUE.cssW < 560 ? 'Ta première salle : ici' : 'Ajoute une matière : sa salle se bâtira ici', P(s.x + s.w / 2, s.y + s.h / 2, 12), '#ffb627', '#1c1830')); }
   if (large) [['Cour', 9.2, 15.15, 0], ['Chez toi', CHEZ_MOI.x + CHEZ_MOI.w - .5, CHEZ_MOI.y + CHEZ_MOI.h + .5, 0], ['Parc', PARC.x + 1.8, PARC.y + PARC.h + .1, 0], ['Plage', 17.4, 19.5, 0], ['Garba', KX + .85, KY, 40], ['Café', CAFE.x + 3.4, CAFE.y, 29]]
     .forEach(([n, x, y, z]) => pilule(n, P(x, y, z), '#ffffff', '#1c1830'));
   const nommer = (e, fond, encre) => { const k = e.pose === 'assis' ? e.k * .62 : e.k, p = P(e.x, e.y, (e.pose === 'dort' ? 16 : 27 * k) + (ENV.pluie && e.dehors && e.pose !== 'assis' ? 9 : 0));
@@ -3214,13 +3252,13 @@ function majFiche(redessine){
   const e = choisi; if (!e){ $('fiche').hidden = true; return; }
   if (e.visible === false && !e.toi){ choisi = null; $('fiche').hidden = true; if (CAM.suivi === e) CAM.suivi = null; return; }   // il est rentré chez lui, ou son cours est fini
   $('fiche-nom').textContent = nomDe(e);
-  $('fiche-role').textContent = e.toi ? "C'est toi" : e.prof ? 'Professeur' : e.pnj === 'vendeuse' ? 'Tient le maquis garba' : e.pnj === 'gardien' ? "Gardien de l'école" : e.pnj === 'barista' ? 'Prépare les cafés' : e.pnj === 'serveuse' ? 'Sert en salle et en terrasse' : e.sab ? 'Ta voisine de table' : e.fille ? 'Étudiante de ta classe' : 'Étudiant de ta classe';
+  $('fiche-role').textContent = e.toi ? "C'est toi" : e.prof ? 'Professeur' : e.pnj === 'vendeuse' ? 'Tient le maquis garba' : e.pnj === 'gardien' ? "Gardien de l'école" : e.pnj === 'barista' ? 'Prépare les cafés' : e.pnj === 'serveuse' ? 'Sert en salle et en terrasse' : e.sab ? 'Ta voisine de table' : !enClasse(e) ? (e.fille ? 'Habitante du quartier' : 'Habitant du quartier') : e.fille ? 'Étudiante de ta classe' : 'Étudiant de ta classe';
   let detail = '';
   if (e.prof){ if (e.m){ const T = maintenant(), pro = CRENEAUX.filter(c => c.m === e.m.id).map(c => ({c, e: ((c.jour - T.jour) * 1440 + c.deb - T.min + 10080) % 10080})).sort((a, b) => a.e - b.e)[0];
     detail = e.m.nom + (pro ? '. Prochain cours : ' + JOURS[pro.c.jour] + ' à ' + hm(pro.c.deb) + '.' : '.'); } }
   else if (e.pnj) detail = {vendeuse: 'Ouvert de 10h00 à 21h00. Les étudiants y passent à la pause de midi.', gardien: 'Il surveille le portail pendant les heures de cours.',
     barista: 'Le café est ouvert de 6h30 à 22h00. Sa machine à expresso fume toute la journée.', serveuse: 'Elle fait le tour de la salle et de la terrasse avec son plateau, et passe à ta table.'}[e.pnj];
-  else detail = 'Place ' + (e.siege + 1) + ' sur 48, rangée ' + ((e.siege >> 3) + 1) + '. En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.arrive && e.lieu && e.lieu.zone === 'garba' ? 'au maquis' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.' + caractereDe(e);
+  else detail = (enClasse(e) ? 'Place ' + (e.siege + 1) + ' sur ' + NB_ELEVES + ', rangée ' + ((e.siege >> 3) + 1) + '. ' : (e.fille ? 'Elle' : 'Il') + " n'est pas dans ta classe. ") + 'En ce moment : ' + (e.lieu && e.lieu.zone === 'moi' ? 'à la maison' : e.arrive && e.lieu && (e.lieu.zone === 'cafe' || e.lieu.zone === 'terrasse') ? 'au café' : e.arrive && e.lieu && e.lieu.zone === 'garba' ? 'au maquis' : e.x < 17.6 && e.y < 15.4 ? "à l'école" : e.y > SABLE ? 'à la plage' : 'en ville') + '.' + (enClasse(e) ? caractereDe(e) : '');
   $('fiche-detail').textContent = detail;
   $('fiche-renommer').hidden = !!e.toi || !!e.pnj; $('fiche-perso').hidden = !e.toi;
   $('fiche-input').placeholder = e.prof ? 'Le nom de ce prof' : 'Son vrai prénom';
@@ -3334,7 +3372,7 @@ let coursOuvert = null, matiereOuverte = null;                         // … et
 
 // Quand les matières ou les cours changent : on recalcule ce qui en dépend (index par jour, salles de la ville), on réaffiche, puis on enregistre
 function majEcole(garde = true){
-  indexerCours(); attribuerSalles(); _bulles = {}; signatureJour = '';
+  indexerCours(); attribuerSalles(garde); _bulles = {}; signatureJour = '';
   afficherSemaine(); afficherMatieres(); listesMatieres(); afficherAssistant(); afficherPresence(); accorderFormulaires();
   if (garde) enregistrer('ecole');
   panneau();
@@ -3449,7 +3487,7 @@ function ajouterHoraire(c, id){                                        // une ca
   const jour = champ('Jour', el('select')), salle = champ('Salle (facultatif)', el('input')), deb = champ('Début', el('input')), fin = champ('Fin', el('input'));
   ORDRE_JOURS.forEach(j => jour.append(new Option(majuscule(JOURS[j]), j)));
   deb.type = fin.type = 'time'; salle.type = 'text'; salle.maxLength = 20; salle.autocomplete = 'off'; salle.setAttribute('list', 'salles-connues');
-  croix.type = 'button'; croix.innerHTML = pix('fermer', 12); croix.title = 'Retirer ce créneau'; err.setAttribute('role', 'alert'); err.hidden = true;
+  croix.type = 'button'; croix.innerHTML = pix('fermer', 12); croix.title = 'Retirer cet horaire'; err.setAttribute('role', 'alert'); err.hidden = true;
   tete.append(titre, croix); n.append(tete, champs, err); $('horaires-liste').append(n);
   const h = {id: id || null, n, titre, croix, jour, deb, fin, salle, err};
   croix.onclick = () => { if (h.id) OTES.push(h.id); retirerHoraire(h); verifierHoraires(); $('horaire-ajouter').focus(); };
@@ -3462,9 +3500,9 @@ function ajouterHoraire(c, id){                                        // une ca
 }
 function retirerHoraire(h){ h.n.remove(); HORAIRES.splice(HORAIRES.indexOf(h), 1); numeroterHoraires(); }
 function viderHoraires(){ HORAIRES.length = 0; OTES = []; $('horaires-liste').replaceChildren(); numeroterHoraires(); }
-function numeroterHoraires(){                                          // « Créneau 1 », « Créneau 2 »… et ce qui dépend du nombre de cartes
+function numeroterHoraires(){                                          // « Horaire 1 », « Horaire 2 »… et ce qui dépend du nombre de cartes
   const salle = texteSur($('matiere-salle').value, 20);
-  HORAIRES.forEach((h, i) => { h.titre.textContent = 'Créneau ' + (i + 1); h.croix.setAttribute('aria-label', 'Retirer le créneau ' + (i + 1)); h.salle.placeholder = salle || 'Ex. : B12'; });
+  HORAIRES.forEach((h, i) => { h.titre.textContent = 'Horaire ' + (i + 1); h.croix.setAttribute('aria-label', "Retirer l'horaire " + (i + 1)); h.salle.placeholder = salle || 'Ex. : B12'; });
   $('horaires-vide').hidden = HORAIRES.length > 0; $('horaire-ajouter').disabled = HORAIRES.length >= 12; $('horaires-max').hidden = HORAIRES.length < 12;
 }
 // Quel créneau proposer quand on en ajoute un ? La même heure que le précédent, un autre jour ; sinon le premier moment libre de la semaine.
@@ -3490,8 +3528,8 @@ function verifierHoraires(){
     else {
       const k = v.findIndex((b, n) => n !== i && b.jour === a.jour && b.deb >= 0 && b.fin > b.deb && a.deb < b.fin && a.fin > b.deb);
       const c = k < 0 && CRENEAUX.find(c => c.m !== idm && c.jour === a.jour && a.deb < c.fin && a.fin > c.deb && matiere(c.m));
-      if (k >= 0) e = 'Ce créneau chevauche le créneau ' + (k + 1) + ' (' + dit(v[k]) + ').';
-      else if (c) e = 'Ce créneau chevauche ' + matiere(c.m).nom + ' (' + dit(c) + ').';
+      if (k >= 0) e = "Cet horaire chevauche l'horaire " + (k + 1) + ' (' + dit(v[k]) + ').';
+      else if (c) e = 'Cet horaire chevauche ' + matiere(c.m).nom + ' (' + dit(c) + ').';
     }
     a.erreur = e; if (e) ok = false;
     h.n.classList.toggle('faux', !!e); if (h.err.textContent !== e) h.err.textContent = e; h.err.hidden = !e;
@@ -3545,11 +3583,11 @@ $('form-matiere').addEventListener('submit', ev => {
   const {v, ok} = verifierHoraires();
   if (!ok){                                                            // un horaire ne va pas : on n'enregistre rien, et on montre lequel
     const i = v.findIndex(a => a.erreur), h = HORAIRES[i];
-    montrer('matiere-erreur', 'Le créneau ' + (i + 1) + ' est à corriger (en rouge) avant d\'enregistrer.');
+    montrer('matiere-erreur', "L'horaire " + (i + 1) + ' est à corriger (en rouge) avant d\'enregistrer.');
     h.n.scrollIntoView({behavior: calme ? 'auto' : 'smooth', block: 'nearest'}); (v[i].fin <= v[i].deb ? h.fin : h.deb).focus({preventScroll: true}); return;
   }
   const idm = matiereEditee ? matiereEditee.id : null;
-  if (CRENEAUX.filter(c => c.m !== idm).length + v.length > 120){ montrer('matiere-erreur', 'Ta semaine ne peut pas dépasser 120 cours : retire un créneau.'); return; }
+  if (CRENEAUX.filter(c => c.m !== idm).length + v.length > 120){ montrer('matiere-erreur', 'Ta semaine ne peut pas dépasser 120 cours : retire un horaire.'); return; }
   const val = {nom, c: couleurChoisie($('matiere-couleurs')), prof: texteSur($('matiere-prof').value, 24), salle: texteSur($('matiere-salle').value, 20)};
   const m = matiereEditee ? Object.assign(matiereEditee, val) : Object.assign({id: idLibre()}, val); if (!matiereEditee) MATIERES.push(m);
   // les horaires : on garde les créneaux encore affichés, on retire les autres, on modifie ceux qui ont changé, on crée les nouveaux
@@ -3574,6 +3612,16 @@ $('matiere-supprimer').addEventListener('click', () => {                // suppr
   majEcole(); if (touche) majAFaire();
 });
 $('ecole-nom').addEventListener('input', e => { ecoleNom = texteSur(e.target.value, 10); enregistrer('ecole'); });
+// Le nombre d'élèves de ta classe : chaque salle a autant de bureaux ; les autres personnages de la ville restent de simples habitants du quartier
+function majEleves(){
+  const n = NB_ELEVES, reste = ELEVES.length - n;
+  if (document.activeElement !== $('ecole-eleves')) $('ecole-eleves').value = n;
+  $('ecole-eleves-note').textContent = 'Chaque salle a ' + n + ' bureaux : un par élève.' + (reste > 0 ? ' Les ' + reste + ' autres habitants du quartier ne vont pas en cours.' : '') + ' Tu peux choisir de 2 à 48 élèves.';
+}
+$('ecole-eleves').addEventListener('change', e => {
+  const v = Math.round(+e.target.value); if (Number.isFinite(v) && e.target.value !== '') changerEleves(Math.min(48, Math.max(2, v)));
+  e.target.value = NB_ELEVES; majEleves(); enregistrer('ecole'); if (choisi) majFiche();
+});
 
 // --- l'assistant du premier lancement : « Ajoute ta première matière », puis « Place-la dans ta semaine » ---
 let etapeVue = 0;
@@ -3583,7 +3631,7 @@ function afficherAssistant(){
   const etape = MATIERES.length ? 2 : 1, m = MATIERES[0];
   $('as-etape').textContent = 'Étape ' + etape + ' sur 2';
   $('as-titre').textContent = etape === 1 ? 'Ajoute ta première matière' : 'Place-la dans ta semaine';
-  $('as-texte').textContent = etape === 1 ? "La ville attend ton emploi du temps pour se mettre en route. Commence par une matière : tu pourras en ajouter d'autres ensuite."
+  $('as-texte').textContent = etape === 1 ? "La ville attend ton emploi du temps pour se mettre en route, et ton école n'a pas encore de salle. Commence par une matière : sa salle se bâtira aussitôt. Tu pourras en ajouter d'autres ensuite."
     : 'Quel jour et à quelle heure as-tu « ' + m.nom + ' » ? Tu ajouteras tes autres cours dans l\'onglet Semaine.';
   $('as-form1').hidden = etape !== 1; $('as-form2').hidden = etape !== 2;
   if (etape === etapeVue) return; etapeVue = etape;                      // on ne remplit les champs qu'en arrivant sur l'étape, pas à chaque rafraîchissement
@@ -3974,7 +4022,7 @@ const NUAGE = {db: null, user: null, perms: null, base: '', abonnements: []};
 const DANS_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
 const nuage = () => COMPTE.mode === 'ligne' || COMPTE.mode === 'firebase';   // vrai quand les données du compte sont enregistrées en ligne
 const DOCS = {                                                         // les quatre « fiches » d'un compte, et ce que chacune contient
-  ecole:    () => ({matieres: MATIERES, creneaux: CRENEAUX, ecole: ecoleNom, assistant: assistantVu, drapeau}),
+  ecole:    () => ({matieres: MATIERES, creneaux: CRENEAUX, ecole: ecoleNom, assistant: assistantVu, drapeau, eleves: NB_ELEVES}),
   afaire:   () => ({rappels, taches}),
   presence: () => ({presences, pomo}),
   perso:    () => ({look, animal, animalNom, noms, boutique}),
@@ -4042,7 +4090,7 @@ function appliquer(doc, d){
     MATIERES = liste(d.matieres).map(m => ({id: idDe(m), nom: texteSur(m.nom, 40), c: typeof m.c === 'string' && COULEUR.test(m.c) ? m.c.toLowerCase() : PALETTE_MATIERES[0][0], prof: texteSur(m.prof, 24), salle: texteSur(m.salle, 20)})).filter(m => m.nom).slice(0, 40);
     CRENEAUX = liste(d.creneaux).map(c => ({id: idDe(c), jour: c.jour, deb: c.deb, fin: c.fin, m: c.m, salle: texteSur(c.salle, 20)}))
       .filter(c => Number.isInteger(c.jour) && c.jour >= 0 && c.jour <= 6 && Number.isInteger(c.deb) && Number.isInteger(c.fin) && c.deb >= 0 && c.fin <= 1440 && c.fin > c.deb && matiere(c.m)).slice(0, 120);
-    ecoleNom = texteSur(d.ecole, 10); assistantVu = d.assistant === true; drapeau = drapeauValide(d.drapeau);
+    ecoleNom = texteSur(d.ecole, 10); assistantVu = d.assistant === true; drapeau = drapeauValide(d.drapeau); changerEleves(d.eleves);   // (un nombre d'élèves absent ou incorrect : 48, comme avant)
     if (coursEdite) coursEdite = CRENEAUX.find(c => c.id === coursEdite.id) || null;                  // si un formulaire est ouvert, il doit continuer à modifier le bon cours
     if (matiereEditee) matiereEditee = MATIERES.find(m => m.id === matiereEditee.id) || null;
   } else if (doc === 'afaire'){
@@ -4067,7 +4115,7 @@ function appliquer(doc, d){
 // Après une connexion (ou un changement venu d'un autre appareil) : tout ce qui dépend des données est recalculé et réaffiché
 function toutAfficher(){
   Object.assign(ELEVES[0], look); habiller(); animalPermis(); DERNIERE_RACE[animal.espece] = animal.race;
-  $('moi-nom').value = look.nom; $('animal-nom').value = animalNom; $('ecole-nom').value = ecoleNom;
+  $('moi-nom').value = look.nom; $('animal-nom').value = animalNom; $('ecole-nom').value = ecoleNom; majEleves();
   majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo(); majBoutique(); majDrapeau(); majQualite(); majAmbiance();
   if (choisi === ELEVES[0]) majFiche(true);
 }
@@ -5418,6 +5466,28 @@ function dessinerAccueil(t){
   if (ent < 1){ g.globalAlpha = (1 - doux(ent * 1.5)) * .9; g.fillStyle = '#0d0820'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   ctx = garde;
 }
+
+// --- L'appli Android : un bouton pour la télécharger (sur la page de connexion, pour les téléphones Android ; et dans Réglages) ---
+// Le fichier campus-des-cours.apk est posé à côté de index.html, dans le dépôt campus-cours (il y est recopié tout seul à chaque nouvelle version de l'appli).
+// Le bouton n'apparaît que si le fichier est bien là, et jamais dans l'appli elle-même.
+const APK = 'https://tidianeirl-source.github.io/campus-cours/campus-des-cours.apk';
+const UA = navigator.userAgent || '', SUR_ANDROID = /Android/i.test(UA), DANS_APPLI = /CampusApp\//.test(UA), SUR_IPHONE = /iPhone|iPad|iPod/i.test(UA);
+(async function proposerAppli(){
+  if (DANS_APPLI) return;                                              // déjà dans l'appli : rien à proposer
+  let dispo = false;
+  if (!DANS_CLAUDE && location.hostname === 'tidianeirl-source.github.io'){
+    try { const r = await fetch(APK, {method: 'HEAD', cache: 'no-store'}); dispo = r.ok; } catch (e) {}
+  }
+  const note = $('apk-note');
+  if (dispo && SUR_ANDROID){
+    $('cx-apk').href = APK; $('cx-apk').hidden = false;
+    $('apk-lien').href = APK; $('apk-lien').hidden = false;
+    note.textContent = "Le campus comme une vraie appli, avec son icône. Après le téléchargement, ouvre le fichier : Android demande d'autoriser l'installation « depuis cette source » (normal, l'appli ne vient pas du Play Store), puis Installer.";
+  } else if (SUR_IPHONE) note.textContent = "L'appli n'existe que sur Android. Sur iPhone, ouvre ce site dans Safari, touche le bouton Partager, puis « Sur l'écran d'accueil » : le campus aura son icône.";
+  else if (dispo) note.textContent = "Ouvre ce site sur ton téléphone Android pour installer l'appli. Adresse du fichier : " + APK;
+  else return;
+  $('reglage-apk').hidden = false;
+})();
 
 /* ============ 18. LES DERNIERS BRANCHEMENTS, PUIS LE DÉMARRAGE ============ */
 ORDRE_JOURS.forEach(j => $('sim-jour').append(new Option(JOURS[j], j)));
