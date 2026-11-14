@@ -729,7 +729,7 @@ html.cine-ouvert .parole{left:auto;right:max(12px,env(safe-area-inset-right,0px)
       </div>
       <p class="note" id="ecole-eleves-note"></p>
       <datalist id="salles-connues"></datalist>
-      <p class="note">Au départ, ton école n'a aucune salle : elle grandit avec toi. Chaque matière que tu ajoutes fait bâtir sa classe (deux matières dans la même salle partagent la même). Après 8 classes, une nouvelle rangée se construit au nord de l'école ; si tu supprimes une matière, sa classe disparaît.</p>
+      <p class="note">Au départ, ton école n'a aucune salle : elle grandit avec toi. Chaque matière que tu ajoutes fait bâtir sa classe, même si plusieurs matières ont cours dans la même salle. Après 8 classes, une nouvelle rangée se construit au nord de l'école ; si tu supprimes une matière, sa classe disparaît.</p>
     </div>
     <div class="grille2">
       <div class="bloc">
@@ -1095,19 +1095,15 @@ const SALLES = [0, 1, 2, 3, 4, 5, 6, 7].map(nouvelleSalle);
 let NB_SALLES = 0, NORD = 0;                                            // combien de salles sont ouvertes (aucune tant qu'il n'y a pas de matière) · jusqu'où l'île monte au nord (0 au départ, −4,6 par rangée en plus)
 let SALLE_INDEX = {};                                                  // « b12 » → numéro de la salle dans la ville
 const cleSalle = (c, m) => { const n = ((c && c.salle) || (m && m.salle) || '').trim().toLowerCase(); return n || (m ? '#' + m.id : ''); };   // une matière sans salle a quand même la sienne
-// On distribue les salles : d'abord la salle habituelle de chaque matière, puis les salles particulières de certains cours.
-// Chaque salle différente a sa classe : l'école en bâtit autant qu'il en faut ; quand il y en a trop, elles disparaissent.
-// « expres » : c'est toi qui viens d'ajouter ou de retirer quelque chose (et non un compte qui s'ouvre) → la nouvelle salle aura son chantier.
+// Une classe par matière : chaque matière que tu ajoutes fait bâtir la sienne, même si plusieurs de tes cours ont lieu dans la même vraie salle
+// (la salle que tu as saisie reste écrite sur tes cours, dans l'onglet Jour et sur le bandeau du haut). Quand une matière est supprimée, sa classe disparaît.
+// « expres » : c'est toi qui viens d'ajouter ou de retirer quelque chose (et non un compte qui s'ouvre) → la nouvelle classe aura son chantier.
 function attribuerSalles(expres){
-  const cles = [], etiq = {}, voir = (k, nom) => { if (k && !cles.includes(k)){ cles.push(k); etiq[k] = nom; } };
-  MATIERES.forEach(m => voir(cleSalle(null, m), m.salle.trim()));
-  CRENEAUX.forEach(c => { const m = matiere(c.m); if (m) voir(cleSalle(c, m), (c.salle || m.salle).trim()); });
-  agrandirEcole(cles.length, expres);
+  agrandirEcole(MATIERES.length, expres);
   SALLE_INDEX = {}; SALLES.forEach(s => { s.nom = ''; s.c = SALLE_VIDE; s.matieres = []; });
-  cles.forEach((k, n) => { const s = SALLES[n]; SALLE_INDEX[k] = s.i; if (k[0] !== '#') s.nom = etiq[k]; });
-  MATIERES.forEach(m => { const s = SALLES[SALLE_INDEX[cleSalle(null, m)]]; s.matieres.push(m); if (s.matieres.length === 1) s.c = m.c; });
+  MATIERES.forEach((m, n) => { const s = SALLES[n]; SALLE_INDEX[m.id] = n; s.matieres.push(m); s.c = m.c; });
 }
-const salleDe = c => { const k = cleSalle(c, matiere(c.m)); return SALLES[k in SALLE_INDEX ? SALLE_INDEX[k] : 0]; };   // la salle (dans la ville) d'un cours
+const salleDe = c => SALLES[c && c.m in SALLE_INDEX ? SALLE_INDEX[c.m] : 0];   // la classe (dans la ville) d'un cours : celle de sa matière
 const ECOLE = {x: .6, y: .6, x1: 17.5, y1: 15.4};
 const COUR = {x: .6, y: 10.4, x1: 17.5, y1: 15.26};
 const SPORT = {x: 1.5, y: 11.05, w: 5.4, h: 3.5};
