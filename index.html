@@ -3375,7 +3375,7 @@ function majEcole(garde = true){
   indexerCours(); attribuerSalles(garde); _bulles = {}; signatureJour = '';
   afficherSemaine(); afficherMatieres(); listesMatieres(); afficherAssistant(); afficherPresence(); accorderFormulaires();
   if (garde) enregistrer('ecole');
-  panneau();
+  panneau(); envoyerWidget(false);                                    // (dans l'appli Android : le widget suit tes changements)
 }
 
 // --- les pastilles de couleur d'une matière (la dernière ouvre le nuancier) ---
@@ -4118,6 +4118,7 @@ function toutAfficher(){
   $('moi-nom').value = look.nom; $('animal-nom').value = animalNom; $('ecole-nom').value = ecoleNom; majEleves();
   majPerso(); textesAnimal(); majEcole(false); majAFaire(false); majCompte(); majPomo(); majBoutique(); majDrapeau(); majQualite(); majAmbiance();
   if (choisi === ELEVES[0]) majFiche(true);
+  setTimeout(() => envoyerWidget(true), 4000);                         // (dans l'appli Android : le widget reçoit tes cours et une première photo de la ville)
 }
 // La toute première fois, sur un appareil où l'ancienne version de la page a servi : on reprend ce qu'elle avait gardé (rappels, présence, prénoms, personnage, animal)
 function reprendreAncien(){
@@ -5488,6 +5489,30 @@ const UA = navigator.userAgent || '', SUR_ANDROID = /Android/i.test(UA), DANS_AP
   else return;
   $('reglage-apk').hidden = false;
 })();
+
+// --- Le widget de l'appli Android : quand le site tourne DANS l'appli, il lui envoie tes cours de la semaine et une petite photo de la ville ---
+// (l'appli les garde et affiche le prochain cours sur l'écran d'accueil ; dans un navigateur ordinaire, rien de tout ça ne se passe)
+const PONT = window.CampusApp && typeof window.CampusApp.majWidget === 'function' ? window.CampusApp : null;
+let widgetSig = '';
+function vignetteVille(){                                               // la ville telle qu'on la voit, réduite à 480 × 240 (recadrée au centre)
+  const W = 480, H = 240, s = document.createElement('canvas'); s.width = W; s.height = H;
+  const k = Math.max(W / cv.width, H / cv.height), w = W / k, h = H / k;
+  s.getContext('2d').drawImage(cv, (cv.width - w) / 2, (cv.height - h) / 2, w, h, 0, 0, W, H);
+  return s.toDataURL('image/png');
+}
+function envoyerWidget(avecImage){
+  if (!PONT || !COMPTE.id) return;
+  const cours = JSON.stringify(CRENEAUX.map(c => { const m = matiere(c.m); return m && {jour: c.jour, deb: c.deb, fin: c.fin, nom: m.nom, c: m.c, salle: nomSalle(c) || ''}; }).filter(Boolean));
+  let image = '';
+  if (avecImage && pret && cv.width > 0){ try { image = vignetteVille(); } catch (e) {} }
+  if (cours === widgetSig && !image) return;
+  widgetSig = cours;
+  try { PONT.majWidget(cours, image); } catch (e) {}
+}
+if (PONT){
+  setInterval(() => envoyerWidget(true), 5 * 60000);                   // toutes les 5 minutes, une photo récente de la ville
+  document.addEventListener('visibilitychange', () => { if (document.hidden) envoyerWidget(true); });   // et quand tu quittes l'appli
+}
 
 /* ============ 18. LES DERNIERS BRANCHEMENTS, PUIS LE DÉMARRAGE ============ */
 ORDRE_JOURS.forEach(j => $('sim-jour').append(new Option(JOURS[j], j)));
